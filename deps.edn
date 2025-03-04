@@ -1,0 +1,97 @@
+{:paths ["src" "resources" "target"]
+
+ :deps {babashka/fs {:mvn/version "0.5.24"}
+        babashka/process {:mvn/version "0.5.22"}
+        borkdude/rewrite-edn {:mvn/version "0.4.9"}
+        buddy/buddy-auth {:mvn/version "3.0.323"}
+        buddy/buddy-hashers {:mvn/version "2.0.167"}
+        com.cognitect/transit-clj {:mvn/version "1.0.333"}
+        com.github.seancorfield/honeysql {:mvn/version "2.6.1270"}
+        com.github.seancorfield/next.jdbc {:mvn/version "1.3.994"}
+        danlentz/clj-uuid {:mvn/version "0.2.0"}
+        hiccup/hiccup {:mvn/version "2.0.0-RC4"}
+        info.sunng/ring-jetty9-adapter {:mvn/version "0.36.1"}
+        io.github.rads/inflections {:mvn/version "0.14.2-1"}
+        io.github.rads/migrate {:mvn/version "0.0.1"}
+        markdown-clj/markdown-clj {:mvn/version "1.12.3"}
+        medley/medley {:mvn/version "1.4.0"}
+        metosin/muuntaja {:mvn/version "0.6.11"}
+        metosin/reitit-core {:mvn/version "0.7.2"}
+        metosin/reitit-middleware {:mvn/version "0.7.2"}
+        metosin/reitit-ring {:mvn/version "0.7.2"}
+        nrepl/nrepl {:mvn/version "1.3.1"}
+        org.babashka/cli {:mvn/version "0.8.62"}
+        org.babashka/http-client {:mvn/version "0.4.22"}
+        org.babashka/json {:mvn/version "0.1.6"
+                           :exclusions [org.clojure/data.json]}
+        org.clojure/clojure {:mvn/version "1.12.0"}
+        org.clojure/tools.logging {:mvn/version "1.3.0"}
+        org.slf4j/slf4j-simple {:mvn/version "2.0.17"}
+        org.xerial/sqlite-jdbc {:mvn/version "3.49.1.0"}
+        rewrite-clj/rewrite-clj {:mvn/version "1.1.49"}
+        ring/ring-core {:mvn/version "1.13.0"}
+        ring/ring-defaults {:mvn/version "0.6.0"}
+        version-clj/version-clj {:mvn/version "2.0.3"}}
+
+ :aliases
+ {:neil
+  {:project {:version "0.0.1-SNAPSHOT"
+             :name dev.rpub/rpub}}
+
+  :flowstorm
+  {:extra-deps {com.github.flow-storm/flow-storm-inst {:mvn/version "4.2.0"}}}
+
+  :build
+  {:deps {io.github.clojure/tools.build {:mvn/version "0.10.7"}}
+   :ns-default build}
+
+  :deploy
+  {:extra-deps {slipset/deps-deploy {:mvn/version "0.2.2"}}
+   :exec-fn deps-deploy.deps-deploy/deploy
+   :exec-args {:installer :remote
+               :sign-releases? true
+               :pom-file "target/classes/META-INF/maven/dev.rpub/rpub/pom.xml"
+               :artifact "target/rpub-0.0.1-SNAPSHOT.jar"}}
+
+  :install
+  {:extra-deps {slipset/deps-deploy {:mvn/version "0.2.2"}}
+   :exec-fn deps-deploy.deps-deploy/deploy
+   :exec-args {:installer :local
+               :pom-file "target/classes/META-INF/maven/dev.rpub/rpub/pom.xml"
+               :artifact "target/rpub-0.0.1-SNAPSHOT.jar"}}
+
+  :common
+  {:jvm-opts ["-Dbabashka.json.provider=metosin/jsonista"]}
+
+  :app
+  {:replace-paths []
+   :replace-deps {dev.rpub/app {:local/root "data"}}
+   :main-opts ["-m" "app"]}
+
+  :default-plugins
+  {:extra-deps {dev.rpub/plugins.external-editing
+                {:git/url "https://git.rads.tools/rpub-clj/plugins.git"
+                 :git/sha "214d17875ca25bae8531528aa3fd99e741983dad"
+                 :deps/root "plugins/external-editing"}
+
+                dev.rpub/plugins.starter-theme
+                {:git/url "https://git.rads.tools/rpub-clj/plugins.git"
+                 :git/sha "214d17875ca25bae8531528aa3fd99e741983dad"
+                 :deps/root "plugins/starter-theme"}}}
+
+  :dev
+  {:extra-deps {metosin/reitit-dev {:mvn/version "0.7.2"}
+                prone/prone {:mvn/version "2021-04-23"}}}
+
+  :test
+  {:extra-paths ["test"]
+   :extra-deps {etaoin/etaoin
+                {:mvn/version "1.1.42"}
+
+                io.github.cognitect-labs/test-runner
+                {:git/tag "v0.5.1" :git/sha "dfb30dd"}}
+   :main-opts ["-m" "cognitect.test-runner"]
+   :exec-fn cognitect.test-runner.api/test}
+
+  :prod
+  {}}}

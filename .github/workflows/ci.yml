@@ -1,0 +1,83 @@
+name: CI
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+jobs:
+  clj-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - uses: DeLaGuardo/setup-clojure@13.1
+        with:
+          cli: 1.12.0.1517
+          bb: 1.12.197
+
+      - uses: browser-actions/setup-geckodriver@latest
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.11.0
+
+      - run: npm ci
+      - run: bb prod:css
+      - run: bb prod:cljs
+
+      - uses: actions/cache@v4
+        with:
+          path:
+            ~/.m2/repository
+            ~/.gitlibs
+            ~/.deps.clj
+          key: cljdeps-${{ hashFiles('deps.edn') }}
+          restore-keys: cljdeps-
+
+      - run: bb test --exclude :docker
+
+  docker-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - uses: DeLaGuardo/setup-clojure@13.1
+        with:
+          cli: 1.12.0.1517
+          bb: 1.12.197
+
+      - uses: browser-actions/setup-geckodriver@latest
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.11.0
+
+      - run: npm ci
+      - run: bb prod:css
+      - run: bb prod:cljs
+      - run: bb docker:build --platform linux/amd64
+
+      - uses: actions/cache@v4
+        with:
+          path:
+            ~/.m2/repository
+            ~/.gitlibs
+            ~/.deps.clj
+          key: cljdeps-${{ hashFiles('deps.edn') }}
+          restore-keys: cljdeps-
+
+      - run: bb test --include :docker

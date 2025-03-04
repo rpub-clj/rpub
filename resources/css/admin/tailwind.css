@@ -1,0 +1,14 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    @apply min-h-full;
+  }
+
+  body {
+    @apply font-app-sans font-medium;
+    @apply bg-gray-50;
+  }
+}
