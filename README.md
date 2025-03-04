@@ -13,7 +13,7 @@
 
 ## Features
 
-**[See the rPub announcement post for more details.](https://staging.radsmith.com/rpub)**
+**[See the rPub announcement post for more details.](https://radsmith.com/rpub)**
 
 - Designed to be easy to set up and use with no coding required
 - Includes an admin UI to manage content and settings

@@ -186,7 +186,7 @@
   (let [plugin-name (repo-plugin-suffix plugin)
         neil-opts {:deps-file (deps-path)
                    :lib (->plugin-lib-sym plugin)
-                   :git/url "https://git.rads.tools/rpub-clj/plugins.git"
+                   :git/url "https://github.com/rpub-clj/plugins.git"
                    :sha (:sha plugin)
                    :deps/root (str "plugins/" plugin-name)}]
     (log/info (dep-add {:opts neil-opts}))))
