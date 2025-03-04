@@ -256,8 +256,9 @@
    [:path {:fill-rule "evenodd" :d "M9.657 15.874 7.358 13H5a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-4a2 2 0 0 0-2-2h-2.358l-2.3 2.874a3 3 0 0 1-4.685 0ZM17 16a1 1 0 1 0 0 2h.01a1 1 0 1 0 0-2H17Z" :clip-rule "evenodd"}]])
 
 (defn- plugin-url [plugin]
-  (str "https://github.com/rpub-clj/plugins/tree/main/plugins/"
-       (last (str/split (:key plugin) #"\."))))
+  (let [[plugin-ns] (str/split (:key plugin) #"/")
+        suffix (last (str/split plugin-ns #"\."))]
+    (str "https://github.com/rpub-clj/plugins/tree/main/plugins/" suffix)))
 
 (defn- active-plugin-button [{:keys [on-click]}]
   (let [[hover set-hover] (useState false)]
