@@ -35,7 +35,7 @@
 
  :aliases
  {:neil
-  {:project {:version "0.0.1-SNAPSHOT"
+  {:project {:version "0.1.0"
              :name dev.rpub/rpub}}
 
   :flowstorm
@@ -51,14 +51,14 @@
    :exec-args {:installer :remote
                :sign-releases? true
                :pom-file "target/classes/META-INF/maven/dev.rpub/rpub/pom.xml"
-               :artifact "target/rpub-0.0.1-SNAPSHOT.jar"}}
+               :artifact "target/rpub-0.1.0.jar"}}
 
   :install
   {:extra-deps {slipset/deps-deploy {:mvn/version "0.2.2"}}
    :exec-fn deps-deploy.deps-deploy/deploy
    :exec-args {:installer :local
                :pom-file "target/classes/META-INF/maven/dev.rpub/rpub/pom.xml"
-               :artifact "target/rpub-0.0.1-SNAPSHOT.jar"}}
+               :artifact "target/rpub-0.1.0.jar"}}
 
   :common
   {:jvm-opts ["-Dbabashka.json.provider=metosin/jsonista"]}

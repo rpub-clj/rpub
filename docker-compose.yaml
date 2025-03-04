@@ -1,6 +1,6 @@
 services:
   rpub:
-    image: rpub/rpub:0.0.1-SNAPSHOT
+    image: rpub/rpub:0.1.0
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "bb", "-e", "(slurp \"http://localhost:3000\")"]
