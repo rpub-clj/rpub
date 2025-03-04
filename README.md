@@ -1,6 +1,6 @@
 # rPub
 
-[![stability-experimental](https://img.shields.io/badge/stability-experimental-orange.svg)](https://github.com/mkenney/software-guides/blob/d2f4891d1fe214ff6abfb0569e082d5c6eef99dd/STABILITY-BADGES.md#experimental)
+[![stability-alpha](https://img.shields.io/badge/stability-alpha-f4d03f.svg)](https://github.com/mkenney/software-guides/blob/master/STABILITY-BADGES.md#alpha)
 [![Docker Image Version](https://img.shields.io/docker/v/rpub/rpub?label=docker)](https://hub.docker.com/r/rpub/rpub)
 [![Clojars](https://img.shields.io/clojars/v/dev.rpub%2Frpub)](https://clojars.org/dev.rpub/rpub)
 [![project chat](https://img.shields.io/badge/slack-join_chat-brightgreen.svg)](https://clojurians.slack.com/archives/C07QM1N21SP)
