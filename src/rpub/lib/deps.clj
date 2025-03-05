@@ -134,7 +134,7 @@
                   path)
         edn-nodes (if (r/get-in edn-nodes nl-path)
                     ;; if this dep already exists, don't touch it.
-                    ;; We risk loosing :exclusions and other properties.
+                    ;; We risk losing :exclusions and other properties.
                     edn-nodes
                     ;; otherwise, force newlines!
                     ;; force newline in
