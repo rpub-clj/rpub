@@ -1,9 +1,9 @@
 # rPub
 
 [![stability-alpha](https://img.shields.io/badge/stability-alpha-f4d03f.svg)](https://github.com/mkenney/software-guides/blob/master/STABILITY-BADGES.md#alpha)
-[![Docker Image Version](https://img.shields.io/docker/v/rpub/rpub?label=docker)](https://hub.docker.com/r/rpub/rpub)
-[![Clojars](https://img.shields.io/clojars/v/dev.rpub%2Frpub)](https://clojars.org/dev.rpub/rpub)
-[![project chat](https://img.shields.io/badge/slack-join_chat-brightgreen.svg)](https://clojurians.slack.com/archives/C07QM1N21SP)
+[![Docker](https://img.shields.io/badge/docker-0.1.0-blue)](https://hub.docker.com/r/rpub/rpub)
+[![Clojars](https://img.shields.io/badge/clojars-dev.rpub%2Frpub%200.1.0-blue)](https://clojars.org/dev.rpub/rpub)
+[![Slack](https://img.shields.io/badge/slack-join_chat-orange.svg)](https://clojurians.slack.com/archives/C07QM1N21SP)
 
 **A free open-source CMS written in Clojure.**
 
