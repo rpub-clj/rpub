@@ -85,7 +85,6 @@
     :or {platform "linux/amd64,linux/arm64"}}]
   (p/shell "docker build"
            "-t" (format "rpub/rpub:%s" @version)
-           "--build-arg" (format "RPUB_MVN_VERSION=\"%s\"" @version)
            "--platform" platform
            "."))
 
