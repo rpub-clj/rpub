@@ -35,7 +35,7 @@
 
  :aliases
  {:neil
-  {:project {:version "0.1.0"
+  {:project {:version "0.1.1-SNAPSHOT"
              :name dev.rpub/rpub}}
 
   :flowstorm
@@ -45,20 +45,9 @@
   {:deps {io.github.clojure/tools.build {:mvn/version "0.10.7"}}
    :ns-default build}
 
-  :deploy
+  :deps-deploy
   {:extra-deps {slipset/deps-deploy {:mvn/version "0.2.2"}}
-   :exec-fn deps-deploy.deps-deploy/deploy
-   :exec-args {:installer :remote
-               :sign-releases? true
-               :pom-file "target/classes/META-INF/maven/dev.rpub/rpub/pom.xml"
-               :artifact "target/rpub-0.1.0.jar"}}
-
-  :install
-  {:extra-deps {slipset/deps-deploy {:mvn/version "0.2.2"}}
-   :exec-fn deps-deploy.deps-deploy/deploy
-   :exec-args {:installer :local
-               :pom-file "target/classes/META-INF/maven/dev.rpub/rpub/pom.xml"
-               :artifact "target/rpub-0.1.0.jar"}}
+   :ns-default rpub.dev.tasks.deploy}
 
   :common
   {:jvm-opts ["-Dbabashka.json.provider=metosin/jsonista"]}
@@ -80,16 +69,16 @@
                  :deps/root "plugins/starter-theme"}}}
 
   :dev
-  {:extra-deps {metosin/reitit-dev {:mvn/version "0.7.2"}
+  {:extra-paths ["dev"]
+   :extra-deps {metosin/reitit-dev {:mvn/version "0.7.2"}
                 prone/prone {:mvn/version "2021-04-23"}}}
 
   :test
   {:extra-paths ["test"]
-   :extra-deps {etaoin/etaoin
-                {:mvn/version "1.1.42"}
-
-                io.github.cognitect-labs/test-runner
-                {:git/tag "v0.5.1" :git/sha "dfb30dd"}}
+   :extra-deps {clj-commons/clj-yaml {:mvn/version "1.0.29"}
+                etaoin/etaoin {:mvn/version "1.1.42"}
+                io.github.cognitect-labs/test-runner {:git/tag "v0.5.1"
+                                                      :git/sha "dfb30dd"}}
    :main-opts ["-m" "cognitect.test-runner"]
    :exec-fn cognitect.test-runner.api/test}
 

@@ -164,7 +164,7 @@ Tasks for rPub projects (compatible with Babashka).
 
 
 
-## <a name="rpub.tasks/supervisor">`supervisor`</a> [:page_facing_up:](/blob/main/src/rpub/tasks.clj#L35-L56)
+## <a name="rpub.tasks/supervisor">`supervisor`</a> [:page_facing_up:](/blob/main/src/rpub/tasks.clj#L31-L52)
 <a name="rpub.tasks/supervisor"></a>
 ``` clojure
 

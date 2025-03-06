@@ -1,5 +1,6 @@
-{:deps {dev.rpub/rpub {:local/root "."}}
- :tasks {:requires ([rpub.tasks :as tasks])
+{:paths ["dev"]
+ :deps {dev.rpub/rpub {:local/root "."}}
+ :tasks {:requires ([rpub.dev.tasks :as tasks])
          prod (tasks/supervisor)
          prod:css (tasks/prod-admin-css)
          prod:cljs (tasks/prod-cljs)
@@ -8,14 +9,22 @@
          dev:main (tasks/dev)
          dev:css (tasks/dev-admin-css)
          dev:cljs (tasks/dev-cljs)
-         test (exec 'rpub.tasks/test)
-         flowstorm (exec 'rpub.tasks/flowstorm)
+         test (exec 'rpub.dev.tasks/test)
+         flowstorm (exec 'rpub.dev.tasks/flowstorm)
          jar (shell "clojure -T:build jar")
          install {:depends [jar]
-                  :task (shell "clojure -T:install")}
+                  :task (exec 'rpub.dev.tasks/install)}
          deploy {:depends [jar]
-                 :task (shell "clojure -T:deploy")}
-         docker:build {:depends [jar]
-                       :task (exec 'rpub.tasks/docker-build)}
-         docker:push (exec 'rpub.tasks/docker-push)
+                 :task (exec 'rpub.dev.tasks/deploy)}
+         -docker:dockerfile-template "Dockerfile.template"
+         docker:dockerfile {:depends [-docker:dockerfile-template]
+                            :task (exec 'rpub.dev.tasks/docker-dockerfile)}
+         -docker:compose-config-template "docker-compose.template.yaml"
+         docker:compose-config {:depends [-docker:compose-config-template]
+                                :task (exec 'rpub.dev.tasks/docker-compose-config)}
+         docker:build {:depends [jar
+                                 docker:dockerfile
+                                 docker:compose-config]
+                       :task (exec 'rpub.dev.tasks/docker-build)}
+         docker:push (exec 'rpub.dev.tasks/docker-push)
          docker:release (do (run 'docker:build) (run 'docker:push))}}
