@@ -44,7 +44,7 @@ docker compose up -d
 
 ```shell
 mkdir rpub && cd rpub
-bb -Sdeps '{:deps {dev.rpub/rpub {:mvn/version "0.1.0"}}}' -M -m rpub.tasks/supervisor --mvn/version 0.1.0
+bb -Sdeps '{:deps {dev.rpub/rpub {:mvn/version "0.1.0"}}}' -m rpub.tasks/supervisor --mvn/version 0.1.0
 ```
 
 ### Library
