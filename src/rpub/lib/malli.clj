@@ -6,4 +6,4 @@
 (defn start-dev! [& {:as opts}]
   ((requiring-resolve 'malli.dev/start!)
    (cond-> opts
-     (not (:reporter opts)) (assoc :reporter (pretty-reporter)))))
+     (not (:report opts)) (assoc :report (pretty-reporter)))))
