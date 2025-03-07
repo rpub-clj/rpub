@@ -12,6 +12,12 @@
           {}
           (js/Object.entries js-props)))
 
+(declare as-element)
+
+(defn Adapter [js-props]
+  (let [clj-props (-> (->clj-props js-props) (dissoc :__el))]
+    (as-element ((.-__el js-props) clj-props))))
+
 (defn as-element [form]
   (cond
     (string? form) form
@@ -25,14 +31,16 @@
 
     (vector? form)
     (let [{:keys [el attrs children]} (parse-element form)
-          el' (cond
-                (keyword? el) (name el)
-                (fn? el) (fn [js-props]
-                           (let [clj-props (->clj-props js-props)]
-                             (as-element (el clj-props)))))
-          attrs' (some-> attrs as-element)
           children' (into-array (map as-element children))]
-      (react/createElement el' attrs' children'))
+      (cond
+        (keyword? el) (react/createElement
+                        (name el)
+                        (some-> attrs as-element)
+                        children')
+        (fn? el) (react/createElement
+                   Adapter
+                   (as-element (assoc attrs :__el el))
+                   children')))
 
     (sequential? form)
     (into-array (map as-element form))
