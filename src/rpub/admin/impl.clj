@@ -333,9 +333,16 @@
           (js-manifest->import-map (read-js-manifest)))})
 
 (defn- wrap-import-map [handler]
-  (let [import-map (load-import-map)]
-    (fn [req]
-      (let [req' (assoc req :import-map import-map)]
+  (let [cached-import-map (atom nil)]
+    (fn [{:keys [reload] :as req}]
+      (let [import-map (if reload
+                         (load-import-map)
+                         (do
+                           (when-not @cached-import-map
+                             (let [v (load-import-map)]
+                               (compare-and-set! cached-import-map nil v)))
+                           @cached-import-map))
+            req' (assoc req :import-map import-map)]
         (handler req')))))
 
 (defn- csp-extra-script-src [{:keys [import-map] :as _req}]
