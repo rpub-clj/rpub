@@ -1,12 +1,14 @@
 (ns rpub.test-util
   (:require [babashka.fs :as fs]
-            [clojure.string :as str]
             [clojure.tools.logging :as log]
             [etaoin.api :as e]
+            [rpub.lib.malli :as malli]
             [rpub.main :as main]
             [rpub.plugins.external-editing]
             [rpub.plugins.starter-theme])
   (:import (java.net ServerSocket)))
+
+(malli/start-dev!)
 
 (def ^:dynamic *etaoin-opts*
   {:type :firefox

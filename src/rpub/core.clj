@@ -4,12 +4,14 @@
             [buddy.core.nonce :as nonce]
             [clojure.tools.logging :as log]
             [clojure.tools.logging.readable :as logr]
+            [malli.core :as m]
+            [malli.util :as mu]
             [medley.core :as medley]
-            [muuntaja.core :as m]
+            [muuntaja.core :as muuntaja]
             [reitit.exception :as exception]
             [reitit.ring :as reitit-ring]
-            [reitit.ring.middleware.muuntaja :as muuntaja]
-            [reitit.ring.middleware.parameters :as parameters]
+            [reitit.ring.middleware.muuntaja :as reitit-muuntaja]
+            [reitit.ring.middleware.parameters :as reitit-parameters]
             [ring.adapter.jetty9 :as jetty]
             [rpub.admin :as admin]
             [rpub.api :as api]
@@ -126,20 +128,60 @@
     (assoc $ :config (get-config $))
     (assoc $ :plugins (init-plugins $))))
 
+(def SettingMap
+  "Malli schema for a setting."
+  [:map
+   [:key :keyword]
+   [:value :string]])
+
 (defn get-settings
   "Get a sequence of settings."
   [model opts]
   (model/get-settings model opts))
+
+(m/=> get-settings
+      [:=> [:catn
+            [:model [:fn #(satisfies? model/Model %)]]
+            [:opts [:map
+                    [:keys {:optional true}
+                     [:seqable (mu/get SettingMap :key)]]]]]
+       [:seqable #'SettingMap]])
+
+(def UserMap
+  "Malli schema for a user."
+  [:map
+   [:id :uuid]
+   [:username :string]
+   [:password-hash :string]])
 
 (defn get-users
   "Get a sequence of users."
   [model opts]
   (model/get-users model opts))
 
+(m/=> get-users
+      [:=> [:catn
+            [:model [:fn #(satisfies? model/Model %)]]
+            [:opts [:map
+                    [:ids {:optional true}
+                     [:seqable (mu/get UserMap :id)]]
+                    [:usernames {:optional true}
+                     [:seqable (mu/get UserMap :username)]]
+                    [:password {:optional true}
+                     :boolean]]]]
+       [:seqable #'UserMap]])
+
 (defn url-for
   "Get a URL for a content item."
   [content-item req]
   (app/url-for content-item req))
+
+(def ContentTypeMap
+  "Malli schema for a content type."
+  [:map
+   [:id :uuid]
+   [:slug :keyword]
+   [:fields [:map-of :string :any]]])
 
 (defn get-content-types
   "Get a sequence of content types."
@@ -147,11 +189,43 @@
   (let [content-types-model (or (:content-types-model model) model)]
     (content-types/get-content-types content-types-model opts)))
 
+(m/=> get-content-types
+      [:=> [:catn
+            [:model [:fn #(satisfies? model/Model %)]]
+            [:opts [:map
+                    [:content-type-ids {:optional true}
+                     [:seqable (mu/get ContentTypeMap :id)]]
+                    [:content-type-slugs {:optional true}
+                     [:seqable (mu/get ContentTypeMap :slug)]]
+                    [:count-items {:optional true}
+                     :boolean]]]]
+       [:seqable #'ContentTypeMap]])
+
+(def ContentItemMap
+  "Malli schema for a content item."
+  [:map
+   [:id :uuid]
+   [:fields [:map-of :string :any]]])
+
 (defn get-content-items
   "Get a sequence of content items."
   [model opts]
   (let [content-types-model (or (:content-types-model model) model)]
     (content-types/get-content-items content-types-model opts)))
+
+(m/=> get-content-items
+      [:=> [:catn
+            [:model [:fn #(satisfies? model/Model %)]]
+            [:opts [:map
+                    [:content-type-ids {:optional true}
+                     [:seqable (mu/get ContentTypeMap :id)]]
+                    [:content-type-slugs {:optional true}
+                     [:seqable (mu/get ContentTypeMap :slug)]]
+                    [:content-item-ids {:optional true}
+                     [:seqable (mu/get ContentItemMap :id)]]
+                    [:content-item-slugs {:optional true}
+                     [:seqable :string]]]]]
+       [:seqable #'ContentItemMap]])
 
 (defn- ->app-handler [opts]
   (let [opts' (init-opts opts)]
@@ -162,9 +236,9 @@
                 (plugin-routes opts')
                 (app/routes opts'))
         {:conflicts handle-conflicts
-         :data {:muuntaja m/instance
-                :middleware [parameters/parameters-middleware
-                             muuntaja/format-middleware
+         :data {:muuntaja muuntaja/instance
+                :middleware [reitit-parameters/parameters-middleware
+                             reitit-muuntaja/format-middleware
                              [wrap-rpub opts']
                              db/wrap-db-transaction]}})
       (reitit-ring/routes
@@ -194,9 +268,9 @@
          ["*path" {:get (constantly nil)
                    :middleware [[app/wrap-default-handlers not-found-opts]]}]]
         {:conflicts handle-conflicts
-         :data {:muuntaja m/instance
-                :middleware [parameters/parameters-middleware
-                             muuntaja/format-middleware
+         :data {:muuntaja muuntaja/instance
+                :middleware [reitit-parameters/parameters-middleware
+                             reitit-muuntaja/format-middleware
                              [wrap-setup opts']]}})
       (reitit-ring/routes
         (reitit-ring/redirect-trailing-slash-handler {:method :strip})

@@ -9,6 +9,7 @@
             [rpub.api]
             [rpub.app]
             [rpub.core :as rpub]
+            [rpub.lib.malli :as malli]
             [rpub.model.sqlite]
             [rpub.plugins.content-types]))
 
@@ -39,26 +40,40 @@
   current-system
   (atom nil))
 
+(def repl-defaults
+  "The default options for the REPL."
+  {:repl true
+   :repl-bind "0.0.0.0"
+   :repl-port 7888
+   :repl-flow-storm-middleware false})
+
+(defn- flow-storm-middleware []
+  (requiring-resolve 'flow-storm.nrepl.middleware/wrap-flow-storm))
+
 (defn- start-repl! [opts]
   (let [nrepl-cli-opts (-> (select-keys opts [:repl-port :repl-bind])
                            (set/rename-keys {:repl-port :port
                                              :repl-bind :bind}))
-        repl-opts (nrepl/server-opts nrepl-cli-opts)
+        nrepl-cli-opts' (cond-> nrepl-cli-opts
+                          (:repl-flow-storm-middleware opts)
+                          (assoc :middleware [(flow-storm-middleware)]))
+        repl-opts (nrepl/server-opts nrepl-cli-opts')
         repl-server (nrepl/start-server repl-opts)]
     (nrepl/ack-server repl-server repl-opts)
     (nrepl/save-port-file repl-server repl-opts)
     (log/info (nrepl/server-started-message repl-server repl-opts))))
 
-(def repl-defaults
-  "The default options for the REPL."
-  {:repl true
-   :repl-bind "0.0.0.0"
-   :repl-port 7888})
+(def malli-dev-defaults
+  "The default options for Malli dev instrumentation."
+  {:malli-dev false})
 
 (defn start!
   "Start the rPub server and an optional REPL.
 
-  The REPL is enabled by default (see `rpub.main/repl-defaults`)."
+  The REPL is enabled by default (see `rpub.main/repl-defaults`).
+
+  Malli dev instrumentation is disabled by default
+  (see `rpub.main/malli-dev-defaults`)."
   [& {:as opts}]
   (let [opts' (merge (cli/parse-opts *command-line-args*) opts)]
     (print-banner)
@@ -66,6 +81,9 @@
     (let [repl-opts (merge repl-defaults opts')]
       (when (:repl repl-opts)
         (start-repl! repl-opts)))
+    (let [malli-dev-opts (merge malli-dev-defaults opts')]
+      (when (:malli-dev malli-dev-opts)
+        (malli/start-dev! malli-dev-opts)))
     (reset! current-system (rpub/start! opts'))))
 
 (defn stop!

@@ -1,7 +1,8 @@
 (ns rpub.core-test
   (:require [clojure.test :refer [deftest is]]
             [rpub.core :as rpub]
-            [rpub.lib.permalinks :as permalinks]))
+            [rpub.lib.permalinks :as permalinks]
+            [rpub.test-util]))
 
 (deftest url-for-test
   (let [req {:permalink-router (permalinks/default-permalink-router)

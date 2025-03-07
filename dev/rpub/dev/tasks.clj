@@ -16,9 +16,11 @@
       (let [app (apply p/shell
                        "clojure -M:user:common:dev:test:app"
                        "--reload"
+                       "--malli-dev"
                        "--no-content-security-policy"
                        "--no-error-page"
                        "--repl-port" "0"
+                       "--repl-flow-storm-middleware"
                        *command-line-args*)]
         (when (zero? (:exit app))
           (recur))))))
