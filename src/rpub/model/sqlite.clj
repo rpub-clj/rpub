@@ -190,9 +190,10 @@
     (db/execute-one! ds {:insert-into users-table
                          :values [(user->row user)]}))
 
-  (get-settings [_ {:keys [keys]}]
-    (let [constraints (cond-> []
-                        keys (conj [:in :key (map str keys)]))
+  (get-settings [_ opts]
+    (let [ks (get opts :keys)
+          constraints (cond-> []
+                        ks (conj [:in :key (map str ks)]))
           sql (cond-> {:select [:*] :from settings-table}
                 (seq constraints) (assoc :where (sql-or constraints)))]
       (->> (db/execute! ds sql)
@@ -206,7 +207,7 @@
     (db/execute-one! ds {:insert-into settings-table
                          :values [(setting->row setting)]
                          :on-conflict :id
-                         :do-update-set [:value]}))
+                         :do-update-set [:value :updated-by :updated-at]}))
 
   (get-plugins [_ {:keys [keys]}]
     (let [constraints (cond-> []

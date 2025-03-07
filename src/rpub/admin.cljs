@@ -8,6 +8,11 @@
             [rpub.lib.reagent :as r]
             [rpub.plugins.content-types]))
 
+(defn- index-by [f coll]
+  (->> coll
+       (map (fn [v] [(f v) v]))
+       (into {})))
+
 (defn- dashboard-content-types [{:keys [content-types]}]
   [:div {:class "w-full md:w-1/2 md:px-2 mb-4"
          :data-test-id "dashboard-content-types"}
@@ -133,38 +138,48 @@
 
 (html/add-element :dashboard-page (r/reactify-component dashboard-page))
 
-(defn- settings-page [{:keys [anti-forgery-token] :as props}]
-  (let [[state] (useState (merge {:form-values {}}
-                                 (select-keys props [:settings])))
+(defn- settings-page [{:keys [anti-forgery-token settings] :as props}]
+  (let [[state set-state] (useState {:settings-index (index-by :key settings)
+                                     :submitting false})
         http-opts {:anti-forgery-token anti-forgery-token}
-        update-setting (fn [setting-key]
-                         (html/debounce
-                           (fn [e]
-                             (println e)
-                             (let [value (-> e .-target .-value)
-                                   http-opts' (assoc http-opts :body {:setting-key (str (keyword setting-key))
-                                                                      :setting-value value})]
-                               (http/post "/api/update-setting" http-opts')))
-                           html/default-debounce-timeout-ms))
-        submit-form (fn [e] (.preventDefault e))
-        {:keys [settings]} state]
+        update-setting (fn [setting-key e]
+                         (let [value (-> e .-target .-value)]
+                           (set-state #(assoc-in % [:settings-index setting-key :value] value))))
+        {:keys [settings-index submitting]} state
+        submit-form (fn [e]
+                      (.preventDefault e)
+                      (set-state (assoc state :submitting true))
+                      (let [on-complete (fn [_ err]
+                                          (if err
+                                            (set-state (assoc state :submitting false))
+                                            (.reload (.-location js/window))))
+                            http-opts' (merge http-opts {:body {:settings (vals settings-index)}
+                                                         :on-complete on-complete})]
+                        (http/post "/api/update-settings" http-opts')))]
     [:div {:class "p-4"}
      [admin-impl/box
       {:title "Settings"
        :content
        [:section {:class "bg-white dark:bg-gray-900"}
         [:div {:class "max-w-2xl"}
-         [:form {:on-submit submit-form}
+         [:form {:onSubmit submit-form}
           [:div {:class "grid gap-4 sm:grid-cols-2 sm:gap-6"}
-           (for [{:keys [key label value]} (sort-by :label settings)]
-             [:div {:class "sm:col-span-2"}
+           (for [setting (sort-by :label (vals settings-index))]
+             [:div {:key (:key setting) :class "sm:col-span-2"}
               [:label {:class "block mb-2 text-sm font-semibold text-gray-900 dark:text-white" :for "name"}
-               label]
-              [html/input
+               (:label setting)]
+              [html/input2
                {:type :text
-                :name key
-                :default-value value
-                :on-change (update-setting key)}]])]]]]}]]))
+                :name (:key setting)
+                :value (:value setting)
+                :on-change #(update-setting (:key setting) %)}]])
+           [:button
+            {:type :submit
+             :class "w-[120px] text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
+             :disabled submitting}
+            (if submitting
+              [:span [html/spinner] "Saving"]
+              "Save")]]]]]}]]))
 
 (html/add-element :settings-page (r/reactify-component settings-page))
 
@@ -191,11 +206,6 @@
   [:svg {:class "w-8 h-8 text-gray-500 dark:text-white mr-4" :aria-hidden "true" :xmlns "http://www.w3.org/2000/svg" :width "24" :height "24" :fill "currentColor" :viewBox "0 0 24 24"}
    [:path {:fill-rule "evenodd" :d "M13 10a1 1 0 0 1 1-1h.01a1 1 0 1 1 0 2H14a1 1 0 0 1-1-1Z" :clip-rule "evenodd"}]
    [:path {:fill-rule "evenodd" :d "M2 6a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v12c0 .556-.227 1.06-.593 1.422A.999.999 0 0 1 20.5 20H4a2.002 2.002 0 0 1-2-2V6Zm6.892 12 3.833-5.356-3.99-4.322a1 1 0 0 0-1.549.097L4 12.879V6h16v9.95l-3.257-3.619a1 1 0 0 0-1.557.088L11.2 18H8.892Z" :clip-rule "evenodd"}]])
-
-(defn- index-by [f coll]
-  (->> coll
-       (map (fn [v] [(f v) v]))
-       (into {})))
 
 (defn- themes-page [{:keys [themes theme-name-setting anti-forgery-token]}]
   (let [[state set-state] (useState {:current-theme-name-setting theme-name-setting})

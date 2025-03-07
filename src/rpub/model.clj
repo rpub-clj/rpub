@@ -24,6 +24,8 @@
 
 (defn add-metadata [{:keys [created-at created-by] :as entity} current-user]
   (cond-> entity
+    created-at (assoc :updated-at (Instant/now))
+    created-by (assoc :updated-by (:id current-user))
     (not created-at) (assoc :created-at (Instant/now))
     (not created-by) (assoc :created-by (:id current-user))))
 

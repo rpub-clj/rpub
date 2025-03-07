@@ -1,6 +1,7 @@
 (ns rpub.api
   {:no-doc true}
   (:require [clojure.edn :as edn]
+            [medley.core :as medley]
             [ring.util.response :as response]
             [rpub.api.impl :as api-impl]
             [rpub.lib.plugins :as plugins]
@@ -9,12 +10,21 @@
 (defn api-middleware [opts]
   (api-impl/api-middleware opts))
 
-(defn- update-setting-handler [{:keys [model body-params] :as _req}]
-  (let [{:keys [setting-key setting-value]} body-params
-        setting-key' (edn/read-string setting-key)
-        [existing-setting] (model/get-settings model {:keys [setting-key']})
-        updated-setting (assoc existing-setting :value setting-value)]
-    (model/update-setting! model updated-setting)
+(defn- update-settings-handler [{:keys [model current-user body-params] :as _req}]
+  (let [updated-setting-index (->> (get body-params :settings)
+                                   (map #(update % :key keyword))
+                                   (map #(select-keys % [:key :value]))
+                                   (medley/index-by :key))
+        ks (keys updated-setting-index)
+        existing-setting-index (->> (model/get-settings model {:keys ks})
+                                    (medley/index-by :key))
+        combined-setting-index (merge-with merge
+                                           existing-setting-index
+                                           updated-setting-index)
+        to-update (map #(model/add-metadata % current-user)
+                       (vals combined-setting-index))]
+    (doseq [setting to-update]
+      (model/update-setting! model setting))
     (response/response {:success true})))
 
 (defn- activate-plugin-handler
@@ -52,7 +62,7 @@
 
 (defn routes [opts]
   [["/api" {:middleware (api-impl/api-middleware opts)}
-    ["/update-setting" {:post update-setting-handler}]
-    ["/activate-plugin" {:post activate-plugin-handler}]
-    ["/deactivate-plugin" {:post deactivate-plugin-handler}]
-    ["/restart-server" {:post restart-server-handler}]]])
+    ["/update-settings" {:post #'update-settings-handler}]
+    ["/activate-plugin" {:post #'activate-plugin-handler}]
+    ["/deactivate-plugin" {:post #'deactivate-plugin-handler}]
+    ["/restart-server" {:post #'restart-server-handler}]]])
