@@ -21,18 +21,19 @@
       [:div {:class (c "overflow-x-auto")}
        [:table {:class (c "w-full.text-sm.text-left.text-gray-500.dark:text-gray-400")}
         [:thead {:class (c "text-xs.text-gray-700.uppercase.bg-gray-50.dark:bg-gray-700.dark:text-gray-400")}
-         (for [column columns]
-           [:th {:class (c "px-4.py-4") :scope "col" :key (:name column)}
-            (:name column)])
-         (when delete-row
-           [:th {:class (c "px-4.py-3") :scope "col"}
-            [:span {:class (c "sr-only")} "Actions"]])]
+         [:tr
+          (for [column columns]
+            [:td {:class (c "px-4.py-4") :scope "col" :key (:name column)}
+             (:name column)])
+          (when delete-row
+            [:td {:class (c "px-4.py-3") :scope "col"}
+             [:span {:class (c "sr-only")} "Actions"]])]]
         [:tbody
          (for [row rows]
            [:tr {:class (c "border-b.dark:border-gray-700") :key (:id row)}
             (for [[i column] (map-indexed vector columns)]
               (if (= i 0)
-                [:th {:class (c "px-4.py-3.font-medium.text-gray-900.whitespace-nowrap.dark:text-white")
+                [:td {:class (c "px-4.py-3.font-medium.text-gray-900.whitespace-nowrap.dark:text-white")
                       :scope "row"
                       :key (:name column)}
                  ((:value column) row)]
@@ -44,8 +45,8 @@
                          :type "button" :data-dropdown-toggle (str table-id "-actions-" (:id row))}
                 [:svg {:class (c "w-5.h-5") :aria-hidden "true" :fill "currentColor" :viewbox "0 0 20 20" :xmlns "http://www.w3.org/2000/svg"}
                  [:path {:d "M6 10a2 2 0 11-4 0 2 2 0 014 0zM12 10a2 2 0 11-4 0 2 2 0 014 0zM16 12a2 2 0 100-4 2 2 0 000 4z"}]]]
-               [:div {:class (c "hidden.z-10.w-30.bg-white.rounded.divide-y.divide-gray-100.shadow.dark:bg-gray-700.dark:divide-gray-600")}
-                {:id (str table-id "-actions-" (:id row))}
+               [:div {:class (c "hidden.z-10.w-30.bg-white.rounded.divide-y.divide-gray-100.shadow.dark:bg-gray-700.dark:divide-gray-600")
+                      :id (str table-id "-actions-" (:id row))}
                 [:ul {:class (c "py-1.text-sm") :aria-labelledby "benq-ex2710q-dropdown-button"}
                  [:li
                   [:button {:class (c "flex.w-full.items-center.py-2.px-4.hover:bg-gray-100.dark:hover:bg-gray-600.text-red-500.dark:hover:text-red-400")

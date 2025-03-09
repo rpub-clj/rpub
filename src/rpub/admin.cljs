@@ -101,8 +101,7 @@
      :content
      [:div
       "You're logged in as "
-      [:a {:class "font-semibold underline"}
-       {:href "/admin/users"}
+      [:a {:class "font-semibold underline", :href "/admin/users"}
        (:username current-user)]
       "."]}]])
 
