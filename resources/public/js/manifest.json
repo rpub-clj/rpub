@@ -1,8 +1,11 @@
 {
-  "rpub/admin.js": "rpub/admin.2J32HPHE.js",
-  "rpub/admin/impl.js": "rpub/admin/impl.3RHJ725U.js",
-  "rpub/lib/http.js": "rpub/lib/http.UJCE4LNX.js",
-  "rpub/lib/reagent.js": "rpub/lib/reagent.VDWKJPCY.js",
+  "rpub/lib/html.js": "rpub/lib/html.4MSAXSVT.js",
   "rpub/plugins/content_types.js": "rpub/plugins/content_types.SYOAOITH.js",
-  "rpub/lib/html.js": "rpub/lib/html.4MSAXSVT.js"
+  "rpub/lib/dag.js": "rpub/lib/dag.EUX6ATB6.js",
+  "rpub/lib/dag/react.js": "rpub/lib/dag/react.53NQCVW7.js",
+  "rpub/admin.js": "rpub/admin.J667KOOC.js",
+  "rpub/lib/reagent.js": "rpub/lib/reagent.VDWKJPCY.js",
+  "rpub/lib/http.js": "rpub/lib/http.UJCE4LNX.js",
+  "rpub/admin/dag.js": "rpub/admin/dag.FQRLZIVX.js",
+  "rpub/admin/impl.js": "rpub/admin/impl.LBIIKOBL.js"
 }
