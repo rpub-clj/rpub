@@ -19,10 +19,10 @@
 (defn restart-server [db _]
   (assoc db :restarted true))
 
-(defn submit-start [db _]
+(defn submit-start [db]
   (assoc db :settings-page/submitting true))
 
-(defn submit-error [db _]
+(defn submit-error [db]
   (assoc db :settings-page/submitting false))
 
 (def dag-config

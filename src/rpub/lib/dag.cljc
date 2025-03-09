@@ -28,11 +28,15 @@
         new-val (calc-fn calc-input)]
     (assoc-in dag [::values node-key] new-val)))
 
-(defn push [dag node-key v]
-  (let [push-fn (get-in dag [::nodes node-key :push])
-        dependents (get-in dag [::dependents node-key])
-        dag' (update dag :acc push-fn v)]
-    (reduce recalculate dag' dependents)))
+(defn push
+  ([dag node-key] (push dag node-key ::no-value))
+  ([dag node-key v]
+   (let [push-fn (get-in dag [::nodes node-key :push])
+         dependents (get-in dag [::dependents node-key])
+         dag' (if (= v ::no-value)
+                (update dag :acc push-fn)
+                (update dag :acc push-fn v))]
+     (reduce recalculate dag' dependents))))
 
 (defn add-node [dag node-key node-config edges]
   (let [edges' (add-edges (::edges dag) edges)

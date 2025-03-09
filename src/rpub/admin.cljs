@@ -148,13 +148,13 @@
         http-opts {:anti-forgery-token anti-forgery-token}
         update-setting (fn [setting-key e]
                          (let [value (-> e .-target .-value)]
-                           (push [:settings-page/change-input [setting-key value]])))
+                           (push :settings-page/change-input [setting-key value])))
         submit-form (fn [e]
                       (.preventDefault e)
-                      (push [:settings-page/submit-start])
+                      (push :settings-page/submit-start)
                       (let [on-complete (fn [_ err]
                                           (if err
-                                            (push [:settings-page/submit-error])
+                                            (push :settings-page/submit-error)
                                             (.reload (.-location js/window))))
                             settings (-> (merge-with #(assoc %1 :value %2)
                                                      settings-index
