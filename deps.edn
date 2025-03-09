@@ -71,7 +71,7 @@
                  :deps/root "plugins/starter-theme"}}}
 
   :dev
-  {:extra-paths ["dev"]
+  {:replace-paths ["src" "target" "resources"  "dev"]
    :extra-deps {metosin/reitit-dev {:mvn/version "0.7.2"}
                 prone/prone {:mvn/version "2021-04-23"}}}
 

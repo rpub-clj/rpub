@@ -9,13 +9,13 @@
 (defn write-manifest [result manifest-path]
   (let [result' (js->clj result)
         manifest (->> (keys (get-in result' ["metafile" "outputs"]))
-                      (map #(str/replace % #"^resources/public/js/" ""))
+                      (map #(str/replace % #"^target/public/js/" ""))
                       (map (fn [s] [(str/replace s #"^(.+)\.[A-Z0-9]{8}\.js$" "$1.js") s]))
                       (into {}))
         json (js/JSON.stringify (clj->js manifest) nil 2)]
     (fs/writeFileSync manifest-path json)))
 
-(def manifest-path "resources/public/js/manifest.json")
+(def manifest-path "target/public/js/manifest.json")
 
 (def manifest-plugin
   {:name "manifest"
@@ -51,8 +51,8 @@
                        "target/cherry/src/**/*.jsx"]
          :entryNames "[dir]/[name].[hash]"
          :format "esm"
-         :outdir "resources/public/js/rpub"
-         :minify true
+         :outdir "target/public/js/rpub"
+         :minify (not (contains? (set js/process.argv) "--no-minify"))
          :jsx "automatic"
          :plugins [cherry-loader manifest-plugin]}))))
 

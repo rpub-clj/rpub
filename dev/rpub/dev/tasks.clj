@@ -48,12 +48,20 @@
 (defn dev-cljs []
   (p/shell
     {:extra-env {:NODE_ENV "development"}}
-    "./node_modules/.bin/cherry" "run" "build.cljs" "--watch"))
+    "./node_modules/.bin/cherry" "run" "build.cljs"
+    "--watch"
+    "--no-minify"))
 
 (defn prod-cljs []
+  (p/shell "rm -rf target/cherry")
+  (p/shell "rm -rf target/public/js")
   (p/shell
     {:extra-env {:NODE_ENV "production"}}
     "./node_modules/.bin/cherry" "run" "build.cljs"))
+
+(defn copy-js []
+  (p/shell "rm -rf resources/public/js")
+  (p/shell "cp -r target/public/js resources/public/js"))
 
 (defn flowstorm
   [& {:keys [port debugger-host]

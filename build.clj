@@ -15,9 +15,7 @@
        #_#_:aliases [:flowstorm]})))
 
 (defn clean [_]
-  (b/delete {:path "target"})
-  (b/delete {:path "resources/public/js"})
-  (b/delete {:path "resources/public/css"}))
+  (b/delete {:path "target"}))
 
 (defn- compile-css [_]
   (b/process {:command-args ["bb" "prod:css"]}))
