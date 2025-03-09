@@ -1,11 +1,10 @@
 (ns rpub.lib.dag.react
   (:require ["react"
              :as react
-             :refer [useCallback useState createContext useContext
-                     useSyncExternalStore useId useEffect]]
+             :refer [useCallback useContext useSyncExternalStore useId]]
             [rpub.lib.dag :as dag]))
 
-(def ^:private DAGContext (createContext))
+(def ^:private DAGContext (react/createContext))
 
 (defn DAGProvider [props]
   (react/createElement

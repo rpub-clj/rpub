@@ -25,11 +25,16 @@
 (defn submit-error [db]
   (assoc db :settings-page/submitting false))
 
+(defn activate-theme [db theme-label]
+  (assoc db :themes-page/current-theme-name-setting {:value theme-label}))
+
 (def dag-config
   {:nodes
    {:settings-page/field-values {:calc field-values}
     :init {:push init}
     :model/settings {:calc model-settings}
+    :themes-page/activate-theme {:push activate-theme}
+    :themes-page/current-theme-name-setting {:calc :themes-page/current-theme-name-setting}
     :settings-page/change-input {:push change-input}
     :settings-page/submit-start {:push submit-start}
     :settings-page/submit-error {:push submit-error}
@@ -43,8 +48,11 @@
     [:settings-page/update-settings :model/settings]
     [:settings-page/submit-start :settings-page/submitting]
     [:settings-page/submit-error :settings-page/submitting]
+    [:themes-page/activate-theme :themes-page/current-theme-name-setting]
     [:model/settings :settings-page/field-values]
     [:model/settings :model/site-url]
     [:settings-page/change-input :settings-page/field-values]]})
 
-(defonce dag-atom (atom (dag/->dag dag-config)))
+(defonce dag-atom
+  (atom (-> (dag/->dag dag-config)
+            #_dag/add-tracing)))

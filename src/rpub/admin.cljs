@@ -10,6 +10,11 @@
             [rpub.lib.reagent :as r]
             [rpub.plugins.content-types]))
 
+(defn wrap-component [f]
+  (fn [props]
+    #jsx [DAGProvider {:dag-atom dag/dag-atom}
+          (r/as-element [f props])]))
+
 (defn- index-by [f coll]
   (->> coll
        (map (fn [v] [(f v) v]))
@@ -137,9 +142,9 @@
    [dashboard-user props]
    [dashboard-server props]])
 
-(html/add-element :dashboard-page (r/reactify-component dashboard-page))
+(html/add-element :dashboard-page (wrap-component dashboard-page))
 
-(defn- settings-page* [{:keys [anti-forgery-token settings] :as props}]
+(defn- settings-page [{:keys [anti-forgery-token settings] :as props}]
   (let [[{:keys [:settings-page/field-values
                  :settings-page/submitting]}
          push] (use-dag [:settings-page/field-values
@@ -189,11 +194,7 @@
               [:span [html/spinner] "Saving"]
               "Save")]]]]]}]]))
 
-(defn- settings-page [props]
-  #jsx [DAGProvider {:dag-atom dag/dag-atom}
-        (r/as-element [settings-page* props])])
-
-(html/add-element :settings-page (r/reactify-component settings-page))
+(html/add-element :settings-page (wrap-component settings-page))
 
 (def ^:private users-columns
   [{:key :id, :name "ID"}
@@ -212,7 +213,7 @@
      :columns columns
      :rows users}]])
 
-(html/add-element :users-page (r/reactify-component users-page))
+(html/add-element :users-page (wrap-component users-page))
 
 (defn- theme-icon [_]
   [:svg {:class "w-8 h-8 text-gray-500 dark:text-white mr-4" :aria-hidden "true" :xmlns "http://www.w3.org/2000/svg" :width "24" :height "24" :fill "currentColor" :viewBox "0 0 24 24"}
@@ -220,25 +221,23 @@
    [:path {:fill-rule "evenodd" :d "M2 6a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v12c0 .556-.227 1.06-.593 1.422A.999.999 0 0 1 20.5 20H4a2.002 2.002 0 0 1-2-2V6Zm6.892 12 3.833-5.356-3.99-4.322a1 1 0 0 0-1.549.097L4 12.879V6h16v9.95l-3.257-3.619a1 1 0 0 0-1.557.088L11.2 18H8.892Z" :clip-rule "evenodd"}]])
 
 (defn- themes-page [{:keys [themes theme-name-setting anti-forgery-token]}]
-  (let [[state set-state] (useState {:current-theme-name-setting theme-name-setting})
-        {:keys [current-theme-name-setting]} state
+  (let [[{:keys [:themes-page/current-theme-name-setting]}
+         push] (use-dag [:themes-page/current-theme-name-setting])
         http-opts {:anti-forgery-token anti-forgery-token}
-        activated? #(= (:label %) (:value current-theme-name-setting))
-        activate-theme (fn [theme]
-                         (fn [e]
-                           (.preventDefault e)
-                           (let [body {:setting-key (str :theme-name)
-                                       :setting-value (:label theme)}
-                                 on-complete (fn [res _err]
-                                               (when res
-                                                 (set-state
-                                                   (assoc-in state
-                                                             [:current-theme-name-setting :value]
-                                                             (:label theme)))))
-                                 http-opts' (merge http-opts
-                                                   {:body body
-                                                    :on-complete on-complete})]
-                             (http/post "/api/update-setting" http-opts'))))]
+        theme-name-value (:value (or current-theme-name-setting
+                                     theme-name-setting))
+        activated? #(= (:label %) theme-name-value)
+        activate-theme (fn [theme e]
+                         (.preventDefault e)
+                         (let [body {:settings [{:key :theme-name
+                                                 :value (:label theme)}]}
+                               on-complete (fn [res _err]
+                                             (when res
+                                               (push :themes-page/activate-theme (:label theme))))
+                               http-opts' (merge http-opts
+                                                 {:body body
+                                                  :on-complete on-complete})]
+                           (http/post "/api/update-settings" http-opts')))]
     [:div {:class "p-4"}
      (for [theme themes
            :let [activated (activated? theme)]]
@@ -252,15 +251,15 @@
                   [theme-icon]
                   (:label theme)
                   (if activated
-                    [:button {:class "font-app-sans inline-flex items-center px-5 py-2.5 text-sm font-medium text-center text-white bg-green-500 rounded-lg focus:ring-4 focus:ring-primary-200 dark:focus:ring-primary-900 hover:bg-primary-800 shadow-inner ml-auto cursor-auto w-44"}
-                     {:type "submit"}
+                    [:button {:class "font-app-sans inline-flex items-center px-5 py-2.5 text-sm font-medium text-center text-white bg-green-500 rounded-lg focus:ring-4 focus:ring-primary-200 dark:focus:ring-primary-900 hover:bg-primary-800 shadow-inner ml-auto cursor-auto w-44"
+                              :type "submit"}
                      [:div {:class "inline-flex items-center mx-auto"}
                       [:svg {:class "w-6 h-6 text-white mr-2" :aria-hidden "true" :xmlns "http://www.w3.org/2000/svg" :width "24" :height "24" :fill "currentColor" :viewBox "0 0 24 24"}
                        [:path {:fill-rule "evenodd" :d "M2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10S2 17.523 2 12Zm13.707-1.293a1 1 0 0 0-1.414-1.414L11 12.586l-1.793-1.793a1 1 0 0 0-1.414 1.414l2.5 2.5a1 1 0 0 0 1.414 0l4-4Z" :clip-rule "evenodd"}]]
                       "Active"]]
                     [:button {:class "font-app-sans inline-flex items-center px-5 py-2.5 text-sm font-medium text-center text-white bg-blue-700 rounded-lg focus:ring-4 focus:ring-primary-200 dark:focus:ring-primary-900 hover:bg-primary-800 shadow ml-auto w-44"
-                              :onClick (activate-theme theme)}
-                     {:type "submit"}
+                              :onClick #(activate-theme theme %)
+                              :type "submit"}
                      [:div {:class "inline-flex items-center mx-auto"}
                       [:svg {:class "w-6 h-6 text-white dark:text-white mr-2" :aria-hidden "true" :xmlns "http://www.w3.org/2000/svg" :width "24" :height "24" :fill "currentColor" :viewBox "0 0 24 24"}
                        [:path {:d "M8 5v4.997a.31.31 0 0 1-.068.113c-.08.098-.213.207-.378.301-.947.543-1.713 1.54-2.191 2.488A6.237 6.237 0 0 0 4.82 14.4c-.1.48-.138 1.031.018 1.539C5.12 16.846 6.02 17 6.414 17H11v3a1 1 0 1 0 2 0v-3h4.586c.395 0 1.295-.154 1.575-1.061.156-.508.118-1.059.017-1.539a6.241 6.241 0 0 0-.541-1.5c-.479-.95-1.244-1.946-2.191-2.489a1.393 1.393 0 0 1-.378-.301.309.309 0 0 1-.068-.113V5h1a1 1 0 1 0 0-2H7a1 1 0 1 0 0 2h1Z"}]]
@@ -270,7 +269,7 @@
           (when-let [v (:description theme)]
             [:p v])}]])]))
 
-(html/add-element :themes-page (r/reactify-component themes-page))
+(html/add-element :themes-page (wrap-component themes-page))
 
 (defn- plugin-icon [_]
   [:svg {:class "w-8 h-8 text-gray-500 dark:text-white mr-4" :aria-hidden "true" :xmlns "http://www.w3.org/2000/svg" :width "24" :height "24" :fill "currentColor" :viewBox "0 0 24 24"}
@@ -374,4 +373,4 @@
           (when-let [v (:description plugin)]
             [:p v])]}])]))
 
-(html/add-element :plugins-page (r/reactify-component plugins-page))
+(html/add-element :plugins-page (wrap-component plugins-page))
