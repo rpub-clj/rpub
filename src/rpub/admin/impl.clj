@@ -329,7 +329,8 @@
            "preact/hooks" "https://cdn.jsdelivr.net/npm/preact@10.25.0/hooks/dist/hooks.module.js"
            "react" "https://cdn.jsdelivr.net/npm/preact@10.25.0/compat/dist/compat.module.js"
            "react/jsx-runtime" "https://cdn.jsdelivr.net/npm/preact@10.25.0/jsx-runtime/dist/jsxRuntime.module.js"
-           "rads.inflections" "/js/rads/inflections-v0.14.2-1.min.js"}
+           "rads.inflections" "/js/rads/inflections-v0.14.2-1.min.js"
+           "rads.dependency" "/js/rads/dependency-v1.0.0-1.min.js"}
           (js-manifest->import-map (read-js-manifest)))})
 
 (defn- wrap-import-map [handler]

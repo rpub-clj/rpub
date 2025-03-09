@@ -2,7 +2,9 @@
   (:require ["flowbite"]
             ["react" :refer [useCallback useState]]
             [clojure.string :as str]
+            [rpub.admin.dag :as dag]
             [rpub.admin.impl :as admin-impl]
+            [rpub.lib.dag.react :refer [DAGProvider use-dag]]
             [rpub.lib.html :as html]
             [rpub.lib.http :as http]
             [rpub.lib.reagent :as r]
@@ -137,22 +139,29 @@
 
 (html/add-element :dashboard-page (r/reactify-component dashboard-page))
 
-(defn- settings-page [{:keys [anti-forgery-token settings] :as props}]
-  (let [[state set-state] (useState {:settings-index (index-by :key settings)
-                                     :submitting false})
+(defn- settings-page* [{:keys [anti-forgery-token settings] :as props}]
+  (let [[{:keys [:settings-page/field-values
+                 :settings-page/submitting]}
+         push] (use-dag [:settings-page/field-values
+                         :settings-page/submitting])
+        settings-index (index-by :key settings)
         http-opts {:anti-forgery-token anti-forgery-token}
         update-setting (fn [setting-key e]
                          (let [value (-> e .-target .-value)]
-                           (set-state #(assoc-in % [:settings-index setting-key :value] value))))
-        {:keys [settings-index submitting]} state
+                           (push [:settings-page/change-input [setting-key value]])))
         submit-form (fn [e]
                       (.preventDefault e)
-                      (set-state (assoc state :submitting true))
+                      (push [:settings-page/submit-start])
                       (let [on-complete (fn [_ err]
                                           (if err
-                                            (set-state (assoc state :submitting false))
+                                            (push [:settings-page/submit-error])
                                             (.reload (.-location js/window))))
-                            http-opts' (merge http-opts {:body {:settings (vals settings-index)}
+                            settings (-> (merge-with #(assoc %1 :value %2)
+                                                     settings-index
+                                                     field-values)
+                                         (update-vals #(select-keys % [:key :value]))
+                                         vals)
+                            http-opts' (merge http-opts {:body {:settings settings}
                                                          :on-complete on-complete})]
                         (http/post "/api/update-settings" http-opts')))]
     [:div {:class "p-4"}
@@ -170,7 +179,7 @@
               [html/input2
                {:type :text
                 :name (:key setting)
-                :value (:value setting)
+                :value (or (get field-values (:key setting)) (:value setting))
                 :on-change #(update-setting (:key setting) %)}]])
            [:button
             {:type :submit
@@ -179,6 +188,10 @@
             (if submitting
               [:span [html/spinner] "Saving"]
               "Save")]]]]]}]]))
+
+(defn- settings-page [props]
+  #jsx [DAGProvider {:dag-atom dag/dag-atom}
+        (r/as-element [settings-page* props])])
 
 (html/add-element :settings-page (r/reactify-component settings-page))
 
