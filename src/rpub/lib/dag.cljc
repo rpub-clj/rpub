@@ -24,7 +24,7 @@
 
 (defn- recalculate [dag node-key]
   (let [calc-fn (get-in dag [::nodes node-key :calc])
-        calc-input (assoc (:acc dag) ::values (::values dag))
+        calc-input (assoc (::acc dag) ::values (::values dag))
         new-val (calc-fn calc-input)]
     (assoc-in dag [::values node-key] new-val)))
 
@@ -34,8 +34,8 @@
    (let [push-fn (get-in dag [::nodes node-key :push])
          dependents (get-in dag [::dependents node-key])
          dag' (if (= v ::no-value)
-                (update dag :acc push-fn)
-                (update dag :acc push-fn v))]
+                (update dag ::acc push-fn)
+                (update dag ::acc push-fn v))]
      (reduce recalculate dag' dependents))))
 
 (defn add-node [dag node-key node-config edges]
