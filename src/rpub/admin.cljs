@@ -1,6 +1,6 @@
 (ns rpub.admin
   (:require ["flowbite"]
-            ["react" :refer [useCallback useState]]
+            ["react" :refer [useCallback]]
             [clojure.string :as str]
             [rpub.admin.dag :as dag]
             [rpub.admin.impl :as admin-impl]
@@ -281,37 +281,13 @@
         suffix (last (str/split plugin-ns #"\."))]
     (str "https://github.com/rpub-clj/plugins/tree/main/plugins/" suffix)))
 
-(defn- active-plugin-button [{:keys [on-click]}]
-  (let [[hover set-hover] (useState false)]
-    [:div {:class "ml-auto"
-           :onMouseEnter #(set-hover true)
-           :onMouseLeave #(set-hover false)
-           :onClick on-click}
-     (if hover
-       [:button {:type "submit" :class "font-app-sans inline-flex items-center px-5 py-2.5 text-sm font-medium text-center text-white bg-red-500 rounded-lg focus:ring-4 focus:ring-primary-200 dark:focus:ring-primary-900 hover:bg-primary-800 shadow w-44"}
-        [:div {:class "inline-flex items-center mx-auto"}
-         [:svg {:class "w-6 h-6 text-white dark:text-white mr-2" :aria-hidden "true" :xmlns "http://www.w3.org/2000/svg" :width "24" :height "24" :fill "currentColor" :viewBox "0 0 24 24"}
-          [:path {:fill-rule "evenodd" :d "M2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10S2 17.523 2 12Zm5.757-1a1 1 0 1 0 0 2h8.486a1 1 0 1 0 0-2H7.757Z" :clip-rule "evenodd"}]]
-         "Deactivate"]]
-       [:button {:type "submit" :class "font-app-sans inline-flex items-center px-5 py-2.5 text-sm font-medium text-center text-white bg-green-500 rounded-lg focus:ring-4 focus:ring-primary-200 dark:focus:ring-primary-900 hover:bg-primary-800 shadow-inner w-44"}
-        [:div {:class "inline-flex items-center mx-auto"}
-         [:svg {:class "w-6 h-6 text-white mr-2" :aria-hidden "true" :xmlns "http://www.w3.org/2000/svg" :width "24" :height "24" :fill "currentColor" :viewBox "0 0 24 24"}
-          [:path {:fill-rule "evenodd" :d "M2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10S2 17.523 2 12Zm13.707-1.293a1 1 0 0 0-1.414-1.414L11 12.586l-1.793-1.793a1 1 0 0 0-1.414 1.414l2.5 2.5a1 1 0 0 0 1.414 0l4-4Z" :clip-rule "evenodd"}]]
-         "Active"]])]))
-
-(defn- available-plugin-button [{:keys [on-click]}]
-  [:button {:class "font-app-sans inline-flex items-center px-5 py-2.5 text-sm font-medium text-center text-white bg-blue-700 rounded-lg focus:ring-4 focus:ring-primary-200 dark:focus:ring-primary-900 hover:bg-primary-800 shadow ml-auto w-44"
-            :onClick on-click}
-   [:div {:class "inline-flex items-center mx-auto"}
-    [:svg {:class "w-6 h-6 text-white dark:text-white mr-2" :aria-hidden "true" :xmlns "http://www.w3.org/2000/svg" :width "24" :height "24" :fill "currentColor" :viewBox "0 0 24 24"}
-     [:path {:fill-rule "evenodd" :d "M2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10S2 17.523 2 12Zm11-4.243a1 1 0 1 0-2 0V11H7.757a1 1 0 1 0 0 2H11v3.243a1 1 0 1 0 2 0V13h3.243a1 1 0 1 0 0-2H13V7.757Z" :clip-rule "evenodd"}]]
-    "Activate Plugin"]])
-
 (defn- plugins-page [{:keys [current-plugins available-plugins anti-forgery-token] :as _props}]
-  (let [http-opts {:anti-forgery-token anti-forgery-token}
+  (let [[{:keys [:plugins-page/needs-restart
+                 :plugins-page/activated-plugins]}
+         push] (use-dag [:plugins-page/needs-restart
+                         :plugins-page/activated-plugins])
+        http-opts {:anti-forgery-token anti-forgery-token}
         current-plugin-index (index-by :key current-plugins)
-        [state set-state] (useState {:current-plugin-index current-plugin-index
-                                     :needs-restart true})
         activate-plugin (fn [_e plugin]
                           (let [plugin' (assoc plugin :activated true)
                                 body {:plugin (-> plugin'
@@ -319,7 +295,7 @@
                                                   (update :key #(str ":" %)))}
                                 on-complete (fn [res _err]
                                               (when res
-                                                (set-state (assoc-in state [:current-plugin-index (:key plugin') :activated] true))))
+                                                (push :plugins-page/activate-plugin (:key plugin'))))
                                 http-opts' (merge http-opts {:body body
                                                              :on-complete on-complete})]
                             (http/post "/api/activate-plugin" http-opts')))
@@ -329,44 +305,47 @@
                                                     (update :key #(str ":" %)))}
                                   on-complete (fn [res _err]
                                                 (when res
-                                                  (set-state (assoc-in state [:current-plugin-index (:key plugin) :activated] false))))
+                                                  (push :plugins-page/deactivate-plugin (:key plugin))))
                                   http-opts' (merge http-opts {:body body
                                                                :on-complete on-complete})]
                               (http/post "/api/deactivate-plugin" http-opts')))
         restart-server (fn [_e]
                          (let [on-complete (fn [_res _err])
                                http-opts' (merge http-opts {:on-complete on-complete})]
+                           (push :plugins-page/restart-server)
                            (http/post "/api/restart-server" http-opts')))
-        {:keys [current-plugin-index needs-restart]} state
         available-plugin-index (index-by :key available-plugins)
-        combined-plugin-index (merge-with merge
-                                          current-plugin-index
-                                          available-plugin-index)]
+        activated-plugin-index (->> activated-plugins
+                                    (map (fn [k] [k {:activated true}]))
+                                    (into {}))
+        combined-plugin-index (-> (merge-with merge
+                                              current-plugin-index
+                                              available-plugin-index
+                                              activated-plugin-index))]
     [:div {:class "p-4"}
      [admin-impl/box
       {:title "Plugins"
        :class "mb-4"
        :content
-       [:div
+       [:div {:class "flex"}
+        [:p {:class "italic"} "Note: The server must be restarted after activating a plugin for the first time."]
         (when needs-restart
-          [:div {:class "flex"}
-           [:p {:class "italic"} "Note: The server must be restarted after activating a plugin for the first time."]
-           [:button {:class "font-app-sans inline-flex items-center px-5 py-2.5 text-sm font-medium text-center text-white bg-blue-700 rounded-lg focus:ring-4 focus:ring-primary-200 dark:focus:ring-primary-900 hover:bg-primary-800 shadow ml-auto w-44"
-                     :onClick restart-server}
-            [:div {:class "inline-flex items-center mx-auto"}
-             "Restart"]]])]}]
+          [:button {:class "font-app-sans inline-flex items-center px-5 py-2.5 text-sm font-medium text-center text-white bg-blue-700 rounded-lg focus:ring-4 focus:ring-primary-200 dark:focus:ring-primary-900 hover:bg-primary-800 shadow ml-auto w-44"
+                    :onClick restart-server}
+           [:div {:class "inline-flex items-center mx-auto"}
+            "Restart"]])]}]
      (for [plugin (sort-by #(str/lower-case (or (:label %) (:key %)))
-                           (vals combined-plugin-index))
-           :let [current-plugin (get current-plugin-index (:key plugin))]]
+                           (vals combined-plugin-index))]
        [admin-impl/box
         {:key (:key plugin)
          :title [:div {:class "flex items-center" :style {:margin-top "-1px"}}
                  [plugin-icon]
                  [:a {:class "underline" :href (plugin-url plugin) :target "_blank"}
                   (or (:label plugin) (:key plugin))]
-                 (if (:activated current-plugin)
-                   [active-plugin-button {:on-click #(deactivate-plugin % plugin)}]
-                   [available-plugin-button {:on-click #(activate-plugin % plugin)}])]
+                 (if (:activated plugin)
+                   [html/activated-button {:on-click #(deactivate-plugin % plugin)}]
+                   [html/activate-button {:label "Activate Plugin"
+                                          :on-click #(activate-plugin % plugin)}])]
          :class "mb-4"
          :content
          [:div
