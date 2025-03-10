@@ -1,6 +1,6 @@
 (ns rpub.plugins.content-types
   (:refer-clojure :exclude [random-uuid])
-  (:require ["react" :refer [useEffect useState useCallback]]
+  (:require ["react" :refer [useEffect useCallback]]
             [clojure.string :as str]
             [rads.inflections :as inflections]
             [rpub.admin.impl :as admin-impl]
@@ -47,7 +47,7 @@
    :created-at (js/Date.)
    :content-item-count 0})
 
-(defn content-type-fields-form [{:keys [state set-state anti-forgery-token content-type class]}]
+(defn content-type-fields-form [{:keys [anti-forgery-token content-type class]}]
   (let [http-opts {:anti-forgery-token anti-forgery-token}
         update-field (useCallback
                        (fn [content-type-id field-key]
@@ -59,13 +59,13 @@
                                                                              :content-field-id (:id updated-field)}
                                                                             (select-keys updated-field [:name :type :rank])))]
                                (http/post "/api/update-content-type-field" http-opts')
-                               (set-state (update-in state [:content-type-index (:id content-type) :fields]
-                                                     (fn [fields]
-                                                       (map (fn [field]
-                                                              (if (= (:id field) (:id updated-field))
-                                                                updated-field
-                                                                field))
-                                                            fields))))))
+                               #_(set-state (update-in state [:content-type-index (:id content-type) :fields]
+                                                       (fn [fields]
+                                                         (map (fn [field]
+                                                                (if (= (:id field) (:id updated-field))
+                                                                  updated-field
+                                                                  field))
+                                                              fields))))))
                            html/default-debounce-timeout-ms)))
         delete-field (fn [e content-type field]
                        (.preventDefault e)
@@ -75,9 +75,9 @@
                          (let [http-opts' (assoc http-opts :body {:content-type-id (:id content-type)
                                                                   :content-field-id (:id field)})]
                            (http/post "/api/delete-content-type-field" http-opts')
-                           (set-state (update-in state [:content-type-index (:id content-type) :fields]
-                                                 (fn [fields]
-                                                   (remove #(= (:id %) (:id field)) fields)))))))
+                           #_(set-state (update-in state [:content-type-index (:id content-type) :fields]
+                                                   (fn [fields]
+                                                     (remove #(= (:id %) (:id field)) fields)))))))
         update-field-name (update-field (:id content-type) :name)
         update-field-type (update-field (:id content-type) :type)]
     [:form {:method "post" :class class}
@@ -126,7 +126,7 @@
 
 (defn all-content-types-page [{:keys [content-types anti-forgery-token]}]
   (let [content-types (map #(update % :created-at js/Date.parse) content-types)
-        [state set-state] (useState {:content-type-index (index-by :id content-types)})
+        content-type-index (index-by :id content-types)
         http-opts {:anti-forgery-token anti-forgery-token}
         set-content-type-name (useCallback
                                 (html/debounce
@@ -138,7 +138,7 @@
                                                             :body
                                                             {:content-type content-type'})]
                                       (http/post "/api/update-content-type" http-opts')
-                                      (set-state (assoc-in state [:content-type-index (:id content-type) :name] value))))
+                                      #_(set-state (assoc-in state [:content-type-index (:id content-type) :name] value))))
                                   html/default-debounce-timeout-ms))
         new-content-type (fn [e]
                            (let [content-type (->content-type
@@ -147,7 +147,7 @@
                                                  :fields []})]
                              (.preventDefault e)
                              (http/post "/api/new-content-type" http-opts)
-                             (set-state (assoc-in state [:content-type-index (:id content-type)] content-type))))
+                             #_(set-state (assoc-in state [:content-type-index (:id content-type)] content-type))))
         delete-content-type (fn [e content-type]
                               (when (js/confirm (str "Are you sure you want to delete \""
                                                      (:name content-type)
@@ -157,15 +157,14 @@
                                                         {:content-type-id (:id content-type)})]
                                   (.preventDefault e)
                                   (http/post "/api/delete-content-type" http-opts')
-                                  (set-state (update state :content-type-index #(dissoc % (:id content-type)))))))
+                                  #_(set-state (update state :content-type-index #(dissoc % (:id content-type)))))))
         new-field (fn [e content-type field]
                     (.preventDefault e)
                     (let [rank (inc (apply max 0 (map :rank (:fields content-type))))
                           field' (-> (->field field) (assoc :rank rank))
                           http-opts' (assoc http-opts :body {:content-type-id (:id content-type)})]
                       (http/post "/api/new-content-type-field" http-opts')
-                      (set-state (update-in state [:content-type-index (:id content-type) :fields] conj field'))))
-        {:keys [content-type-index]} state
+                      #_(set-state (update-in state [:content-type-index (:id content-type) :fields] conj field'))))
         content-types (->> (vals content-type-index) (sort-by :created-at >))]
     [:div
      [:div {:class "p-4"}
@@ -204,9 +203,7 @@
                      [:div {:key (:id content-type)}
                       [:div {:class "flex items-start"}]
                       [content-type-fields-form
-                       {:state state
-                        :set-state set-state
-                        :content-type content-type
+                       {:content-type content-type
                         :anti-forgery-token anti-forgery-token}]])}]])]))
 
 (html/add-element :all-content-types-page (r/reactify-component all-content-types-page))
@@ -249,22 +246,21 @@
 
 (defn single-content-type-page [{:keys [content-type content-items anti-forgery-token]}]
   (let [http-opts {:anti-forgery-token anti-forgery-token}
-        [state set-state] (useState {:content-items (map (fn [content-item]
-                                                           (update content-item :fields #(update-keys % name)))
-                                                         content-items)})
+        content-items (map (fn [content-item]
+                             (update content-item :fields #(update-keys % name)))
+                           content-items)
         delete-row (fn [_ content-item]
                      (let [body {:content-item-id (:id content-item)}
                            on-complete (fn [_ err]
                                          (if err
                                            (println err)
-                                           (set-state (update state :content-items
-                                                              (fn [content-items]
-                                                                (remove #(= (:id %) (:id content-item))
-                                                                        content-items))))))
+                                           #_(set-state (update state :content-items
+                                                                (fn [content-items]
+                                                                  (remove #(= (:id %) (:id content-item))
+                                                                          content-items))))))
                            http-opts' (merge http-opts {:body body
                                                         :on-complete on-complete})]
-                       (http/post "/api/delete-content-item" http-opts')))
-        {:keys [content-items]} state]
+                       (http/post "/api/delete-content-item" http-opts')))]
     [:div {:class "p-4"}
      [admin-impl/table
       {:title (:name content-type)
@@ -275,20 +271,20 @@
 (html/add-element :single-content-type-page (r/reactify-component single-content-type-page))
 
 (defn editor-impl [{:keys [on-start] :as props}]
-  (let [id (str (gensym))
-        [started set-started!] (useState false)
-        container-props (dissoc props :on-start)]
-    (useEffect
-      (fn []
-        (when (not started)
-          (when-let [container (js/document.getElementById id)]
-            (let [quill-opts (dissoc props :on-start)
-                  quill-instance (start-quill! container quill-opts)]
-              (set-started! true)
-              (on-start quill-instance))))
-        nil)
-      #js[started])
-    [:div (merge container-props {:id id})]))
+  #_(let [id (str (gensym))
+          [started set-started!] (useState false)
+          container-props (dissoc props :on-start)]
+      (useEffect
+        (fn []
+          (when (not started)
+            (when-let [container (js/document.getElementById id)]
+              (let [quill-opts (dissoc props :on-start)
+                    quill-instance (start-quill! container quill-opts)]
+                (set-started! true)
+                (on-start quill-instance))))
+          nil)
+        #js[started])
+      [:div (merge container-props {:id id})]))
 
 (defn editor [props]
   [:div {:class "editor bg-white"}
@@ -319,18 +315,17 @@
            submit-form-url
            submitting-button-text]}]
   (let [http-opts {:anti-forgery-token anti-forgery-token}
-        [state set-state] (useState {:submitting false
-                                     :editors {}
-                                     :content-item {:form-fields (or (:document content-item) {})}
-                                     :messages []})
-        add-editor #(set-state (assoc-in state [:editors %1] %2))
-        add-message #(set-state (update state :messages conj %))
+        submitting false
+        content-item {:form-fields (or (:document content-item) {})}
+        messages []
+        add-editor (fn [_field-id _e] #_(set-state (assoc-in state [:editors %1] %2)))
+        add-message (fn [_message] #_(set-state (update state :messages conj %)))
         update-field (fn [e field-id]
                        (let [value (-> e .-target .-value)]
-                         (set-state (assoc-in state [:content-item :form-fields field-id] value))))
+                         #_(set-state (assoc-in state [:content-item :form-fields field-id] value))))
         submit-form (fn [e {:keys [content-item-slug]}]
                       (.preventDefault e)
-                      (let [v (set-state (assoc state :submitting true))
+                      (let [v nil #_(assoc state :submitting true)
                             form-fields (get-in v [:content-item :form-fields])
                             editor-values (update-vals (:editors v) quill-get-semantic-html)
                             document (merge form-fields editor-values
@@ -352,7 +347,7 @@
                                                          (name (:slug content-type))
                                                          "/"
                                                          (:content-item-slug res)))))
-                                          (set-state (assoc state :submitting false)))
+                                          #_(set-state (assoc state :submitting false)))
                             http-opts' (-> http-opts
                                            (assoc :body body)
                                            (assoc :on-complete on-complete))]
@@ -362,8 +357,7 @@
      (admin-impl/box
        {:title title
         :content
-        (let [{:keys [content-item messages submitting]} state
-              content-item-slug (or (get-in content-item [:fields "Slug"])
+        (let [content-item-slug (or (get-in content-item [:fields "Slug"])
                                     (some-> (get-in content-item [:form-fields title-field-id]) ->slug))
               path-params {:content-type-slug (:slug content-type)
                            :content-item-slug content-item-slug}
