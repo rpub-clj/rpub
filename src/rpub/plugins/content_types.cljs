@@ -4,9 +4,9 @@
             [clojure.string :as str]
             [rads.inflections :as inflections]
             [rpub.admin.impl :as admin-impl]
+            [rpub.lib.dag.react :refer [use-dag]]
             [rpub.lib.html :as html]
-            [rpub.lib.http :as http]
-            [rpub.lib.reagent :as r]))
+            [rpub.lib.http :as http]))
 
 (defn random-uuid []
   (js/crypto.randomUUID))
@@ -48,7 +48,9 @@
    :content-item-count 0})
 
 (defn content-type-fields-form [{:keys [anti-forgery-token content-type class]}]
-  (let [http-opts {:anti-forgery-token anti-forgery-token}
+  (let [[{:keys [:all-content-types-page/selection]}
+         push] (use-dag [:all-content-types-page/selection])
+        http-opts {:anti-forgery-token anti-forgery-token}
         update-field (useCallback
                        (fn [content-type-id field-key]
                          (html/debounce
@@ -94,6 +96,7 @@
          [:label {:for :field-name}]
          [html/input
           {:type :text
+           :on-focus (fn [_] (push :all-content-types-page/select-content-type-field (:id field)))
            :size :text-medium
            :class (str "px-2 py-1 font-semibold border border-gray-300 "
                        "rounded-[6px] mr-4 max-w-xl")
@@ -105,6 +108,7 @@
          [:label {:for :field-type}]
          [html/select
           {:name :field-type
+           :on-focus (fn [_] (push :all-content-types-page/select-content-type-field (:id field)))
            :default-value (:type field)
            :readonly true
            #_#_:on-change #(update-field-type % content-type field)}
@@ -125,7 +129,9 @@
        (into {})))
 
 (defn all-content-types-page [{:keys [content-types anti-forgery-token]}]
-  (let [content-types (map #(update % :created-at js/Date.parse) content-types)
+  (let [[{:keys [:all-content-types-page/selection]}
+         push] (use-dag [:all-content-types-page/selection])
+        content-types (map #(update % :created-at js/Date.parse) content-types)
         content-type-index (index-by :id content-types)
         http-opts {:anti-forgery-token anti-forgery-token}
         set-content-type-name (useCallback
@@ -166,47 +172,75 @@
                       (http/post "/api/new-content-type-field" http-opts')
                       #_(set-state (update-in state [:content-type-index (:id content-type) :fields] conj field'))))
         content-types (->> (vals content-type-index) (sort-by :created-at >))]
-    [:div
-     [:div {:class "p-4"}
-      [admin-impl/box
-       {:title [:div {:class "flex items-center"}
-                [:div "Content Types"]
-                #_[html/button
-                   {:class "font-app-sans ml-auto"
-                    :on-click new-content-type}
-                   "New Content Type"]]
-        :content [admin-impl/content-item-counts {:content-types content-types}]}]]
-     (for [content-type content-types]
-       [:div {:class "p-4 pt-0" :key (:id content-type)}
+    [:div {:class "flex"}
+     [:div {:class "flex-grow"}
+      [:div {:class "p-4 pr-[384px]"}
+       [admin-impl/box
+        {:class "pb-4"
+         :title [:div {:class "flex items-center"}
+                 [:div "Content Types"]
+                 #_[html/button
+                    {:class "font-app-sans ml-auto"
+                     :on-click new-content-type}
+                    "New Content Type"]]
+         :content [admin-impl/content-item-counts {:content-types content-types}]}]
+       (for [content-type content-types]
+         [:div {:class "pb-4" :key (:id content-type)}
+          [admin-impl/box
+           {:title [:div {:class "flex items-center group"}
+                    [html/input {:type :text
+                                 :class "max-w-xl"
+                                 :size :text-2xl
+                                 :name :content-type-name
+                                 :placeholder "Name"
+                                 :on-focus (fn [_] (push :all-content-types-page/select-content-type (:id content-type)))
+                                 :readonly true
+                                 #_#_:on-change #(set-content-type-name % content-type)
+                                 :default-value (:name content-type)}]
+                    #_[html/button
+                       {:class "ml-5 font-app-sans"
+                        :on-click #(new-field %
+                                              content-type
+                                              {:name "New Field", :type :text})}
+                       "New Field"]
+                    #_[html/button
+                       {:class "font-app-sans ml-2 opacity-0 group-hover:opacity-100 transition duration-75"
+                        :color :red
+                        :on-click #(delete-content-type % content-type)}
+                       "Delete Content Type"]]
+            :content (when (seq (:fields content-type))
+                       [:div {:key (:id content-type)}
+                        [:div {:class "flex items-start"}]
+                        [content-type-fields-form
+                         {:content-type content-type
+                          :anti-forgery-token anti-forgery-token}]])}]])]]
+     [:div {:class "p-4 pl-2 w-[376px] fixed right-0 bottom-0 top-12"}
+      (if selection
         [admin-impl/box
-         {:title [:div {:class "flex items-center group"}
-                  [html/input {:type :text
-                               :class "max-w-xl"
-                               :size :text-2xl
-                               :name :content-type-name
-                               :placeholder "Name"
-                               :readonly true
-                               #_#_:on-change #(set-content-type-name % content-type)
-                               :default-value (:name content-type)}]
-                  #_[html/button
-                     {:class "ml-5 font-app-sans"
-                      :on-click #(new-field %
-                                            content-type
-                                            {:name "New Field", :type :text})}
-                     "New Field"]
-                  #_[html/button
-                     {:class "font-app-sans ml-2 opacity-0 group-hover:opacity-100 transition duration-75"
-                      :color :red
-                      :on-click #(delete-content-type % content-type)}
-                     "Delete Content Type"]]
-          :content (when (seq (:fields content-type))
-                     [:div {:key (:id content-type)}
-                      [:div {:class "flex items-start"}]
-                      [content-type-fields-form
-                       {:content-type content-type
-                        :anti-forgery-token anti-forgery-token}]])}]])]))
+         {:class "h-full"
+          :title [:h3 {:class "text-2xl font-app-serif font-semibold"}
+                  "Inspect"]
+          :content [:div
+                    (pr-str selection)]}]
+        (let [field (fn [text]
+                      [:div {:class "border border-gray-150 rounded-[6px] p-2 mb-4 bg-gray-50 cursor-move"
+                             :draggable true}
+                       [:h4 {:class "font-semibold"}
+                        text]
+                       [:p {:class "text-sm text-gray-500"}
+                        "yolo"]])
+              field-names ["Text" "Date" "Date and Time" "Boolean" "Number" "Image" "Embed"
+                           "Select" "Group"]]
+          [admin-impl/box
+           {:class "h-full"
+            :title [:h3 {:class "text-2xl font-app-serif font-semibold"}
+                    "Add Fields"]
+            :content [:div
+                      (pr-str selection)
+                      (for [n field-names]
+                        (field n))]}]))]]))
 
-(html/add-element :all-content-types-page (r/reactify-component all-content-types-page))
+(html/add-element :all-content-types-page (admin-impl/wrap-component all-content-types-page))
 
 (def months
   ["January" "February" "March" "April" "May" "June"
@@ -268,7 +302,7 @@
        :rows (map #(assoc % :content-type content-type) content-items)
        :delete-row delete-row}]]))
 
-(html/add-element :single-content-type-page (r/reactify-component single-content-type-page))
+(html/add-element :single-content-type-page (admin-impl/wrap-component single-content-type-page))
 
 (defn editor-impl [{:keys [on-start] :as props}]
   #_(let [id (str (gensym))

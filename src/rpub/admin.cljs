@@ -2,18 +2,11 @@
   (:require ["flowbite"]
             ["react" :refer [useCallback]]
             [clojure.string :as str]
-            [rpub.admin.dag :as dag]
             [rpub.admin.impl :as admin-impl]
             [rpub.lib.dag.react :refer [DAGProvider use-dag]]
             [rpub.lib.html :as html]
             [rpub.lib.http :as http]
-            [rpub.lib.reagent :as r]
             [rpub.plugins.content-types]))
-
-(defn wrap-component [f]
-  (fn [props]
-    #jsx [DAGProvider {:dag-atom dag/dag-atom}
-          (r/as-element [f props])]))
 
 (defn- index-by [f coll]
   (->> coll
@@ -142,7 +135,7 @@
    [dashboard-user props]
    [dashboard-server props]])
 
-(html/add-element :dashboard-page (wrap-component dashboard-page))
+(html/add-element :dashboard-page (admin-impl/wrap-component dashboard-page))
 
 (defn- settings-page [{:keys [anti-forgery-token settings] :as props}]
   (let [[{:keys [:settings-page/field-values
@@ -194,7 +187,7 @@
               [:span [html/spinner] "Saving"]
               "Save")]]]]]}]]))
 
-(html/add-element :settings-page (wrap-component settings-page))
+(html/add-element :settings-page (admin-impl/wrap-component settings-page))
 
 (def ^:private users-columns
   [{:key :id, :name "ID"}
@@ -213,7 +206,7 @@
      :columns columns
      :rows users}]])
 
-(html/add-element :users-page (wrap-component users-page))
+(html/add-element :users-page (admin-impl/wrap-component users-page))
 
 (defn- theme-icon [_]
   [:svg {:class "w-8 h-8 text-gray-500 dark:text-white mr-4" :aria-hidden "true" :xmlns "http://www.w3.org/2000/svg" :width "24" :height "24" :fill "currentColor" :viewBox "0 0 24 24"}
@@ -266,7 +259,7 @@
           (when-let [v (:description theme)]
             [:p v])}]])]))
 
-(html/add-element :themes-page (wrap-component themes-page))
+(html/add-element :themes-page (admin-impl/wrap-component themes-page))
 
 (defn- plugin-icon [_]
   [:svg {:class "w-8 h-8 text-gray-500 dark:text-white mr-4" :aria-hidden "true" :xmlns "http://www.w3.org/2000/svg" :width "24" :height "24" :fill "currentColor" :viewBox "0 0 24 24"}
@@ -349,4 +342,4 @@
           (when-let [v (:description plugin)]
             [:p v])]}])]))
 
-(html/add-element :plugins-page (wrap-component plugins-page))
+(html/add-element :plugins-page (admin-impl/wrap-component plugins-page))

@@ -79,9 +79,8 @@
     label]])
 
 (defn input [props]
-  (let [props' (js->clj props :keywordize-keys true)
-        {:keys [type class size default-value placeholder on-change readonly]
-         input-name :name} props'
+  (let [{:keys [type class size default-value placeholder on-change on-focus readonly]
+         input-name :name} props
         [current-value set-current-value] (useState default-value)]
     [:input
      (merge {:type (name type)
@@ -94,6 +93,7 @@
                          class)
              :name (name input-name)
              :placeholder placeholder
+             :onFocus on-focus
              :onChange (fn [e]
                          (let [value (-> e .-target .-value)]
                            (set-current-value value)
@@ -120,7 +120,7 @@
              :value value}
             (when readonly {:readonly readonly}))]))
 
-(defn select [{:keys [type default-value placeholder on-change children]
+(defn select [{:keys [type default-value placeholder on-change on-focus children]
                input-name :name}]
   (let [[current-value set-current-value] (useState default-value)]
     (apply js/React.createElement
@@ -130,7 +130,7 @@
                      :class (str "appearance-none px-2 py-1 border border-gray-300 "
                                  "rounded-[6px] mr-4")
                      :placeholder placeholder
-                     :disabled true
+                     :onFocus on-focus
                      #_#_:on-change (fn [e]
                                       (let [value (-> e .-target .-value)]
                                         (set-current-value value)

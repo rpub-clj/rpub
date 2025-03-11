@@ -38,9 +38,20 @@
 (defn activate-theme [db theme-label]
   (assoc db :themes-page/current-theme-name-setting {:value theme-label}))
 
+(defn select-content-type [db content-type-id]
+  (let [selection {:content-type-id content-type-id}]
+    (assoc db :all-content-types-page/selection selection)))
+
+(defn select-content-type-field [db content-type-field-id]
+  (let [selection {:content-type-field-id content-type-field-id}]
+    (assoc db :all-content-types-page/selection selection)))
+
 (def dag-config
   {:nodes
-   {:init {:push init}
+   {:all-content-types-page/select-content-type {:push select-content-type}
+    :all-content-types-page/select-content-type-field {:push select-content-type-field}
+    :all-content-types-page/selection {:calc :all-content-types-page/selection}
+    :init {:push init}
     :model/settings {:calc model-settings}
     :model/site-url {:calc (comp :site-url :settings)}
     :plugins-page/needs-restart {:calc :plugins-page/needs-restart}
@@ -58,7 +69,9 @@
     :themes-page/current-theme-name-setting {:calc :themes-page/current-theme-name-setting}}
 
    :edges
-   [[:init :model/settings]
+   [[:all-content-types-page/select-content-type :all-content-types-page/selection]
+    [:all-content-types-page/select-content-type-field :all-content-types-page/selection]
+    [:init :model/settings]
     [:model/settings :model/site-url]
     [:model/settings :settings-page/field-values]
     [:plugins-page/activate-plugin :plugins-page/needs-restart]
