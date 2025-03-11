@@ -2,8 +2,7 @@
   {:no-doc true}
   (:require ["react" :refer [useState] :as react]
             [clojure.set :as set]
-            [clojure.string :as str]
-            [clojure.walk :as walk]))
+            [clojure.string :as str]))
 
 (def default-debounce-timeout-ms 500)
 

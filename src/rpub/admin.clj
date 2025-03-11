@@ -32,7 +32,7 @@
   (let [[attrs content] (if (map? (first args))
                           [(first args) (rest args)]
                           [nil args])]
-    [:form (merge {:method :post} attrs)
+    [:form (merge {:method "post"} attrs)
      [:input {:id :__anti-forgery-token
               :name :__anti-forgery-token
               :type :hidden
@@ -126,19 +126,6 @@
          [:themes-page {:theme-name-setting theme-name-setting
                         :themes themes'}]
          {:format :json})})))
-
-(defn- select-theme-handler [{:keys [model current-user form-params] :as req}]
-  (let [{:strs [theme-name]} form-params
-        [existing-setting] (model/get-settings model {:keys [:theme-name]})
-        updated-setting (if existing-setting
-                          (assoc existing-setting :value theme-name)
-                          (model/->setting
-                            {:key :theme-name
-                             :label "Theme Name"
-                             :value theme-name
-                             :current-user current-user}))]
-    (model/update-setting! model updated-setting)
-    (themes-handler req)))
 
 (defn- plugins-handler [{:keys [plugins] :as req}]
   (let [available-plugins (->> (plugins/get-plugins)
@@ -290,6 +277,5 @@
     ["/logout" {:post logout-handler}]
     ["/users" {:get users-handler}]
     ["/settings" {:get settings-handler}]
-    ["/themes" {:get themes-handler
-                :post select-theme-handler}]
+    ["/themes" {:get themes-handler}]
     ["/plugins" {:get plugins-handler}]]])

@@ -241,10 +241,7 @@
     [:div {:class "p-4"}
      (for [theme themes
            :let [activated (activated? theme)]]
-       [:form
-        {:method :post}
-        [:input {:type "hidden" :name "__anti-forgery-token" :value anti-forgery-token}]
-        [:input {:type "hidden" :name "theme-name" :value (:label theme)}]
+       [:form {:method "post"}
         [admin-impl/box
          {:key (:label theme)
           :title [:div {:class "flex items-center" :style {:margin-top "-1px"}}
