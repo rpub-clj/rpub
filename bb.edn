@@ -10,6 +10,7 @@
          dev:css (tasks/dev-admin-css)
          dev:cljs (tasks/dev-cljs)
          copy-js (tasks/copy-js)
+         copy-css (tasks/copy-css)
          test (exec 'rpub.dev.tasks/test)
          flowstorm (exec 'rpub.dev.tasks/flowstorm)
          jar (shell "clojure -T:build jar")

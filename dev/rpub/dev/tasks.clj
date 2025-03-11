@@ -26,6 +26,7 @@
           (recur))))))
 
 (defn prod-admin-css []
+  (p/shell "rm -rf target/public/css")
   (p/shell
     {:extra-env {:NODE_ENV "production"}}
     "./node_modules/.bin/tailwindcss"
@@ -33,7 +34,7 @@
     "--postcss" "resources/css/admin/postcss.config.js"
     "--config" "resources/css/admin/tailwind.config.js"
     "--input" "resources/css/admin/tailwind.css"
-    "--output" "resources/public/css/admin/main.css"))
+    "--output" "target/public/css/admin/main.css"))
 
 (defn dev-admin-css []
   (p/shell
@@ -44,6 +45,10 @@
     "--config" "resources/css/admin/tailwind.config.js"
     "--input" "resources/css/admin/tailwind.css"
     "--output" "target/public/css/admin/main.css"))
+
+(defn copy-css []
+  (p/shell "rm -rf resources/public/css")
+  (p/shell "cp -r target/public/css resources/public/css"))
 
 (defn dev-cljs []
   (p/shell

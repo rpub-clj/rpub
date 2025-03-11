@@ -57,17 +57,20 @@
     (transit/write writer x)
     (str out)))
 
-(defn- css-manifest [path]
-  (when-let [path (io/resource path)]
-    (json/read-str (slurp path) {:key-fn str})))
+(defn- read-json [path]
+  (json/read-str (slurp path) {:key-fn str}))
 
 (defn stylesheet-path [file-path]
-  (let [resource-path (str "public/css/" file-path)
-        manifest-path (str (fs/path (fs/parent resource-path) "manifest.json"))]
-    (if-let [manifest (css-manifest manifest-path)]
-      (str "/css/" (str (fs/path (fs/parent file-path) (get manifest (fs/file-name file-path)))))
-      (when (io/resource resource-path)
-        (str "/css/" file-path)))))
+  (let [resource-path (str "public/css/" file-path)]
+    (if (io/resource resource-path)
+      (str "/css/" file-path)
+      (let [manifest-path (str (fs/path (fs/parent resource-path) "manifest.json"))
+            manifest (some-> (io/resource manifest-path) read-json)]
+        (if manifest
+          (str "/css/" (str (fs/path (fs/parent file-path) (get manifest (fs/file-name file-path)))))
+          (throw (ex-info "Couldn't find stylesheet on classpath"
+                          {:file-path file-path
+                           :resource-path resource-path})))))))
 
 (defn stylesheet-tag
   "Returns the main stylesheet `<link>` tag if the main CSS file is found.
