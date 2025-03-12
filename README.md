@@ -55,7 +55,8 @@ bb -Sdeps '{:deps {dev.rpub/rpub {:mvn/version "0.1.0"}}}' -m rpub.tasks/supervi
 
 ```clojure
 ;; deps.edn
-{:deps {dev.rpub/rpub {:mvn/version "0.1.0"}}}
+{:paths ["src"]
+ :deps {dev.rpub/rpub {:mvn/version "0.1.0"}}}
 
 ;; src/com/example.clj
 (ns com.example
