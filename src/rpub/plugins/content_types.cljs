@@ -93,24 +93,31 @@
       (for [field (sort-by :rank (:fields content-type))]
         [:div {:class "mb-2 pb-2 pt-2 flex items-center group"
                :key (:id field)}
-         [:label {:for :field-name}]
+         [:label {:for "field-name"}]
          [html/input
           {:type :text
-           :on-focus (fn [_] (push :all-content-types-page/select-content-type-field (:id field)))
+           :on-focus (fn [_]
+                       (push :all-content-types-page/select-content-type-field
+                             {:content-type content-type
+                              :content-type-field field}))
+           #_#_:on-blur (fn [_] (push :all-content-types-page/clear-selection))
            :size :text-medium
-           :class (str "px-2 py-1 font-semibold border border-gray-300 "
+           :class (str "px-2 py-1 font-semibold border border-gray-200 "
                        "rounded-[6px] mr-4 max-w-xl")
            :placeholder "Field Name"
            :name :field-name
-           #_#_:on-change #(update-field-name % content-type field)
            :readonly true
+           #_#_:on-change #(update-field-name % content-type field)
            :default-value (:name field)}]
-         [:label {:for :field-type}]
+         [:label {:for "field-type"}]
          [html/select
           {:name :field-type
-           :on-focus (fn [_] (push :all-content-types-page/select-content-type-field (:id field)))
+           :on-focus (fn [_]
+                       (push :all-content-types-page/select-content-type-field
+                             {:content-type content-type
+                              :content-type-field field}))
+           #_#_:on-blur (fn [_] (push :all-content-types-page/clear-selection))
            :default-value (:type field)
-           :readonly true
            #_#_:on-change #(update-field-type % content-type field)}
           [:option {:key :text :value "text"} "Text"]
           [:option {:key :text-lg :value "text-lg"} "Text (Large)"]
@@ -128,11 +135,20 @@
        (map (fn [v] [(f v) v]))
        (into {})))
 
+(def field-config
+  [{:label "Text" :description "Ask for text with optional formatting."}
+   {:label "Date and Time" :description "Ask for a date and time with a date picker."}
+   {:label "Number" :description "Ask for a whole number or a decimal."}
+   {:label "Media" :description "Ask for an image or video."}
+   {:label "Choice" :description "Ask for a choice between multiple options."}
+   {:label "Group" :description "Combine multiple fields into a group."}])
+
 (defn all-content-types-page [{:keys [content-types anti-forgery-token]}]
   (let [[{:keys [:all-content-types-page/selection]}
          push] (use-dag [:all-content-types-page/selection])
+        _ (useEffect #(push :init {:content-types content-types}) #js[])
         content-types (map #(update % :created-at js/Date.parse) content-types)
-        content-type-index (index-by :id content-types)
+        content-type-index (admin-impl/index-by :id content-types)
         http-opts {:anti-forgery-token anti-forgery-token}
         set-content-type-name (useCallback
                                 (html/debounce
@@ -172,7 +188,10 @@
                       (http/post "/api/new-content-type-field" http-opts')
                       #_(set-state (update-in state [:content-type-index (:id content-type) :fields] conj field'))))
         content-types (->> (vals content-type-index) (sort-by :created-at >))]
-    [:div {:class "flex"}
+    [:div {:class "flex"
+           :onClick (fn [e]
+                      (when-not (.closest (.-target e) "[data-content-type-id]")
+                        (push :all-content-types-page/clear-selection)))}
      [:div {:class "flex-grow"}
       [:div {:class "p-4 pr-[384px]"}
        [admin-impl/box
@@ -185,18 +204,30 @@
                     "New Content Type"]]
          :content [admin-impl/content-item-counts {:content-types content-types}]}]
        (for [content-type content-types]
-         [:div {:class "pb-4" :key (:id content-type)}
+         [:div {:class "pb-4"
+                :key (:id content-type)
+                :data-content-type-id (:id content-type)}
           [admin-impl/box
-           {:title [:div {:class "flex items-center group"}
-                    [html/input {:type :text
-                                 :class "max-w-xl"
-                                 :size :text-2xl
-                                 :name :content-type-name
-                                 :placeholder "Name"
-                                 :on-focus (fn [_] (push :all-content-types-page/select-content-type (:id content-type)))
-                                 :readonly true
-                                 #_#_:on-change #(set-content-type-name % content-type)
-                                 :default-value (:name content-type)}]
+           {:on-click (fn [e]
+                        (when-not (or (.closest (.-target e) "input")
+                                      (.closest (.-target e) "select"))
+                          (push :all-content-types-page/select-content-type
+                                {:content-type content-type})))
+            :selected (and (not (:content-type-field selection))
+                           (= (get-in selection [:content-type :id])
+                              (:id content-type)))
+            :title [:div {:class "flex items-center group"}
+                    [:h3 {:class "text-2xl"}
+                     (:name content-type)]
+                    #_[html/input {:type :text
+                                   :class "max-w-xl"
+                                   :size :text-2xl
+                                   :name :content-type-name
+                                   :placeholder "Name"
+                                   :on-focus (fn [_] (push :all-content-types-page/select-content-type (:id content-type)))
+                                   :on-blur (fn [_] (push :all-content-types-page/clear-selection))
+                                   #_#_:on-change #(set-content-type-name % content-type)
+                                   :default-value (:name content-type)}]
                     #_[html/button
                        {:class "ml-5 font-app-sans"
                         :on-click #(new-field %
@@ -214,31 +245,53 @@
                         [content-type-fields-form
                          {:content-type content-type
                           :anti-forgery-token anti-forgery-token}]])}]])]]
-     [:div {:class "p-4 pl-2 w-[376px] fixed right-0 bottom-0 top-12"}
-      (if selection
-        [admin-impl/box
-         {:class "h-full"
-          :title [:h3 {:class "text-2xl font-app-serif font-semibold"}
-                  "Inspect"]
-          :content [:div
-                    (pr-str selection)]}]
-        (let [field (fn [text]
-                      [:div {:class "border border-gray-150 rounded-[6px] p-2 mb-4 bg-gray-50 cursor-move"
-                             :draggable true}
-                       [:h4 {:class "font-semibold"}
-                        text]
-                       [:p {:class "text-sm text-gray-500"}
-                        "yolo"]])
-              field-names ["Text" "Date" "Date and Time" "Boolean" "Number" "Image" "Embed"
-                           "Select" "Group"]]
+     (let [field (fn [{:keys [label description]}]
+                   [:div {:class "border border-gray-200 rounded-[6px] p-2 mb-4 bg-gray-50 cursor-move"
+                          :draggable true}
+                    [:h4 {:class "font-semibold"}
+                     label]
+                    [:p {:class "text-sm text-gray-500"}
+                     description]])]
+       [:div {:class "p-4 pl-2 w-[376px] fixed right-0 bottom-0 top-12"}
+        (if selection
+          (cond
+            (:content-type-field selection)
+            [admin-impl/box
+             {:class "h-full"
+              :title [:h3 {:class "text-2xl font-app-serif font-semibold"}
+                      [:span {:class "italic"} "Field: "]
+                      (get-in selection [:content-type-field :name])]
+              :content [:div
+                        [:div {:class "mb-8"}
+                         [:h2 {:class "text-xl font-app-serif font-semibold"}
+                          "Info"]]
+                        [:div
+                         [:h2 {:class "text-xl font-app-serif font-semibold"}
+                          "Conditions"]
+                         [:p "foo"]]]}]
+
+            (:content-type selection)
+            [admin-impl/box
+             {:class "h-full"
+              :title [:h3 {:class "text-2xl font-app-serif font-semibold"}
+                      [:span {:class "italic"} "Content Type: "]
+                      (get-in selection [:content-type :name])]
+              :content [:div
+                        [:h4 {:class "text-xl font-app-serif font-semibold mb-4"}
+                         "Add Field"]
+                        [:div
+                         (for [n field-config]
+                           (field n))]]}])
+
           [admin-impl/box
            {:class "h-full"
-            :title [:h3 {:class "text-2xl font-app-serif font-semibold"}
-                    "Add Fields"]
             :content [:div
-                      (pr-str selection)
-                      (for [n field-names]
-                        (field n))]}]))]]))
+                      [:ul {:class "text-sm mb-8 list-[disc] pl-4"}
+                       [:li {:class "mb-2"} "Drag a field to the left to add it to a content type."]
+                       [:li "Double-click a field to add it to the selected content type."]]
+                      [:div
+                       (for [n field-config]
+                         (field n))]]}])])]))
 
 (html/add-element :all-content-types-page (admin-impl/wrap-component all-content-types-page))
 

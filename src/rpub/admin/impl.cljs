@@ -94,3 +94,8 @@
   (fn [props]
     #jsx [DAGProvider {:dag-atom dag/dag-atom}
           (r/as-element [f props])]))
+
+(defn index-by [f coll]
+  (->> coll
+       (map (fn [v] [(f v) v]))
+       (into {})))

@@ -79,13 +79,13 @@
     label]])
 
 (defn input [props]
-  (let [{:keys [type class size default-value placeholder on-change on-focus readonly]
+  (let [{:keys [type class size default-value placeholder on-change on-focus on-blur readonly]
          input-name :name} props
         [current-value set-current-value] (useState default-value)]
     [:input
      (merge {:type (name type)
-             :class (str "bg-gray-50 border border-gray-300 text-gray-900 rounded-lg
-                   focus:ring-primary-600 focus:border-primary-600 block w-full
+             :class (str "bg-gray-50 border border-gray-200 text-gray-900 rounded-lg
+                   focus:border-primary-600 focus:ring-0 focus:ring-offset-0 block w-full
                    p-2 5 dark:bg-gray-700 dark:border-gray-600
                    dark:placeholder-gray-400 dark:text-white
                    dark:focus:ring-primary-500 dark:focus:border-primary-500 "
@@ -94,6 +94,7 @@
              :name (name input-name)
              :placeholder placeholder
              :onFocus on-focus
+             :onBlur on-blur
              :onChange (fn [e]
                          (let [value (-> e .-target .-value)]
                            (set-current-value value)
@@ -104,6 +105,7 @@
 (defn input2 [props]
   (let [{:keys [key type class size value placeholder on-change readonly]
          input-name :name} props]
+
     [:input
      (merge {:key key
              :type (name type)
@@ -111,6 +113,7 @@
                          focus:ring-primary-600 focus:border-primary-600 block w-full
                          p-2 5 dark:bg-gray-700 dark:border-gray-600
                          dark:placeholder-gray-400 dark:text-white
+                         focus:ring-0 focus:ring-offset-0
                          dark:focus:ring-primary-500 dark:focus:border-primary-500 "
                          (name (or size :text-sm)) " "
                          class)
@@ -120,17 +123,19 @@
              :value value}
             (when readonly {:readonly readonly}))]))
 
-(defn select [{:keys [type default-value placeholder on-change on-focus children]
+(defn select [{:keys [type default-value placeholder on-change on-focus on-blur children]
                input-name :name}]
   (let [[current-value set-current-value] (useState default-value)]
     (apply js/React.createElement
            "select"
            (clj->js {:type type
                      :name input-name
-                     :class (str "appearance-none px-2 py-1 border border-gray-300 "
+                     :class (str "appearance-none px-2 py-1 border border-gray-200 "
+                                 "focus:ring-0 focus:ring-offset-0 "
                                  "rounded-[6px] mr-4")
                      :placeholder placeholder
                      :onFocus on-focus
+                     :onBlur on-blur
                      #_#_:on-change (fn [e]
                                       (let [value (-> e .-target .-value)]
                                         (set-current-value value)

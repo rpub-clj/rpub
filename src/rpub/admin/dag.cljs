@@ -1,7 +1,10 @@
 (ns rpub.admin.dag
-  (:require [rpub.lib.dag :as dag]))
+  (:require [rpub.admin.impl :as admin-impl]
+            [rpub.lib.dag :as dag]))
 
-(defn init [_ v] v)
+(defn init [_ {:keys [content-types]}]
+  (let [content-types-index (admin-impl/index-by :id content-types)]
+    {:model/content-types-index content-types-index}))
 
 (defn field-values
   ([db] (field-values db (keys (:inputs db))))
@@ -38,19 +41,39 @@
 (defn activate-theme [db theme-label]
   (assoc db :themes-page/current-theme-name-setting {:value theme-label}))
 
-(defn select-content-type [db content-type-id]
-  (let [selection {:content-type-id content-type-id}]
+(defn select-content-type [db {:keys [content-type]}]
+  (let [selection {:content-type (select-keys content-type [:id])}]
     (assoc db :all-content-types-page/selection selection)))
 
-(defn select-content-type-field [db content-type-field-id]
-  (let [selection {:content-type-field-id content-type-field-id}]
+(defn select-content-type-field [db {:keys [content-type content-type-field]}]
+  (let [selection {:content-type (select-keys content-type [:id])
+                   :content-type-field (select-keys content-type-field [:id])}]
     (assoc db :all-content-types-page/selection selection)))
+
+(defn clear-selection [db]
+  (dissoc db :all-content-types-page/selection))
+
+(defn selection [db]
+  (let [sel (get db :all-content-types-page/selection)
+        content-type-id (get-in sel [:content-type :id])
+        content-type-field-id (get-in sel [:content-type-field :id])
+        content-type (get-in db [:model/content-types-index content-type-id])]
+    (cond-> nil
+      (:content-type sel)
+      (assoc :content-type content-type)
+
+      (:content-type-field sel)
+      (assoc :content-type-field
+             (->> (:fields content-type)
+                  (filter #(= (:id %) content-type-field-id))
+                  first)))))
 
 (def dag-config
   {:nodes
-   {:all-content-types-page/select-content-type {:push select-content-type}
+   {:all-content-types-page/clear-selection {:push clear-selection}
+    :all-content-types-page/select-content-type {:push select-content-type}
     :all-content-types-page/select-content-type-field {:push select-content-type-field}
-    :all-content-types-page/selection {:calc :all-content-types-page/selection}
+    :all-content-types-page/selection {:calc selection}
     :init {:push init}
     :model/settings {:calc model-settings}
     :model/site-url {:calc (comp :site-url :settings)}
@@ -69,7 +92,8 @@
     :themes-page/current-theme-name-setting {:calc :themes-page/current-theme-name-setting}}
 
    :edges
-   [[:all-content-types-page/select-content-type :all-content-types-page/selection]
+   [[:all-content-types-page/clear-selection :all-content-types-page/selection]
+    [:all-content-types-page/select-content-type :all-content-types-page/selection]
     [:all-content-types-page/select-content-type-field :all-content-types-page/selection]
     [:init :model/settings]
     [:model/settings :model/site-url]
@@ -86,4 +110,4 @@
 
 (defonce dag-atom
   (atom (-> (dag/->dag dag-config)
-            #_dag/add-tracing)))
+            dag/add-tracing)))

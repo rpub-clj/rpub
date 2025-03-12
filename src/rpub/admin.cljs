@@ -8,11 +8,6 @@
             [rpub.lib.http :as http]
             [rpub.plugins.content-types]))
 
-(defn- index-by [f coll]
-  (->> coll
-       (map (fn [v] [(f v) v]))
-       (into {})))
-
 (defn- dashboard-content-types [{:keys [content-types]}]
   [:div {:class "w-full md:w-1/2 md:px-2 mb-4"
          :data-test-id "dashboard-content-types"}
@@ -142,7 +137,7 @@
                  :settings-page/submitting]}
          push] (use-dag [:settings-page/field-values
                          :settings-page/submitting])
-        settings-index (index-by :key settings)
+        settings-index (admin-impl/index-by :key settings)
         http-opts {:anti-forgery-token anti-forgery-token}
         update-setting (fn [setting-key e]
                          (let [value (-> e .-target .-value)]
@@ -277,7 +272,7 @@
          push] (use-dag [:plugins-page/needs-restart
                          :plugins-page/activated-plugins])
         http-opts {:anti-forgery-token anti-forgery-token}
-        current-plugin-index (index-by :key current-plugins)
+        current-plugin-index (admin-impl/index-by :key current-plugins)
         activate-plugin (fn [_e plugin]
                           (let [plugin' (assoc plugin :activated true)
                                 body {:plugin (-> plugin'
@@ -304,7 +299,7 @@
                                http-opts' (merge http-opts {:on-complete on-complete})]
                            (push :plugins-page/restart-server)
                            (http/post "/api/restart-server" http-opts')))
-        available-plugin-index (index-by :key available-plugins)
+        available-plugin-index (admin-impl/index-by :key available-plugins)
         activated-plugin-index (->> activated-plugins
                                     (map (fn [k] [k {:activated true}]))
                                     (into {}))
