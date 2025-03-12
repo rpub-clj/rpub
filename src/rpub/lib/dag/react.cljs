@@ -57,7 +57,7 @@
         values (-> (::dag/values dag) (select-keys node-keys))
         push (useCallback
                (fn
-                 ([k] (swap! dag-atom dag/push k))
-                 ([k v] (swap! dag-atom dag/push k v)))
+                 ([k] (do (swap! dag-atom dag/push k) nil))
+                 ([k v] (do (swap! dag-atom dag/push k v) nil)))
                #js[])]
     [values push]))
