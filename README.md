@@ -85,7 +85,8 @@ Plugins can be added by extending the [`rpub.core/plugin`](https://github.com/rp
 ```clojure
 ;; data/example-plugin/deps.edn
 {:paths ["src"]
- :deps {}}
+ :deps {}
+ :aliases {:dev {:extra-deps {dev.rpub/rpub {:mvn/version "0.1.0"}}}}}
 
 ;; data/example-plugin/src/com/example/plugin.clj
 (ns com.example.plugin
