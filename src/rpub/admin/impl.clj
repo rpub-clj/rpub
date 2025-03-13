@@ -319,10 +319,10 @@
 
 (defn- load-import-map []
   {:imports
-   (merge {"cherry-cljs/cljs.core.js" "https://cdn.jsdelivr.net/npm/cherry-cljs@0.3.23/cljs.core.js"
-           "cherry-cljs/lib/clojure.walk.js" "https://cdn.jsdelivr.net/npm/cherry-cljs@0.3.23/lib/clojure.walk.js"
-           "cherry-cljs/lib/clojure.set.js" "https://cdn.jsdelivr.net/npm/cherry-cljs@0.3.23/lib/clojure.set.js"
-           "cherry-cljs/lib/clojure.string.js" "https://cdn.jsdelivr.net/npm/cherry-cljs@0.3.23/lib/clojure.string.js"
+   (merge {"cherry-cljs/cljs.core.js" "https://cdn.jsdelivr.net/npm/cherry-cljs@0.4.24/cljs.core.js"
+           "cherry-cljs/lib/clojure.walk.js" "https://cdn.jsdelivr.net/npm/cherry-cljs@0.4.24/lib/clojure.walk.js"
+           "cherry-cljs/lib/clojure.set.js" "https://cdn.jsdelivr.net/npm/cherry-cljs@0.4.24/lib/clojure.set.js"
+           "cherry-cljs/lib/clojure.string.js" "https://cdn.jsdelivr.net/npm/cherry-cljs@0.4.24/lib/clojure.string.js"
            "flowbite" "https://cdn.jsdelivr.net/npm/flowbite@2.5.2/dist/flowbite.min.js"
            "preact" "https://cdn.jsdelivr.net/npm/preact@10.25.0/dist/preact.module.js"
            "preact/debug" "https://cdn.jsdelivr.net/npm/preact@10.25.0/debug/dist/debug.module.js"
