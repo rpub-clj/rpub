@@ -1,0 +1,2 @@
+{:sort-ns-references? true
+ :function-arguments-indentation :cursive}
