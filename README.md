@@ -110,7 +110,8 @@ To use the plugin, require the namespace before you start rPub. If you install a
 
 ```clojure
 ;; data/deps.edn
-{:deps {dev.rpub/rpub {:mvn/version "0.1.0"}
+{:paths ["."]
+ :deps {dev.rpub/rpub {:mvn/version "0.1.0"}
         com.example/plugin {:local/root "example-plugin"}}}
 
 ;; data/app.clj
