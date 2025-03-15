@@ -12,7 +12,6 @@
 
 (defn- update-settings-handler [{:keys [model current-user body-params] :as _req}]
   (let [updated-setting-index (->> (get body-params :settings)
-                                   (map #(update % :key keyword))
                                    (map #(select-keys % [:key :value]))
                                    (medley/index-by :key))
         ks (keys updated-setting-index)
@@ -29,8 +28,7 @@
 
 (defn- activate-plugin-handler
   [{:keys [body-params model current-user plugins] :as req}]
-  (let [plugin' (model/->plugin (merge (-> (:plugin body-params)
-                                           (update :key edn/read-string))
+  (let [plugin' (model/->plugin (merge (:plugin body-params)
                                        {:activated true
                                         :sha (plugins/get-latest-sha)
                                         :current-user current-user}))
@@ -46,8 +44,7 @@
         (response/response {:success true})))))
 
 (defn- deactivate-plugin-handler [{:keys [body-params model current-user] :as _req}]
-  (let [plugin' (model/->plugin (merge (-> (:plugin body-params)
-                                           (update :key edn/read-string))
+  (let [plugin' (model/->plugin (merge (:plugin body-params)
                                        {:activated false
                                         :current-user current-user}))]
     (plugins/uninstall! plugin')

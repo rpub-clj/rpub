@@ -94,7 +94,7 @@
        (html/cljs
          [:single-content-type-page {:content-type content-type
                                      :content-items content-items'}]
-         {:format :json})})))
+         {:format :transit})})))
 
 (defn new-content-item-page [{:keys [::model path-params site-base-url settings] :as req}]
   (let [{:keys [content-type-slug]} path-params
@@ -109,7 +109,7 @@
           {:content-type content-type
            :permalink-single permalink-single
            :site-base-url site-base-url}]
-         {:format :json})})))
+         {:format :transit})})))
 
 (defn md->html [s]
   #_(-> (md/md-to-html-string
@@ -141,7 +141,7 @@
            :content-type content-type
            :permalink-single permalink-single
            :site-base-url site-base-url}]
-         {:format :json})})))
+         {:format :transit})})))
 
 (defn str->field-type [s]
   (keyword s))

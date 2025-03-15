@@ -86,7 +86,7 @@
            :activated-plugins activated-plugins'
            :current-user current-user'
            :settings settings'}]
-         {:format :json})})))
+         {:format :transit})})))
 
 (defn- users-handler [{:keys [model] :as req}]
   (admin-impl/page-response
@@ -96,7 +96,7 @@
      (let [users (model/get-users model {})]
        (html/cljs
          [:users-page {:users users}]
-         {:format :json}))}))
+         {:format :transit}))}))
 
 (defn- settings-handler [{:keys [model] :as req}]
   (admin-impl/page-response
@@ -113,7 +113,7 @@
                               :footer-links]})]
        (html/cljs
          [:settings-page {:settings settings}]
-         {:format :json}))}))
+         {:format :transit}))}))
 
 (defn- themes-handler [{:keys [model themes] :as req}]
   (let [[theme-name-setting] (model/get-settings model {:keys [:theme-name]})
@@ -125,7 +125,7 @@
        (html/cljs
          [:themes-page {:theme-name-setting theme-name-setting
                         :themes themes'}]
-         {:format :json})})))
+         {:format :transit})})))
 
 (defn- plugins-handler [{:keys [plugins] :as req}]
   (let [available-plugins (->> (plugins/get-plugins)
@@ -141,7 +141,7 @@
          [:plugins-page
           {:current-plugins current-plugins
            :available-plugins available-plugins}]
-         {:format :json})})))
+         {:format :transit})})))
 
 (defn- login-start-handler [{:keys [flash] :as req}]
   (admin-impl/page-response

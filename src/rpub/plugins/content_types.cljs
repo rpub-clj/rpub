@@ -51,7 +51,8 @@
 (defn content-type-fields-form [{:keys [anti-forgery-token content-type class]}]
   (let [[{:keys [:all-content-types-page/selection]}
          push] (use-dag [:all-content-types-page/selection])
-        http-opts {:anti-forgery-token anti-forgery-token}
+        http-opts {:anti-forgery-token anti-forgery-token
+                   :format :transit}
         update-field (useCallback
                        (fn [content-type-id field-key]
                          (html/debounce
@@ -150,7 +151,8 @@
         _ (useEffect #(push :init {:content-types content-types}) #js[])
         content-types (map #(update % :created-at js/Date.parse) content-types)
         content-type-index (admin-impl/index-by :id content-types)
-        http-opts {:anti-forgery-token anti-forgery-token}
+        http-opts {:anti-forgery-token anti-forgery-token
+                   :format :transit}
         set-content-type-name (useCallback
                                 (html/debounce
                                   (fn [e content-type]
@@ -335,7 +337,8 @@
                      format-datetime))}])
 
 (defn single-content-type-page [{:keys [content-type content-items anti-forgery-token]}]
-  (let [http-opts {:anti-forgery-token anti-forgery-token}
+  (let [http-opts {:anti-forgery-token anti-forgery-token
+                   :format :transit}
         content-items (map (fn [content-item]
                              (update content-item :fields #(update-keys % name)))
                            content-items)
@@ -358,7 +361,9 @@
        :rows (map #(assoc % :content-type content-type) content-items)
        :delete-row delete-row}]]))
 
-(html/add-element :single-content-type-page (admin-impl/wrap-component single-content-type-page))
+(html/add-element :single-content-type-page
+                  (admin-impl/wrap-component single-content-type-page)
+                  {:format :transit})
 
 (defn editor-impl [{:keys [on-start] :as props}]
   #_(let [id (str (gensym))
@@ -404,7 +409,8 @@
            submit-button-class
            submit-form-url
            submitting-button-text]}]
-  (let [http-opts {:anti-forgery-token anti-forgery-token}
+  (let [http-opts {:anti-forgery-token anti-forgery-token
+                   :format :transit}
         submitting false
         content-item {:form-fields (or (:document content-item) {})}
         messages []

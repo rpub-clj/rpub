@@ -116,7 +116,6 @@
 (defn input2 [props]
   (let [{:keys [key type class size value placeholder on-change readonly]
          input-name :name} props]
-
     [:input
      (merge {:key key
              :type (name type)

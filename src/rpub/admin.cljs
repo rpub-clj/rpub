@@ -130,7 +130,9 @@
    [dashboard-user props]
    [dashboard-server props]])
 
-(html/add-element :dashboard-page (admin-impl/wrap-component dashboard-page))
+(html/add-element :dashboard-page
+                  (admin-impl/wrap-component dashboard-page)
+                  {:format :transit})
 
 (defn- settings-page [{:keys [anti-forgery-token settings] :as props}]
   (let [[{:keys [:settings-page/field-values
@@ -138,7 +140,8 @@
          push] (use-dag [:settings-page/field-values
                          :settings-page/submitting])
         settings-index (admin-impl/index-by :key settings)
-        http-opts {:anti-forgery-token anti-forgery-token}
+        http-opts {:anti-forgery-token anti-forgery-token
+                   :format :transit}
         update-setting (fn [setting-key e]
                          (let [value (-> e .-target .-value)]
                            (push :settings-page/change-input [setting-key value])))
@@ -182,7 +185,9 @@
               [:span [html/spinner] "Saving"]
               "Save")]]]]]}]]))
 
-(html/add-element :settings-page (admin-impl/wrap-component settings-page))
+(html/add-element :settings-page
+                  (admin-impl/wrap-component settings-page)
+                  {:format :transit})
 
 (def ^:private users-columns
   [{:key :id, :name "ID"}
@@ -201,7 +206,9 @@
      :columns columns
      :rows users}]])
 
-(html/add-element :users-page (admin-impl/wrap-component users-page))
+(html/add-element :users-page
+                  (admin-impl/wrap-component users-page)
+                  {:format :transit})
 
 (defn- theme-icon [_]
   [:svg {:class "w-8 h-8 text-gray-500 dark:text-white mr-4" :aria-hidden "true" :xmlns "http://www.w3.org/2000/svg" :width "24" :height "24" :fill "currentColor" :viewBox "0 0 24 24"}
@@ -211,7 +218,8 @@
 (defn- themes-page [{:keys [themes theme-name-setting anti-forgery-token]}]
   (let [[{:keys [:themes-page/current-theme-name-setting]}
          push] (use-dag [:themes-page/current-theme-name-setting])
-        http-opts {:anti-forgery-token anti-forgery-token}
+        http-opts {:anti-forgery-token anti-forgery-token
+                   :format :transit}
         theme-name-value (:value (or current-theme-name-setting
                                      theme-name-setting))
         activated? #(= (:label %) theme-name-value)
@@ -254,7 +262,9 @@
           (when-let [v (:description theme)]
             [:p v])}]])]))
 
-(html/add-element :themes-page (admin-impl/wrap-component themes-page))
+(html/add-element :themes-page
+                  (admin-impl/wrap-component themes-page)
+                  {:format :transit})
 
 (defn- plugin-icon [_]
   [:svg {:class "w-8 h-8 text-gray-500 dark:text-white mr-4" :aria-hidden "true" :xmlns "http://www.w3.org/2000/svg" :width "24" :height "24" :fill "currentColor" :viewBox "0 0 24 24"}
@@ -271,13 +281,12 @@
                  :plugins-page/activated-plugins]}
          push] (use-dag [:plugins-page/needs-restart
                          :plugins-page/activated-plugins])
-        http-opts {:anti-forgery-token anti-forgery-token}
+        http-opts {:anti-forgery-token anti-forgery-token
+                   :format :transit}
         current-plugin-index (admin-impl/index-by :key current-plugins)
         activate-plugin (fn [_e plugin]
                           (let [plugin' (assoc plugin :activated true)
-                                body {:plugin (-> plugin'
-                                                  (select-keys [:key])
-                                                  (update :key #(str ":" %)))}
+                                body {:plugin (select-keys plugin' [:key])}
                                 on-complete (fn [res _err]
                                               (when res
                                                 (push :plugins-page/activate-plugin (:key plugin'))))
@@ -285,9 +294,7 @@
                                                              :on-complete on-complete})]
                             (http/post "/api/activate-plugin" http-opts')))
         deactivate-plugin (fn [_e plugin]
-                            (let [body {:plugin (-> plugin
-                                                    (select-keys [:key])
-                                                    (update :key #(str ":" %)))}
+                            (let [body {:plugin (select-keys plugin [:key])}
                                   on-complete (fn [res _err]
                                                 (when res
                                                   (push :plugins-page/deactivate-plugin (:key plugin))))
@@ -337,4 +344,6 @@
           (when-let [v (:description plugin)]
             [:p v])]}])]))
 
-(html/add-element :plugins-page (admin-impl/wrap-component plugins-page))
+(html/add-element :plugins-page
+                  (admin-impl/wrap-component plugins-page)
+                  {:format :transit})

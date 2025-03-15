@@ -101,7 +101,7 @@
 
 (defn cljs [element & {:as opts}]
   (let [[k props] element
-        opts' (merge {:format :transit} opts)
+        opts' (merge {:format :json} opts)
         encode (case (:format opts')
                  :json #(json/write-str (instants->strs %))
                  :transit write-transit)
