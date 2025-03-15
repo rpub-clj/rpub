@@ -68,11 +68,7 @@
   (p/shell "cp -r target/public/css resources/public/css"))
 
 (defn dev-cljs []
-  (p/shell
-    {:extra-env {:NODE_ENV "development"}}
-    "./node_modules/.bin/cherry" "run" "build.cljs"
-    "--watch"
-    "--no-minify"))
+  (p/shell "watchexec -e cljs,cljc bb prod:cljs"))
 
 (defn prod-cljs []
   (p/shell "rm -rf target/cherry")
