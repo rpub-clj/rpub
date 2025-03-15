@@ -1,7 +1,6 @@
 (ns rpub.api
   {:no-doc true}
-  (:require [clojure.edn :as edn]
-            [medley.core :as medley]
+  (:require [medley.core :as medley]
             [ring.util.response :as response]
             [rpub.api.impl :as api-impl]
             [rpub.lib.plugins :as plugins]

@@ -5,8 +5,7 @@
             [clojure.edn :as edn]
             [medley.core :as medley]
             [rads.inflections :as inflections]
-            [rpub.lib.deps :as deps]
-            [rpub.model :as model])
+            [rpub.lib.deps :as deps])
   (:import (java.time Duration Instant)))
 
 (def ^:dynamic *defaults*

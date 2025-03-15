@@ -1,9 +1,8 @@
 (ns rpub.admin
   (:require ["flowbite"]
-            ["react" :refer [useCallback]]
             [clojure.string :as str]
             [rpub.admin.impl :as admin-impl]
-            [rpub.lib.dag.react :refer [DAGProvider use-dag]]
+            [rpub.lib.dag.react :refer [use-dag]]
             [rpub.lib.html :as html]
             [rpub.lib.http :as http]
             [rpub.plugins.content-types]))
@@ -134,7 +133,7 @@
                   (admin-impl/wrap-component dashboard-page)
                   {:format :transit})
 
-(defn- settings-page [{:keys [anti-forgery-token settings] :as props}]
+(defn- settings-page [{:keys [anti-forgery-token settings] :as _props}]
   (let [[{:keys [:settings-page/field-values
                  :settings-page/submitting]}
          push] (use-dag [:settings-page/field-values
@@ -188,11 +187,6 @@
 (html/add-element :settings-page
                   (admin-impl/wrap-component settings-page)
                   {:format :transit})
-
-(def ^:private users-columns
-  [{:key :id, :name "ID"}
-   {:key :created-at, :name "Created At"}
-   {:key :created-by, :name "Created By"}])
 
 (def ^:private columns
   [{:name "Username"

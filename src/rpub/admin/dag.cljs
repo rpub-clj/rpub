@@ -1,6 +1,5 @@
 (ns rpub.admin.dag
-  (:require [clojure.string :as str]
-            [rpub.admin.impl :as admin-impl]
+  (:require [rpub.admin.impl :as admin-impl]
             [rpub.lib.dag :as dag]))
 
 (defn init [_ {:keys [content-types]}]

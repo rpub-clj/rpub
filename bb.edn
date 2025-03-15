@@ -12,6 +12,7 @@
          copy-js (tasks/copy-js)
          copy-css (tasks/copy-css)
          test (exec 'rpub.dev.tasks/test)
+         lint (exec 'rpub.dev.tasks/lint)
          flowstorm (exec 'rpub.dev.tasks/flowstorm)
          jar (shell "clojure -T:build jar")
          install {:depends [jar]

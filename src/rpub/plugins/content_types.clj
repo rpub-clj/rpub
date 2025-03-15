@@ -111,7 +111,7 @@
            :site-base-url site-base-url}]
          {:format :transit})})))
 
-(defn md->html [s]
+(defn md->html [_s]
   #_(-> (md/md-to-html-string
           s
           :heading-anchors true)))
@@ -237,7 +237,7 @@
     (update-content-type! model updated-content-type)
     (response/response {:success true})))
 
-(defn new-content-item [{:keys [::model body-params current-user] :as req}]
+(defn new-content-item [{:keys [::model body-params current-user] :as _req}]
   (let [{:keys [content-type-id document]} body-params
         [content-type] (get-content-types
                          model
@@ -249,7 +249,7 @@
     (response/response {:content-item-id (:id content-item)
                         :content-item-slug (get-in content-item [:document slug-field-id])})))
 
-(defn edit-content-item [{:keys [::model body-params current-user] :as req}]
+(defn edit-content-item [{:keys [::model body-params current-user] :as _req}]
   (let [{:keys [content-item-id document]} body-params
         [content-item] (get-content-items
                          model
@@ -264,7 +264,7 @@
     (update-content-item! model content-item')
     (response/response {:success true})))
 
-(defn delete-content-item [{:keys [::model body-params] :as req}]
+(defn delete-content-item [{:keys [::model body-params] :as _req}]
   (let [{:keys [content-item-id]} body-params
         [content-item] (get-content-items
                          model

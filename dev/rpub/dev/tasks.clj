@@ -25,6 +25,23 @@
         (when (zero? (:exit app))
           (recur))))))
 
+(def ^:private deps-edn (delay (edn/read-string (slurp "deps.edn"))))
+
+(defn lint [& _]
+  (let [classpath (:out (p/shell {:out :string} "clojure -Spath"))
+        paths (-> (set (get-in @deps-edn [:aliases :dev :replace-paths]))
+                  (disj "target"))
+        _ (p/shell "clj-kondo"
+                   "--lint" classpath
+                   "--dependencies"
+                   "--copy-configs"
+                   "--skip-lint")
+        proc (apply p/shell
+                    {:continue true}
+                    "clj-kondo"
+                    (mapcat (fn [p] ["--lint" p]) paths))]
+    (System/exit (:exit proc))))
+
 (defn prod-admin-css []
   (p/shell "rm -rf target/public/css")
   (p/shell
@@ -82,7 +99,6 @@
       ":port" (pr-str port)
       ":debugger-host" (pr-str debugger-host))))
 
-(def ^:private deps-edn (delay (edn/read-string (slurp "deps.edn"))))
 (def version (delay (get-in @deps-edn [:aliases :neil :project :version])))
 
 (defn docker-dockerfile [_]

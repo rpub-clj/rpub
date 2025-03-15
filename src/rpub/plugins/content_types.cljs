@@ -1,6 +1,6 @@
 (ns rpub.plugins.content-types
   (:refer-clojure :exclude [random-uuid])
-  (:require ["react" :refer [useEffect useCallback useState]]
+  (:require ["react" :refer [useEffect]]
             [clojure.string :as str]
             [rads.inflections :as inflections]
             [rpub.admin.impl :as admin-impl]
@@ -48,41 +48,40 @@
    :content-item-count 0})
 
 (defn content-type-fields-form [{:keys [anti-forgery-token content-type class]}]
-  (let [[{:keys [:all-content-types-page/selection]}
-         push] (use-dag [:all-content-types-page/selection])
-        http-opts {:anti-forgery-token anti-forgery-token
-                   :format :transit}
-        update-field (useCallback
-                       (fn [content-type-id field-key]
-                         (html/debounce
-                           (fn [e content-type field]
-                             (.preventDefault e)
-                             (let [updated-field (assoc field field-key (-> e .-target .-value))
-                                   http-opts' (assoc http-opts :body (merge {:content-type-id content-type-id
-                                                                             :content-field-id (:id updated-field)}
-                                                                            (select-keys updated-field [:name :type :rank])))]
-                               (http/post "/api/update-content-type-field" http-opts')
+  (let [[_ push] (use-dag)
+        _http-opts {:anti-forgery-token anti-forgery-token
+                    :format :transit}
+        #_#_update-field (useCallback
+                           (fn [content-type-id field-key]
+                             (html/debounce
+                               (fn [e _content-type field]
+                                 (.preventDefault e)
+                                 (let [updated-field (assoc field field-key (-> e .-target .-value))
+                                       http-opts' (assoc http-opts :body (merge {:content-type-id content-type-id
+                                                                                 :content-field-id (:id updated-field)}
+                                                                                (select-keys updated-field [:name :type :rank])))]
+                                   (http/post "/api/update-content-type-field" http-opts')
+                                   #_(set-state (update-in state [:content-type-index (:id content-type) :fields]
+                                                           (fn [fields]
+                                                             (map (fn [field]
+                                                                    (if (= (:id field) (:id updated-field))
+                                                                      updated-field
+                                                                      field))
+                                                                  fields))))))
+                               html/default-debounce-timeout-ms)))
+        #_#_delete-field (fn [e content-type field]
+                           (.preventDefault e)
+                           (when (js/confirm (str "Are you sure you want to delete \""
+                                                  (:name field)
+                                                  "\"?"))
+                             (let [http-opts' (assoc http-opts :body {:content-type-id (:id content-type)
+                                                                      :content-field-id (:id field)})]
+                               (http/post "/api/delete-content-type-field" http-opts')
                                #_(set-state (update-in state [:content-type-index (:id content-type) :fields]
                                                        (fn [fields]
-                                                         (map (fn [field]
-                                                                (if (= (:id field) (:id updated-field))
-                                                                  updated-field
-                                                                  field))
-                                                              fields))))))
-                           html/default-debounce-timeout-ms)))
-        delete-field (fn [e content-type field]
-                       (.preventDefault e)
-                       (when (js/confirm (str "Are you sure you want to delete \""
-                                              (:name field)
-                                              "\"?"))
-                         (let [http-opts' (assoc http-opts :body {:content-type-id (:id content-type)
-                                                                  :content-field-id (:id field)})]
-                           (http/post "/api/delete-content-type-field" http-opts')
-                           #_(set-state (update-in state [:content-type-index (:id content-type) :fields]
-                                                   (fn [fields]
-                                                     (remove #(= (:id %) (:id field)) fields)))))))
-        update-field-name (update-field (:id content-type) :name)
-        update-field-type (update-field (:id content-type) :type)]
+                                                         (remove #(= (:id %) (:id field)) fields)))))))
+        #_#_update-field-name (update-field (:id content-type) :name)
+        #_#_update-field-type (update-field (:id content-type) :type)]
     [:form {:method "post" :class class}
      [:input {:id "__anti-forgery-token"
               :name "__anti-forgery-token"
@@ -133,11 +132,6 @@
              :color :red}
             "Delete Field"]])]]))
 
-(defn- index-by [f coll]
-  (->> coll
-       (map (fn [v] [(f v) v]))
-       (into {})))
-
 (def field-config
   [{:label "Text"
     :description "Ask for text with optional formatting."
@@ -164,45 +158,45 @@
          push] (use-dag [:all-content-types-page/selection
                          :model/content-types-index])
         _ (useEffect #(push :init (select-keys props [:content-types])) #js[])
-        http-opts {:anti-forgery-token anti-forgery-token
-                   :format :transit}
-        set-content-type-name (useCallback
-                                (html/debounce
-                                  (fn [e content-type]
-                                    (let [value (-> e .-target .-value)
-                                          content-type' (-> (assoc content-type :name value)
-                                                            (select-keys [:id :name]))
-                                          http-opts' (assoc http-opts
+        _http-opts {:anti-forgery-token anti-forgery-token
+                    :format :transit}
+        #_#_set-content-type-name (useCallback
+                                    (html/debounce
+                                      (fn [e content-type]
+                                        (let [value (-> e .-target .-value)
+                                              content-type' (-> (assoc content-type :name value)
+                                                                (select-keys [:id :name]))
+                                              http-opts' (assoc http-opts
+                                                                :body
+                                                                {:content-type content-type'})]
+                                          (http/post "/api/update-content-type" http-opts')
+                                          #_(set-state (assoc-in state [:content-type-index (:id content-type) :name] value))))
+                                      html/default-debounce-timeout-ms))
+        #_#_new-content-type (fn [e]
+                               (let [content-type (->content-type
+                                                    {:name "New Content Type"
+                                                     :slug "new-content-type"
+                                                     :fields []})]
+                                 (.preventDefault e)
+                                 (http/post "/api/new-content-type" http-opts)
+                                 #_(set-state (assoc-in state [:content-type-index (:id content-type)] content-type))))
+        #_#_delete-content-type (fn [e content-type]
+                                  (when (js/confirm (str "Are you sure you want to delete \""
+                                                         (:name content-type)
+                                                         "\"?"))
+                                    (let [http-opts' (assoc http-opts
                                                             :body
-                                                            {:content-type content-type'})]
-                                      (http/post "/api/update-content-type" http-opts')
-                                      #_(set-state (assoc-in state [:content-type-index (:id content-type) :name] value))))
-                                  html/default-debounce-timeout-ms))
-        new-content-type (fn [e]
-                           (let [content-type (->content-type
-                                                {:name "New Content Type"
-                                                 :slug "new-content-type"
-                                                 :fields []})]
-                             (.preventDefault e)
-                             (http/post "/api/new-content-type" http-opts)
-                             #_(set-state (assoc-in state [:content-type-index (:id content-type)] content-type))))
-        delete-content-type (fn [e content-type]
-                              (when (js/confirm (str "Are you sure you want to delete \""
-                                                     (:name content-type)
-                                                     "\"?"))
-                                (let [http-opts' (assoc http-opts
-                                                        :body
-                                                        {:content-type-id (:id content-type)})]
-                                  (.preventDefault e)
-                                  (http/post "/api/delete-content-type" http-opts')
-                                  #_(set-state (update state :content-type-index #(dissoc % (:id content-type)))))))
-        new-field (fn [e content-type field]
-                    (.preventDefault e)
-                    (let [rank (inc (apply max 0 (map :rank (:fields content-type))))
-                          field' (-> (->field field) (assoc :rank rank))
-                          http-opts' (assoc http-opts :body {:content-type-id (:id content-type)})]
-                      (http/post "/api/new-content-type-field" http-opts')
-                      #_(set-state (update-in state [:content-type-index (:id content-type) :fields] conj field'))))
+                                                            {:content-type-id (:id content-type)})]
+                                      (.preventDefault e)
+                                      (http/post "/api/delete-content-type" http-opts')
+                                      #_(set-state (update state :content-type-index #(dissoc % (:id content-type)))))))
+        #_#_new-field (fn [e content-type field]
+                        (.preventDefault e)
+                        (let [rank (inc (apply max 0 (map :rank (:fields content-type))))
+                              field' (-> (->field field) (assoc :rank rank))
+                              http-opts' (assoc http-opts :body {:content-type-id (:id content-type)})]
+                          (http/post "/api/new-content-type-field" http-opts')
+                          #_(set-state (update-in state [:content-type-index (:id content-type) :fields] conj field'))))
         content-types (->> (vals content-types-index) (sort-by :created-at >))]
     [:div {:class "flex"
            :onClick (fn [e]
@@ -369,10 +363,10 @@
                            on-complete (fn [_ err]
                                          (if err
                                            (println err)
-                                           #_(set-state (update state :content-items
-                                                                (fn [content-items]
-                                                                  (remove #(= (:id %) (:id content-item))
-                                                                          content-items))))))
+                                           nil #_(set-state (update state :content-items
+                                                                    (fn [content-items]
+                                                                      (remove #(= (:id %) (:id content-item))
+                                                                              content-items))))))
                            http-opts' (merge http-opts {:body body
                                                         :on-complete on-complete})]
                        (http/post "/api/delete-content-item" http-opts')))]
@@ -387,7 +381,7 @@
                   (admin-impl/wrap-component single-content-type-page)
                   {:format :transit})
 
-(defn editor-impl [{:keys [on-start] :as props}]
+(defn editor-impl [_props]
   #_(let [id (str (gensym))
           [started set-started!] (useState false)
           container-props (dissoc props :on-start)]
@@ -438,8 +432,8 @@
         messages []
         add-editor (fn [_field-id _e] #_(set-state (assoc-in state [:editors %1] %2)))
         add-message (fn [_message] #_(set-state (update state :messages conj %)))
-        update-field (fn [e field-id]
-                       (let [value (-> e .-target .-value)]
+        update-field (fn [e _field-id]
+                       (let [_value (-> e .-target .-value)]
                          #_(set-state (assoc-in state [:content-item :form-fields field-id] value))))
         submit-form (fn [e {:keys [content-item-slug]}]
                       (.preventDefault e)
@@ -470,16 +464,16 @@
                                            (assoc :body body)
                                            (assoc :on-complete on-complete))]
                         (http/post submit-form-url http-opts')))
-        router nil #_(permalinks/->permalink-router {:single permalink-single})]
+        #_#_router (permalinks/->permalink-router {:single permalink-single})]
     [:div {:class "p-4 pt-0"}
      (admin-impl/box
        {:title title
         :content
         (let [content-item-slug (or (get-in content-item [:fields "Slug"])
                                     (some-> (get-in content-item [:form-fields title-field-id]) ->slug))
-              path-params {:content-type-slug (:slug content-type)
-                           :content-item-slug content-item-slug}
-              match nil #_(reitit/match-by-name router :single path-params)
+              #_#_path-params {:content-type-slug (:slug content-type)
+                               :content-item-slug content-item-slug}
+              #_#_match (reitit/match-by-name router :single path-params)
               permalink-url (when-not (str/blank? content-item-slug)
                               (str site-base-url #_(reitit/match->path match)))
               fields (->> (:fields content-type)

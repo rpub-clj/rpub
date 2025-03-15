@@ -23,7 +23,7 @@
   (into {}
         (for [attr (.-attributes el)]
           [(keyword (.-name attr))
-           (some-> attr .-value JSON/parse (js->clj :keywordize-keys true))])))
+           (some-> attr .-value js/JSON.parse (js->clj :keywordize-keys true))])))
 
 (defn- transit-attrs->map [el]
   (into {}
@@ -63,7 +63,7 @@
                  (set/rename-keys $ {:on-click :onClick}))]
     [:button attrs' (:children props)]))
 
-(defn- activated-button [{:keys [on-click]}]
+(defn activated-button [{:keys [on-click]}]
   (let [[hover set-hover] (useState false)]
     [:div {:class "ml-auto"
            :onMouseEnter #(set-hover true)
@@ -81,7 +81,7 @@
           [:path {:fill-rule "evenodd" :d "M2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10S2 17.523 2 12Zm13.707-1.293a1 1 0 0 0-1.414-1.414L11 12.586l-1.793-1.793a1 1 0 0 0-1.414 1.414l2.5 2.5a1 1 0 0 0 1.414 0l4-4Z" :clip-rule "evenodd"}]]
          "Active"]])]))
 
-(defn- activate-button [{:keys [on-click label]}]
+(defn activate-button [{:keys [on-click label]}]
   [:button {:class "font-app-sans inline-flex items-center px-5 py-2.5 text-sm font-medium text-center text-white bg-blue-700 rounded-lg focus:ring-4 focus:ring-primary-200 dark:focus:ring-primary-900 hover:bg-primary-800 shadow ml-auto w-44"
             :onClick on-click}
    [:div {:class "inline-flex items-center mx-auto"}
@@ -133,9 +133,9 @@
              :value value}
             (when readonly {:readonly readonly}))]))
 
-(defn select [{:keys [type default-value placeholder on-change on-focus on-blur children]
+(defn select [{:keys [type default-value placeholder on-focus on-blur children]
                input-name :name}]
-  (let [[current-value set-current-value] (useState default-value)]
+  (let [[current-value] (useState default-value)]
     (apply js/React.createElement
            "select"
            (clj->js {:type type

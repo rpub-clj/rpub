@@ -67,7 +67,7 @@
       (let [manifest-path (str (fs/path (fs/parent resource-path) "manifest.json"))
             manifest (some-> (io/resource manifest-path) read-json)]
         (if manifest
-          (str "/css/" (str (fs/path (fs/parent file-path) (get manifest (fs/file-name file-path)))))
+          (str "/css/" (fs/path (fs/parent file-path) (get manifest (fs/file-name file-path))))
           (throw (ex-info "Couldn't find stylesheet on classpath"
                           {:file-path file-path
                            :resource-path resource-path})))))))

@@ -48,16 +48,18 @@
                      current-dag
                      node-keys)))))
 
-(defn use-dag [node-keys]
-  (let [{:keys [dag-atom]} (useContext DAGContext)
-        component-id (useId)
-        sub #(subscribe dag-atom component-id node-keys %)
-        get-snapshot #(deref dag-atom)
-        dag (useSyncExternalStore sub get-snapshot)
-        values (-> (::dag/values dag) (select-keys node-keys))
-        push (useCallback
-               (fn
-                 ([k] (do (swap! dag-atom dag/push k) nil))
-                 ([k v] (do (swap! dag-atom dag/push k v) nil)))
-               #js[])]
-    [values push]))
+(defn use-dag
+  ([] (use-dag nil))
+  ([node-keys]
+   (let [{:keys [dag-atom]} (useContext DAGContext)
+         component-id (useId)
+         sub #(subscribe dag-atom component-id node-keys %)
+         get-snapshot #(deref dag-atom)
+         dag (useSyncExternalStore sub get-snapshot)
+         values (-> (::dag/values dag) (select-keys node-keys))
+         push (useCallback
+                (fn
+                  ([k] (swap! dag-atom dag/push k) nil)
+                  ([k v] (swap! dag-atom dag/push k v) nil))
+                #js[])]
+     [values push])))
