@@ -1,13 +1,12 @@
 (ns rpub.plugins.content-types
   (:refer-clojure :exclude [random-uuid])
-  (:require ["react" :refer [useEffect useCallback]]
+  (:require ["react" :refer [useEffect useCallback useState]]
             [clojure.string :as str]
             [rads.inflections :as inflections]
             [rpub.admin.impl :as admin-impl]
             [rpub.lib.dag.react :refer [use-dag]]
             [rpub.lib.html :as html]
-            [rpub.lib.http :as http]
-            [rpub.lib.transit :as transit]))
+            [rpub.lib.http :as http]))
 
 (defn random-uuid []
   (js/crypto.randomUUID))
@@ -125,7 +124,9 @@
           [:option {:key :text-lg :value "text-lg"} "Text (Large)"]
           [:option {:key :number :value "number"} "Number"]
           [:option {:key :choice :value "choice"} "Choice"]
-          [:option {:key :datetime :value "datetime"} "Date/Time"]]
+          [:option {:key :group :value "group"} "Group"]
+          [:option {:key :media :value "media"} "Media"]
+          [:option {:key :datetime :value "datetime"} "Date and Time"]]
          #_[html/button
             {:on-click #(delete-field % content-type field)
              :class "opacity-0 group-hover:opacity-100 transition duration-75"
@@ -138,19 +139,31 @@
        (into {})))
 
 (def field-config
-  [{:label "Text" :description "Ask for text with optional formatting."}
-   {:label "Date and Time" :description "Ask for a date and time with a date picker."}
-   {:label "Number" :description "Ask for a whole number or a decimal."}
-   {:label "Media" :description "Ask for an image or video."}
-   {:label "Choice" :description "Ask for a choice between multiple options."}
-   {:label "Group" :description "Combine multiple fields into a group."}])
+  [{:label "Text"
+    :description "Ask for text with optional formatting."
+    :type :text}
+   {:label "Date and Time"
+    :description "Ask for a date and time with a date picker."
+    :type :datetime}
+   {:label "Number"
+    :description "Ask for a whole number or a decimal."
+    :type :number}
+   {:label "Media"
+    :description "Ask for an image or video."
+    :type :media}
+   {:label "Choice"
+    :description "Ask for a choice between multiple options."
+    :type :choice}
+   {:label "Group"
+    :description "Combine multiple fields into a group."
+    :type :group}])
 
-(defn all-content-types-page [{:keys [content-types anti-forgery-token]}]
-  (let [[{:keys [:all-content-types-page/selection]}
-         push] (use-dag [:all-content-types-page/selection])
-        _ (useEffect #(push :init {:content-types content-types}) #js[])
-        content-types (map #(update % :created-at js/Date.parse) content-types)
-        content-type-index (admin-impl/index-by :id content-types)
+(defn all-content-types-page [{:keys [anti-forgery-token] :as props}]
+  (let [[{:keys [:all-content-types-page/selection
+                 :model/content-types-index]}
+         push] (use-dag [:all-content-types-page/selection
+                         :model/content-types-index])
+        _ (useEffect #(push :init (select-keys props [:content-types])) #js[])
         http-opts {:anti-forgery-token anti-forgery-token
                    :format :transit}
         set-content-type-name (useCallback
@@ -190,7 +203,7 @@
                           http-opts' (assoc http-opts :body {:content-type-id (:id content-type)})]
                       (http/post "/api/new-content-type-field" http-opts')
                       #_(set-state (update-in state [:content-type-index (:id content-type) :fields] conj field'))))
-        content-types (->> (vals content-type-index) (sort-by :created-at >))]
+        content-types (->> (vals content-types-index) (sort-by :created-at >))]
     [:div {:class "flex"
            :onClick (fn [e]
                       (when-not (.closest (.-target e) "[data-content-type-id]")
@@ -216,6 +229,12 @@
                                       (.closest (.-target e) "select"))
                           (push :all-content-types-page/select-content-type
                                 {:content-type content-type})))
+            :on-drag-over (fn [e]
+                            (.preventDefault e)
+                            #_(prn :drag-over e))
+            :on-drop (fn [_e]
+                       (push :all-content-types-page/drag-drop
+                             {:content-type content-type}))
             :selected (and (not (:content-type-field selection))
                            (= (get-in selection [:content-type :id])
                               (:id content-type)))
@@ -248,9 +267,12 @@
                         [content-type-fields-form
                          {:content-type content-type
                           :anti-forgery-token anti-forgery-token}]])}]])]]
-     (let [field (fn [{:keys [label description]}]
+     (let [field (fn [{:keys [label description] :as props}]
                    [:div {:class "border border-gray-200 rounded-[6px] p-2 mb-4 bg-gray-50 cursor-move"
-                          :draggable true}
+                          :draggable true
+                          :onDragStart (fn [e]
+                                         (push :all-content-types-page/drag-start props)
+                                         (println :onDragStart e))}
                     [:h4 {:class "font-semibold"}
                      label]
                     [:p {:class "text-sm text-gray-500"}

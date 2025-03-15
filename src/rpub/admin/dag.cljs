@@ -1,5 +1,6 @@
 (ns rpub.admin.dag
-  (:require [rpub.admin.impl :as admin-impl]
+  (:require [clojure.string :as str]
+            [rpub.admin.impl :as admin-impl]
             [rpub.lib.dag :as dag]))
 
 (defn init [_ {:keys [content-types]}]
@@ -68,13 +69,32 @@
                   (filter #(= (:id %) content-type-field-id))
                   first)))))
 
+(defn drag-start [db drag-source]
+  (assoc db :all-content-types-page/drag-source drag-source))
+
+(defn drag-drop [db {:keys [content-type]}]
+  (let [{:keys [:all-content-types-page/drag-source]} db]
+    (-> db
+        (dissoc :all-content-types-page/drag-source)
+        (update-in [:model/content-types-index (:id content-type) :fields]
+                   conj
+                   {:id (random-uuid)
+                    :name (str "New " (:label drag-source))
+                    :type (:type drag-source)
+                    :created-at (js/Date.)
+                    :created-by (uuid "00000000-0000-0000-0000-000000000000")
+                    :rank (inc (apply max (map :rank (:fields content-type))))}))))
+
 (def dag-config
   {:nodes
    {:all-content-types-page/clear-selection {:push clear-selection}
     :all-content-types-page/select-content-type {:push select-content-type}
     :all-content-types-page/select-content-type-field {:push select-content-type-field}
     :all-content-types-page/selection {:calc selection}
+    :all-content-types-page/drag-start {:push drag-start}
+    :all-content-types-page/drag-drop {:push drag-drop}
     :init {:push init}
+    :model/content-types-index {:calc :model/content-types-index}
     :model/settings {:calc model-settings}
     :model/site-url {:calc (comp :site-url :settings)}
     :plugins-page/needs-restart {:calc :plugins-page/needs-restart}
@@ -95,7 +115,9 @@
    [[:all-content-types-page/clear-selection :all-content-types-page/selection]
     [:all-content-types-page/select-content-type :all-content-types-page/selection]
     [:all-content-types-page/select-content-type-field :all-content-types-page/selection]
+    [:all-content-types-page/drag-drop :model/content-types-index]
     [:init :model/settings]
+    [:init :model/content-types-index]
     [:model/settings :model/site-url]
     [:model/settings :settings-page/field-values]
     [:plugins-page/activate-plugin :plugins-page/needs-restart]
