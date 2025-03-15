@@ -2,6 +2,7 @@
   {:no-doc true}
   (:refer-clojure :exclude [test])
   (:require [babashka.cli :as cli]
+            [babashka.fs :as fs]
             [babashka.process :as p]
             [clojure.edn :as edn]
             [clojure.string :as str]
@@ -30,8 +31,9 @@
 (defn lint [& _]
   (p/shell "mkdir -p .clj-kondo")
   (let [classpath (:out (p/shell {:out :string} "clojure -Spath"))
-        paths (-> (set (get-in @deps-edn [:aliases :dev :replace-paths]))
-                  (disj "target"))
+        paths (concat (-> (set (get-in @deps-edn [:aliases :dev :replace-paths]))
+                          (disj "target"))
+                      (fs/glob "." "*.{clj,cljs,cljc}"))
         _ (p/shell "clj-kondo"
                    "--lint" classpath
                    "--dependencies"
@@ -40,7 +42,7 @@
         proc (apply p/shell
                     {:continue true}
                     "clj-kondo"
-                    (mapcat (fn [p] ["--lint" p]) paths))]
+                    (mapcat (fn [p] ["--lint" (str p)]) paths))]
     (System/exit (:exit proc))))
 
 (defn prod-admin-css []
