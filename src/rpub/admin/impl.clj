@@ -324,6 +324,7 @@
            "cherry-cljs/lib/clojure.set.js" "https://cdn.jsdelivr.net/npm/cherry-cljs@0.4.24/lib/clojure.set.js"
            "cherry-cljs/lib/clojure.string.js" "https://cdn.jsdelivr.net/npm/cherry-cljs@0.4.24/lib/clojure.string.js"
            "flowbite" "https://cdn.jsdelivr.net/npm/flowbite@2.5.2/dist/flowbite.min.js"
+           "transit-js" "https://cdn.jsdelivr.net/npm/transit-js@0.8.874/transit.js/+esm"
            "preact" "https://cdn.jsdelivr.net/npm/preact@10.25.0/dist/preact.module.js"
            "preact/debug" "https://cdn.jsdelivr.net/npm/preact@10.25.0/debug/dist/debug.module.js"
            "preact/devtools" "https://cdn.jsdelivr.net/npm/preact@10.25.0/devtools/dist/devtools.module.js"

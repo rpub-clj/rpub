@@ -2,7 +2,8 @@
   {:no-doc true}
   (:require ["react" :refer [useState] :as react]
             [clojure.set :as set]
-            [clojure.string :as str]))
+            [clojure.string :as str]
+            [rpub.lib.transit :as transit]))
 
 (def default-debounce-timeout-ms 500)
 
@@ -18,25 +19,35 @@
 (defn c [s]
   (str/replace s "." " "))
 
-(defn- attrs->map [el]
+(defn- json-attrs->map [el]
   (into {}
         (for [attr (.-attributes el)]
-          [(keyword (.-name attr)) (some-> attr .-value JSON/parse (js->clj :keywordize-keys true))])))
+          [(keyword (.-name attr))
+           (some-> attr .-value JSON/parse (js->clj :keywordize-keys true))])))
 
-(defn add-element [tag component]
-  (when-not (.get js/customElements (name tag))
-    (let [klass (fn self [] (js/Reflect.construct js/HTMLElement #js[] self))]
-      (set! (.-prototype klass) (js/Object.create js/HTMLElement.prototype))
-      (set! (.-connectedCallback (.-prototype klass))
-            (fn []
-              (this-as
-                this
-                (let [render (fn []
-                               (let [props (attrs->map this)
-                                     Component #(component (.-children %))]
-                                 (react/render #jsx [Component props] this)))]
-                  (render)))))
-      (js/customElements.define (name tag) klass))))
+(defn- transit-attrs->map [el]
+  (into {}
+        (for [attr (.-attributes el)]
+          [(keyword (.-name attr))
+           (some-> attr .-value transit/read)])))
+
+(defn add-element [tag component & {:as opts}]
+  (let [opts' (merge {:format :json} opts)]
+    (when-not (.get js/customElements (name tag))
+      (let [klass (fn self [] (js/Reflect.construct js/HTMLElement #js[] self))]
+        (set! (.-prototype klass) (js/Object.create js/HTMLElement.prototype))
+        (set! (.-connectedCallback (.-prototype klass))
+              (fn []
+                (this-as
+                  this
+                  (let [render (fn []
+                                 (let [props (case (:format opts')
+                                               :json (json-attrs->map this)
+                                               :transit (transit-attrs->map this))
+                                       Component #(component (.-children %))]
+                                   (react/render #jsx [Component props] this)))]
+                    (render)))))
+        (js/customElements.define (name tag) klass)))))
 
 (defn button [props]
   (let [defaults {:color :blue}

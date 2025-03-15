@@ -6,7 +6,8 @@
             [rpub.admin.impl :as admin-impl]
             [rpub.lib.dag.react :refer [use-dag]]
             [rpub.lib.html :as html]
-            [rpub.lib.http :as http]))
+            [rpub.lib.http :as http]
+            [rpub.lib.transit :as transit]))
 
 (defn random-uuid []
   (js/crypto.randomUUID))
@@ -286,14 +287,16 @@
           [admin-impl/box
            {:class "h-full"
             :content [:div
-                      [:ul {:class "text-sm mb-8 list-[disc] pl-4"}
-                       [:li {:class "mb-2"} "Drag a field to the left to add it to a content type."]
-                       [:li "Double-click a field to add it to the selected content type."]]
+                      #_[:ul {:class "text-sm mb-8 list-[disc] pl-4"}
+                         [:li {:class "mb-2"} "Drag a field to the left to add it to a content type."]
+                         [:li "Double-click a field to add it to the selected content type."]]
                       [:div
                        (for [n field-config]
                          (field n))]]}])])]))
 
-(html/add-element :all-content-types-page (admin-impl/wrap-component all-content-types-page))
+(html/add-element :all-content-types-page
+                  (admin-impl/wrap-component all-content-types-page)
+                  {:format :transit})
 
 (def months
   ["January" "February" "March" "April" "May" "June"

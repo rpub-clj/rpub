@@ -33,7 +33,7 @@
        :primary
        (html/cljs
          [:all-content-types-page {:content-types content-types}]
-         {:format :json})})))
+         {:format :transit})})))
 
 (defn ->field [{:keys [current-user name type rank] :as opts}]
   (as-> {:id (or (:id opts) (random-uuid))
