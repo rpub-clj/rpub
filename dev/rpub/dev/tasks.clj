@@ -28,6 +28,7 @@
 (def ^:private deps-edn (delay (edn/read-string (slurp "deps.edn"))))
 
 (defn lint [& _]
+  (p/shell "mkdir -p .clj-kondo")
   (let [classpath (:out (p/shell {:out :string} "clojure -Spath"))
         paths (-> (set (get-in @deps-edn [:aliases :dev :replace-paths]))
                   (disj "target"))
