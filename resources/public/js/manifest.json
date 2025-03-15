@@ -1,11 +1,12 @@
 {
-  "rpub/lib/html.js": "rpub/lib/html.P7OVLYZP.js",
-  "rpub/plugins/content_types.js": "rpub/plugins/content_types.J2E56FEY.js",
-  "rpub/lib/dag.js": "rpub/lib/dag.2AI4I4UD.js",
-  "rpub/lib/dag/react.js": "rpub/lib/dag/react.SGXCIYHB.js",
-  "rpub/admin.js": "rpub/admin.GLODMOND.js",
-  "rpub/lib/reagent.js": "rpub/lib/reagent.HYZ26DCZ.js",
-  "rpub/lib/http.js": "rpub/lib/http.I3Q3PMBZ.js",
-  "rpub/admin/dag.js": "rpub/admin/dag.RYKKCMWX.js",
-  "rpub/admin/impl.js": "rpub/admin/impl.MZOZEAB5.js"
+  "rpub/lib/transit.js": "rpub/lib/transit.J6EZXIIC.js",
+  "rpub/lib/html.js": "rpub/lib/html.TYUWLBNY.js",
+  "rpub/plugins/content_types.js": "rpub/plugins/content_types.YDPH6LEZ.js",
+  "rpub/lib/dag.js": "rpub/lib/dag.AFBBHILF.js",
+  "rpub/lib/dag/react.js": "rpub/lib/dag/react.TDIGLNEW.js",
+  "rpub/admin.js": "rpub/admin.EO2MHOXG.js",
+  "rpub/lib/reagent.js": "rpub/lib/reagent.7IRXQ6EF.js",
+  "rpub/lib/http.js": "rpub/lib/http.Y4674TOL.js",
+  "rpub/admin/dag.js": "rpub/admin/dag.E3OE3G6B.js",
+  "rpub/admin/impl.js": "rpub/admin/impl.EVHXJEL7.js"
 }
