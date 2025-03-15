@@ -3,7 +3,6 @@
             ["fast-glob$default" :as fast-glob]
             ["node:child_process" :as cp]
             ["node:fs" :as fs]
-            ["node:path" :as path]
             [clojure.string :as str]))
 
 (defn write-manifest [result manifest-path]
