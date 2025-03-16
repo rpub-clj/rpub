@@ -269,8 +269,16 @@
                    :get setup-start-handler
                    :post setup-finish-handler}])
 
+(defn tap-handler [req]
+  (tap> (:body-params req))
+  (-> (response/status 200)
+      (assoc :body {:success true})))
+
 (defn routes [opts]
-  [["/admin" {:middleware (admin-impl/admin-middleware opts)}
+  [["/admin/tap" {:middleware (admin-impl/admin-middleware
+                                (assoc opts :tap false))
+                  :post tap-handler}]
+   ["/admin" {:middleware (admin-impl/admin-middleware opts)}
     ["" {:get dashboard-handler}]
     ["/login" {:get login-start-handler
                :post login-finish-handler}]
