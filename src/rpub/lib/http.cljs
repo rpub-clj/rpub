@@ -2,12 +2,16 @@
   {:no-doc true}
   (:require [rpub.lib.transit :as transit]))
 
-(defn post [url {:keys [anti-forgery-token body on-complete] :as opts}]
+(defn- get-csrf-token []
+  (-> (js/document.querySelector "meta[name='csrf-token']")
+      (.getAttribute "content")))
+
+(defn post [url {:keys [body on-complete] :as opts}]
   (let [opts' (merge {:format :json} opts)
         mime-type (case (:format opts')
                     :json "application/json"
                     :transit "application/transit+json")
-        headers {"X-CSRF-Token" anti-forgery-token
+        headers {"X-CSRF-Token" (get-csrf-token)
                  "Accept" mime-type
                  "Content-Type" mime-type}
         read-value (fn [x]

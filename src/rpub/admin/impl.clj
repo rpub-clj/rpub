@@ -10,6 +10,7 @@
             [clojure.string :as str]
             [hiccup2.core :as hiccup]
             [reitit.ring :as ring]
+            [ring.middleware.anti-forgery :as anti-forgery]
             [ring.middleware.defaults :as defaults]
             [ring.middleware.session.cookie :as cookie]
             [ring.util.response :as response]
@@ -179,6 +180,7 @@
        [:head
         [:meta {:charset "utf-8"}]
         [:meta {:name "viewport" :content "width=device-width, initial-scale=1.0"}]
+        [:meta {:name "csrf-token" :content (force anti-forgery/*anti-forgery-token*)}]
         [:script {:type "importmap"} (hiccup/raw (json/write-str import-map))]
         (module-preloads import-map)
         [:script {:type "module"} (hiccup/raw import-script)]
@@ -359,9 +361,11 @@
 
 (defn admin-middleware
   [{:keys [content-security-policy ::defaults] :as opts}]
-  (let [opts' (merge {:auth-required true} opts)
+  (let [opts' (merge {:auth-required true
+                      :tap true}
+                     opts)
         defaults' (or defaults (site-defaults opts'))
-        {:keys [auth-required]} opts'
+        {:keys [auth-required tap]} opts'
         auth-backend (buddy-backends/session {:unauthorized-handler unauthorized-handler})]
     (concat
       [[defaults/wrap-defaults defaults']
@@ -376,5 +380,5 @@
       (when content-security-policy
         [[html/wrap-content-security-policy
           {:extra-script-src csp-extra-script-src}]])
-      [wrap-no-cache
-       wrap-tap])))
+      [wrap-no-cache]
+      (when tap [wrap-tap]))))
