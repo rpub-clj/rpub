@@ -111,7 +111,7 @@
                             {:content-type content-type
                              :content-type-field field}))}
           (:name field)]
-         [:div.bg-gray-100.px-2.py-2.border-l.border-l-gray-200
+         [:div.bg-gray-50.px-2.py-2.border-l.border-l-gray-200
           {:class "min-w-[150px] rounded-r-[6px]"
            :onClick (fn [_]
                       (push :all-content-types-page/select-content-type-field
@@ -265,7 +265,7 @@
                          {:content-type content-type
                           :anti-forgery-token anti-forgery-token}]])}]])]]
      (let [field (fn [{:keys [label description selected] :as props}]
-                   [:div {:class (str "border rounded-[6px] p-2 mb-4 bg-gray-50 cursor-move "
+                   [:div {:class (str "rounded-[6px] p-2 mb-4 bg-gray-100 cursor-move "
                                       (if selected "ring-2 ring-blue-400 border-blue-500" "border-gray-200"))
                           :draggable true
                           :onDragStart (fn [e]
