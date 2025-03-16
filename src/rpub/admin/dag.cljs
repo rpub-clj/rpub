@@ -1,6 +1,8 @@
 (ns rpub.admin.dag
-  (:require [rpub.admin.impl :as admin-impl]
-            [rpub.lib.dag :as dag]))
+  (:require [clojure.string :as str]
+            [rpub.admin.impl :as admin-impl]
+            [rpub.lib.dag :as dag]
+            [rpub.lib.http :as http]))
 
 (defn init [_ {:keys [content-types]}]
   (let [content-types-index (admin-impl/index-by :id content-types)]
@@ -129,6 +131,13 @@
     [:settings-page/update-settings :model/settings]
     [:themes-page/activate-theme :themes-page/current-theme-name-setting]]})
 
+(def tracing-xf
+  identity
+  #_(filter (comp #{:model/content-types-index} :fn)))
+
+(defn remote-tap [opts]
+  (http/post "/admin/tap" {:body opts, :format :transit}))
+
 (defonce dag-atom
   (atom (-> (dag/->dag dag-config)
-            dag/add-tracing)))
+            (dag/add-tracing tracing-xf remote-tap))))
