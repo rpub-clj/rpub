@@ -53,7 +53,7 @@
                  (update ::edges dep/remove-all node-key))]
     (assoc dag' ::dependents (dependents dag'))))
 
-(defn add-tracing [dag-config]
+(defn add-tracing [dag]
   (letfn [(wrap-fn [f]
             (fn [& args]
               (let [ret (apply f args)]
@@ -63,4 +63,4 @@
             (cond-> v
               (:calc v) (update :calc wrap-fn)
               (:push v) (update :push wrap-fn)))]
-    (update dag-config ::nodes update-vals wrap-node)))
+    (update dag ::nodes update-vals wrap-node)))
