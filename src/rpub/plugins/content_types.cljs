@@ -264,10 +264,12 @@
                         [content-type-fields-form
                          {:content-type content-type
                           :anti-forgery-token anti-forgery-token}]])}]])]]
-     (let [field (fn [{:keys [label description selected] :as props}]
-                   [:div {:class (str "rounded-[6px] p-2 mb-4 bg-gray-100 cursor-move "
-                                      (if selected "ring-2 ring-blue-400 border-blue-500" "border-gray-200"))
-                          :draggable true
+     (let [field (fn [{:keys [label description selected draggable] :as props}]
+                   [:div {:class (str "border rounded-[6px] p-2 mb-4 bg-gray-100 "
+                                      (if draggable "cursor-move hover:shadow-md border-gray-100" "cursor-pointer hover:border-blue-500")
+                                      " "
+                                      (if selected "ring-2 ring-blue-400 border-blue-500" "border-gray-100"))
+                          :draggable draggable
                           :onDragStart (fn [e]
                                          (push :all-content-types-page/drag-start props)
                                          (println :onDragStart e))}
@@ -298,10 +300,9 @@
                          "Change Field Type"]
                         [:div
                          (for [n field-config]
-                           (field (assoc n
-                                         :selected
-                                         (= (get-in selection [:content-type-field :type])
-                                            (:type n)))))]]}]
+                           (field (merge n
+                                         {:selected (= (get-in selection [:content-type-field :type])
+                                                       (:type n))})))]]}]
 
             (:content-type selection)
             [admin-impl/box
@@ -322,7 +323,7 @@
                          "Add Field"]
                         [:div
                          (for [n field-config]
-                           (field n))]]}])
+                           (field (assoc n :draggable true)))]]}])
 
           [admin-impl/box
            {:class "h-full"
@@ -334,7 +335,7 @@
                          [:li "Double-click a field to add it to the selected content type."]]
                       [:div
                        (for [n field-config]
-                         (field n))]]}])])]))
+                         (field (assoc n :draggable true)))]]}])])]))
 
 (html/add-element :all-content-types-page
                   (admin-impl/wrap-component all-content-types-page)
