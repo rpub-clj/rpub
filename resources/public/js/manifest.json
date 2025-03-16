@@ -2,11 +2,12 @@
   "rpub/lib/transit.js": "rpub/lib/transit.J6EZXIIC.js",
   "rpub/lib/html.js": "rpub/lib/html.SUP3KASK.js",
   "rpub/plugins/content_types.js": "rpub/plugins/content_types.O4CDYWXM.js",
-  "rpub/lib/dag.js": "rpub/lib/dag.AFBBHILF.js",
+  "rpub/lib/tap.js": "rpub/lib/tap.YIJ6VY5M.js",
+  "rpub/lib/dag.js": "rpub/lib/dag.AIBVZMLF.js",
   "rpub/lib/dag/react.js": "rpub/lib/dag/react.GYWV7DSO.js",
-  "rpub/admin.js": "rpub/admin.RNBM4XJG.js",
-  "rpub/lib/reagent.js": "rpub/lib/reagent.7IRXQ6EF.js",
-  "rpub/lib/http.js": "rpub/lib/http.Y4674TOL.js",
-  "rpub/admin/dag.js": "rpub/admin/dag.NMNWS2YO.js",
+  "rpub/admin.js": "rpub/admin.GHIEVOBO.js",
+  "rpub/lib/reagent.js": "rpub/lib/reagent.FR7VFDHD.js",
+  "rpub/lib/http.js": "rpub/lib/http.KLJ2D6WT.js",
+  "rpub/admin/dag.js": "rpub/admin/dag.Q2O4UKJN.js",
   "rpub/admin/impl.js": "rpub/admin/impl.D5P22GM3.js"
 }
