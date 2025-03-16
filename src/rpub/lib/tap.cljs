@@ -1,5 +1,5 @@
 (ns rpub.lib.tap
-  (:refer-cljure :exclude [add-tap remove-tap tap> *exec-tap-fn*])
+  (:refer-clojure :exclude [add-tap remove-tap tap> *exec-tap-fn*])
   (:require [rpub.lib.http :as http]))
 
 (defn ^{:doc "Arranges to have tap functions executed via the supplied f, a
@@ -41,7 +41,7 @@
       (doseq [tap @tapset]
         (try
           (tap x)
-          (catch js/Error ex))))))
+          (catch js/Error _ex))))))
 
 (defn- reify-metadata [x]
   (let [x' (cond
