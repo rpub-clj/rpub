@@ -5,6 +5,7 @@
             [clojure.edn :as edn]
             [clojure.java.io :as io]
             [clojure.string :as str]
+            [clojure.walk :as walk]
             [hiccup2.core :as hiccup]
             [ring.middleware.anti-forgery :as anti-forgery]
             [ring.middleware.defaults :as defaults]
@@ -270,9 +271,16 @@
                    :post setup-finish-handler}])
 
 (defn tap-handler [req]
-  (let [value (get-in req [:body-params :value])
-        m (get-in req [:body-params :meta])]
-    (tap> (with-meta value m))
+  (let [value (get-in req [:body-params])
+        value' (walk/postwalk
+                 (fn [x]
+                   (if-not (:rpub.admin.tap/value x)
+                     x
+                     (with-meta
+                       (:rpub.admin.tap/value x)
+                       (:rpub.admin.tap/meta x))))
+                 value)]
+    (tap> value')
     (-> (response/status 200)
         (assoc :body {:success true}))))
 

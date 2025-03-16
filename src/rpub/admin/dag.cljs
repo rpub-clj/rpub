@@ -1,8 +1,7 @@
 (ns rpub.admin.dag
-  (:require [clojure.string :as str]
-            [rpub.admin.impl :as admin-impl]
+  (:require [rpub.admin.impl :as admin-impl]
             [rpub.lib.dag :as dag]
-            [rpub.lib.http :as http]))
+            [rpub.lib.tap :as tap]))
 
 (defn init [_ {:keys [content-types]}]
   (let [content-types-index (admin-impl/index-by :id content-types)]
@@ -131,16 +130,18 @@
     [:settings-page/update-settings :model/settings]
     [:themes-page/activate-theme :themes-page/current-theme-name-setting]]})
 
-(def tap-xf
-  (comp
-    #_(filter (comp #{:model/content-types-index} :fn))))
+(def tracing-xf
+  (comp))
 
-(defn remote-tap [node]
-  (http/post "/admin/tap"
-             {:body {:value node
-                     :meta {:portal.viewer/default :portal.viewer/pprint}}
-              :format :transit}))
+(defn tap-node [node]
+  (let [pprint-meta {:portal.viewer/default :portal.viewer/pprint}]
+    (tap/tap> [(:key node)
+               (-> node
+                   (dissoc :key)
+                   (update :args (fn [args]
+                                   (map #(with-meta % pprint-meta) args)))
+                   (update :ret #(with-meta % pprint-meta)))])))
 
 (defonce dag-atom
   (atom (-> (dag/->dag dag-config)
-            (dag/wrap-tracing remote-tap tap-xf))))
+            (dag/wrap-tracing tap-node tracing-xf))))

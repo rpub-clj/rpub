@@ -5,7 +5,10 @@
             [rpub.lib.dag.react :refer [use-dag]]
             [rpub.lib.html :as html]
             [rpub.lib.http :as http]
+            [rpub.lib.tap :as tap]
             [rpub.plugins.content-types]))
+
+(tap/add-tap tap/remote-tap)
 
 (defn- dashboard-content-types [{:keys [content-types]}]
   [:div {:class "w-full md:w-1/2 md:px-2 mb-4"
