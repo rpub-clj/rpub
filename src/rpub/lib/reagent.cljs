@@ -7,7 +7,7 @@
   (let [classes' (if (:class attrs)
                    (conj classes (:class attrs))
                    classes)]
-    (str/join " " classes')))
+    (assoc attrs :class (str/join " " classes'))))
 
 (defn- parse-element [form]
   (let [parsed (if (map? (second form))
@@ -19,7 +19,7 @@
       parsed
       (let [[el' & classes] (str/split (name (:el parsed)) #"\.")]
         (cond-> (assoc parsed :el el')
-          (seq classes) (update-in [:attrs :class] add-classes classes))))))
+          (seq classes) (update :attrs add-classes classes))))))
 
 (defn- ->clj-props [js-props]
   (reduce (fn [m [k v]] (assoc m (keyword k) v))
