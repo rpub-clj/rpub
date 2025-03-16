@@ -270,9 +270,11 @@
                    :post setup-finish-handler}])
 
 (defn tap-handler [req]
-  (tap> (:body-params req))
-  (-> (response/status 200)
-      (assoc :body {:success true})))
+  (let [value (get-in req [:body-params :value])
+        m (get-in req [:body-params :meta])]
+    (tap> (with-meta value m))
+    (-> (response/status 200)
+        (assoc :body {:success true}))))
 
 (defn routes [opts]
   [["/admin/tap" {:middleware (admin-impl/admin-middleware

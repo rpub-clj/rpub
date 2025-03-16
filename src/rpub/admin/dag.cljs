@@ -131,13 +131,16 @@
     [:settings-page/update-settings :model/settings]
     [:themes-page/activate-theme :themes-page/current-theme-name-setting]]})
 
-(def tracing-xf
-  identity
-  #_(filter (comp #{:model/content-types-index} :fn)))
+(def tap-xf
+  (comp
+    #_(filter (comp #{:model/content-types-index} :fn))))
 
-(defn remote-tap [opts]
-  (http/post "/admin/tap" {:body opts, :format :transit}))
+(defn remote-tap [node]
+  (http/post "/admin/tap"
+             {:body {:value node
+                     :meta {:portal.viewer/default :portal.viewer/pprint}}
+              :format :transit}))
 
 (defonce dag-atom
   (atom (-> (dag/->dag dag-config)
-            (dag/wrap-tracing tracing-xf remote-tap))))
+            (dag/wrap-tracing remote-tap tap-xf))))
