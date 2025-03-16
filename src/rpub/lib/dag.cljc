@@ -53,7 +53,7 @@
                  (update ::edges dep/remove-all node-key))]
     (assoc dag' ::dependents (dependents dag'))))
 
-(defn add-tracing [dag xf on-node]
+(defn wrap-tracing [dag xf on-node]
   (let [rf (xf (fn [_ node] (on-node node)) nil)
         wrap-fn (fn [k f]
                   (fn [& args]

@@ -140,4 +140,4 @@
 
 (defonce dag-atom
   (atom (-> (dag/->dag dag-config)
-            (dag/add-tracing tracing-xf remote-tap))))
+            (dag/wrap-tracing tracing-xf remote-tap))))
