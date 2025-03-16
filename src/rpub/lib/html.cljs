@@ -63,6 +63,32 @@
                  (set/rename-keys $ {:on-click :onClick}))]
     [:button attrs' (:children props)]))
 
+(defn action-button [props]
+  (let [classes {:class (c "flex.items-center.justify-center.text-white.focus:ring-4.font-medium.rounded-lg.text-sm.px-4.py-2.focus:outline-none.shadow.transition-colors.duration-75")}
+        attrs' (as-> {} $
+                 (merge $ props)
+                 (assoc $ :class (str (:class $) " "
+                                      "bg-blue-700 "
+                                      "hover:bg-blue-800 "
+                                      "focus:ring-blue-300"))
+                 (merge-with #(str %1 " " %2) $ classes)
+                 (select-keys $ [:class :on-click])
+                 (set/rename-keys $ {:on-click :onClick}))]
+    [:button attrs' (:children props)]))
+
+(defn delete-button [props]
+  (let [classes {:class (c "font-app-sans.flex.items-center.justify-center.text-white.focus:ring-4.font-medium.rounded-lg.text-sm.px-4.py-2.focus:outline-none.shadow.transition-colors.duration-75")}
+        attrs' (as-> {} $
+                 (merge $ props)
+                 (assoc $ :class (str (:class $) " "
+                                      "bg-red-700 "
+                                      "hover:bg-red-800 "
+                                      "focus:ring-red-300"))
+                 (merge-with #(str %1 " " %2) $ classes)
+                 (select-keys $ [:class :on-click])
+                 (set/rename-keys $ {:on-click :onClick}))]
+    [:button attrs' (:children props)]))
+
 (defn activated-button [{:keys [on-click]}]
   (let [[hover set-hover] (useState false)]
     [:div {:class "ml-auto"
@@ -99,6 +125,7 @@
                    focus:border-primary-600 focus:ring-0 focus:ring-offset-0 block w-full
                    p-2 5 dark:bg-gray-700 dark:border-gray-600
                    dark:placeholder-gray-400 dark:text-white
+                   focus:ring-2
                    dark:focus:ring-primary-500 dark:focus:border-primary-500 "
                          (name (or size :text-sm)) " "
                          class)
@@ -141,8 +168,7 @@
            (clj->js {:type type
                      :name input-name
                      :class (str "appearance-none px-2 py-1 border border-gray-200 "
-                                 "focus:ring-0 focus:ring-offset-0 "
-                                 "rounded-[6px] mr-4")
+                                 "focus:ring-2 rounded-[6px] mr-4")
                      :placeholder placeholder
                      :onFocus on-focus
                      :onBlur on-blur
