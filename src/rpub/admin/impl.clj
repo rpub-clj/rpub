@@ -319,24 +319,44 @@
                (str "/js/" to)]))
        (into {})))
 
+(defn- cherry-imports []
+  {"cherry-cljs/cljs.core.js" "https://cdn.jsdelivr.net/npm/cherry-cljs@0.4.25/cljs.core.js"
+   "cherry-cljs/lib/clojure.walk.js" "https://cdn.jsdelivr.net/npm/cherry-cljs@0.4.25/lib/clojure.walk.js"
+   "cherry-cljs/lib/clojure.set.js" "https://cdn.jsdelivr.net/npm/cherry-cljs@0.4.25/lib/clojure.set.js"
+   "cherry-cljs/lib/clojure.string.js" "https://cdn.jsdelivr.net/npm/cherry-cljs@0.4.25/lib/clojure.string.js"})
+
+(defn- flowbite-imports []
+  {"flowbite" "https://cdn.jsdelivr.net/npm/flowbite@2.5.2/dist/flowbite.min.js"})
+
+(defn- transit-js-imports []
+  {"transit-js" "https://cdn.jsdelivr.net/npm/transit-js@0.8.874/transit.js/+esm"})
+
+(defn- preact-imports []
+  {"preact" "https://cdn.jsdelivr.net/npm/preact@10.25.0/dist/preact.module.js"
+   "preact/debug" "https://cdn.jsdelivr.net/npm/preact@10.25.0/debug/dist/debug.module.js"
+   "preact/devtools" "https://cdn.jsdelivr.net/npm/preact@10.25.0/devtools/dist/devtools.module.js"
+   "preact/compat" "https://cdn.jsdelivr.net/npm/preact@10.25.0/compat/dist/compat.module.js"
+   "preact/hooks" "https://cdn.jsdelivr.net/npm/preact@10.25.0/hooks/dist/hooks.module.js"
+   "react" "https://cdn.jsdelivr.net/npm/preact@10.25.0/compat/dist/compat.module.js"
+   "react/jsx-runtime" "https://cdn.jsdelivr.net/npm/preact@10.25.0/jsx-runtime/dist/jsxRuntime.module.js"})
+
+(defn- rads-imports []
+  {"rads.inflections" "/js/rads/inflections-v0.14.2-1.min.js"
+   "rads.dependency" "/js/rads/dependency-v1.0.0-1.min.js"})
+
+(defn- js-manifest-imports []
+  (js-manifest->import-map (read-js-manifest)))
+
+(defn- npm-imports []
+  (merge (cherry-imports)
+         (flowbite-imports)
+         (transit-js-imports)
+         (preact-imports)))
+
 (defn- load-import-map []
-  {:imports
-   (merge {"cherry-cljs/cljs.core.js" "https://cdn.jsdelivr.net/npm/cherry-cljs@0.4.24/cljs.core.js"
-           "cherry-cljs/lib/clojure.walk.js" "https://cdn.jsdelivr.net/npm/cherry-cljs@0.4.24/lib/clojure.walk.js"
-           "cherry-cljs/lib/clojure.set.js" "https://cdn.jsdelivr.net/npm/cherry-cljs@0.4.24/lib/clojure.set.js"
-           "cherry-cljs/lib/clojure.string.js" "https://cdn.jsdelivr.net/npm/cherry-cljs@0.4.24/lib/clojure.string.js"
-           "flowbite" "https://cdn.jsdelivr.net/npm/flowbite@2.5.2/dist/flowbite.min.js"
-           "transit-js" "https://cdn.jsdelivr.net/npm/transit-js@0.8.874/transit.js/+esm"
-           "preact" "https://cdn.jsdelivr.net/npm/preact@10.25.0/dist/preact.module.js"
-           "preact/debug" "https://cdn.jsdelivr.net/npm/preact@10.25.0/debug/dist/debug.module.js"
-           "preact/devtools" "https://cdn.jsdelivr.net/npm/preact@10.25.0/devtools/dist/devtools.module.js"
-           "preact/compat" "https://cdn.jsdelivr.net/npm/preact@10.25.0/compat/dist/compat.module.js"
-           "preact/hooks" "https://cdn.jsdelivr.net/npm/preact@10.25.0/hooks/dist/hooks.module.js"
-           "react" "https://cdn.jsdelivr.net/npm/preact@10.25.0/compat/dist/compat.module.js"
-           "react/jsx-runtime" "https://cdn.jsdelivr.net/npm/preact@10.25.0/jsx-runtime/dist/jsxRuntime.module.js"
-           "rads.inflections" "/js/rads/inflections-v0.14.2-1.min.js"
-           "rads.dependency" "/js/rads/dependency-v1.0.0-1.min.js"}
-          (js-manifest->import-map (read-js-manifest)))})
+  {:imports (merge (npm-imports)
+                   (rads-imports)
+                   (js-manifest-imports))})
 
 (defn- wrap-import-map [handler]
   (let [cached-import-map (atom nil)]

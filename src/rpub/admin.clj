@@ -5,7 +5,6 @@
             [clojure.edn :as edn]
             [clojure.java.io :as io]
             [clojure.string :as str]
-            [clojure.walk :as walk]
             [hiccup2.core :as hiccup]
             [ring.middleware.anti-forgery :as anti-forgery]
             [ring.middleware.defaults :as defaults]
@@ -14,6 +13,7 @@
             [rpub.lib.html :as html]
             [rpub.lib.plugins :as plugins]
             [rpub.lib.secrets :as secrets]
+            [rpub.lib.tap :as tap]
             [rpub.model :as model]
             [rpub.plugins.content-types :as content-types]))
 
@@ -270,24 +270,10 @@
                    :get setup-start-handler
                    :post setup-finish-handler}])
 
-(defn tap-handler [req]
-  (let [value (get-in req [:body-params])
-        value' (walk/postwalk
-                 (fn [x]
-                   (if-not (:rpub.admin.tap/value x)
-                     x
-                     (with-meta
-                       (:rpub.admin.tap/value x)
-                       (:rpub.admin.tap/meta x))))
-                 value)]
-    (tap> value')
-    (-> (response/status 200)
-        (assoc :body {:success true}))))
-
 (defn routes [opts]
   [["/admin/tap" {:middleware (admin-impl/admin-middleware
                                 (assoc opts :tap false))
-                  :post tap-handler}]
+                  :post tap/handler}]
    ["/admin" {:middleware (admin-impl/admin-middleware opts)}
     ["" {:get dashboard-handler}]
     ["/login" {:get login-start-handler

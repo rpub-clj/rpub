@@ -8,7 +8,8 @@
             [rpub.lib.tap :as tap]
             [rpub.plugins.content-types]))
 
-(tap/add-tap tap/remote-tap)
+(defonce tap-fn #(tap/remote-tap "/admin/tap" %))
+(add-tap tap-fn)
 
 (defn- dashboard-content-types [{:keys [content-types]}]
   [:div {:class "w-full md:w-1/2 md:px-2 mb-4"
