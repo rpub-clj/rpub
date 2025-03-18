@@ -133,13 +133,13 @@
   (comp))
 
 (defn tap-node [node]
-  (let [pprint-meta {:portal.viewer/default :portal.viewer/pprint}]
-    (tap> [(:key node)
-           (-> node
-               (dissoc :key)
-               (update :args (fn [args]
-                               (map #(with-meta % pprint-meta) args)))
-               (update :ret #(with-meta % pprint-meta)))])))
+  (let [pprint-meta {:portal.viewer/default :portal.viewer/pprint}
+        add-meta (fn [x] (if (coll? x) (with-meta x pprint-meta) x))
+        node' (-> node
+                  (dissoc :key)
+                  (update :args #(map add-meta %))
+                  (update :ret add-meta))]
+    (tap> [(:key node) node'])))
 
 (defonce dag-atom
   (atom (-> (dag/->dag dag-config)
