@@ -1,43 +1,15 @@
 (ns rpub.plugins.content-types
-  (:refer-clojure :exclude [random-uuid])
   (:require ["react" :refer [useEffect]]
-            [clojure.string :as str]
             [rads.inflections :as inflections]
             [rpub.admin.impl :as admin-impl]
             [rpub.lib.dag.react :refer [use-dag]]
             [rpub.lib.html :as html]
             [rpub.lib.http :as http]))
 
-(defn random-uuid []
-  (js/crypto.randomUUID))
-
-(def quill-toolbar
-  [[{:header [1 2 3 4 5 6 nil]}]
-   ["bold" "italic"]
-   [{:list "bullet"} {:list "ordered"}]
-   ["blockquote"]
-   [{:align ""} {:align "center"} {:align "right"}]
-   ["link"]
-   ["clean"]])
-
-(def quill-defaults
-  {:theme :snow
-   :modules {:toolbar quill-toolbar}})
-
-(defn start-quill! [selector opts]
-  (let [opts' (merge quill-defaults (dissoc opts :html))
-        instance (new js/Quill selector (clj->js opts'))]
-    (when-let [html (:html opts)]
-      (.dangerouslyPasteHTML (.-clipboard instance) html))
-    instance))
-
 (defn ->field [{:keys [name type]}]
   {:id (random-uuid)
    :name name
    :type type})
-
-(defn ->slug [title]
-  (inflections/parameterize title))
 
 (defn ->content-type [{:keys [id name slug fields]}]
   {:id (or (random-uuid) id)
@@ -46,6 +18,12 @@
    :fields fields
    :created-at (js/Date.)
    :content-item-count 0})
+
+(defn- field-type-label [field]
+  (case (:type field)
+    :text "Text"
+    :text-lg "Text (Large)"
+    (name (:type field))))
 
 (defn content-type-fields-form [{:keys [anti-forgery-token content-type class]}]
   (let [[{:keys [:all-content-types-page/selection]}
@@ -116,10 +94,7 @@
                       (push :all-content-types-page/select-content-type-field
                             {:content-type content-type
                              :content-type-field field}))}
-          (case (:type field)
-            :text "Text"
-            :text-lg "Text (Large)"
-            (name (:type field)))]
+          [field-type-label field]]
          #_[html/button
             {:on-click #(delete-field % content-type field)
              :class "opacity-0 group-hover:opacity-100 transition duration-75"
@@ -355,11 +330,18 @@
         display-minutes (if (< minutes 10) (str "0" minutes) (str minutes))]
     (str month " " day ", " year " " display-hours ":" display-minutes " " meridiem)))
 
+(defn edit-content-item-path [content-item]
+  (str "/admin/content-types/"
+       (name (get-in content-item [:content-type :slug]))
+       "/content-items/"
+       (name (get-in content-item [:fields "Slug"]))))
+
 (def columns
   [{:name "Title"
-    :value (fn [{:keys [fields]}]
-             [:span {:class "font-semibold"}
-              (get fields "Title")])}
+    :value (fn [{:keys [fields] :as content-item}]
+             [:a.underline {:href (edit-content-item-path content-item)}
+              [:span {:class "font-semibold"}
+               (get fields "Title")]])}
 
    {:name "Author"
     :value
@@ -373,6 +355,11 @@
              (some-> (or updated-at created-at)
                      js/Date.
                      format-datetime))}])
+
+(defn new-content-item-path [content-type]
+  (str "/admin/content-types/"
+       (name (:slug content-type))
+       "/content-items/new"))
 
 (defn single-content-type-page [{:keys [content-type content-items]}]
   (let [http-opts {:format :transit}
@@ -390,158 +377,94 @@
                                                                               content-items))))))
                            http-opts' (merge http-opts {:body body
                                                         :on-complete on-complete})]
-                       (http/post "/api/delete-content-item" http-opts')))]
+                       (http/post "/api/delete-content-item" http-opts')))
+        content-items' (->> content-items (map #(assoc % :content-type content-type)))]
     [:div {:class "p-4"}
      [admin-impl/table
       {:title (:name content-type)
        :columns columns
-       :rows (map #(assoc % :content-type content-type) content-items)
+       :rows content-items'
+       :header-buttons [:a {:href (new-content-item-path content-type)}
+                        [html/action-button
+                         (str "New " (inflections/singular (:name content-type)))]]
        :delete-row delete-row}]]))
 
 (html/add-element :single-content-type-page
                   (admin-impl/wrap-component single-content-type-page)
                   {:format :transit})
 
-(defn editor-impl [_props]
-  #_(let [id (str (gensym))
-          [started set-started!] (useState false)
-          container-props (dissoc props :on-start)]
-      (useEffect
-        (fn []
-          (when (not started)
-            (when-let [container (js/document.getElementById id)]
-              (let [quill-opts (dissoc props :on-start)
-                    quill-instance (start-quill! container quill-opts)]
-                (set-started! true)
-                (on-start quill-instance))))
-          nil)
-        #js[started])
-      [:div (merge container-props {:id id})]))
+(defn- content-item-fields [{:keys [content-item editing creating]}]
+  (let [{:keys [content-type]} content-item
+        document' (->> (:document content-item)
+                       (sort-by (fn [[k _]]
+                                  (let [fld (some #(when (= (:id %) k) %) (:fields content-type))]
+                                    (:rank fld)))))]
+    [:div
+     (for [[k v] document'
+           :let [field (as-> (some #(when (= (:id %) k) %) (:fields content-type)) $
+                         (assoc $ :key (str (:id $))))
+                 v' (if (= v ::new-field) "" v)]]
+       [:div.max-w-xl.mb-4 {:key (:id field)}
+        [:label.font-semibold.mb-1.block {:for (:name field)}
+         (:name field)]
+        [:div
+         (case (:type field)
+           :text [html/input2 (cond-> {:type :text
+                                       :name (:key field)
+                                       :on-change prn}
+                                editing (assoc :value v')
+                                creating (assoc :placeholder (field-type-label field)))]
+           :text-lg [html/textarea (cond-> {:name (:key field)
+                                            :on-change prn}
+                                     editing (assoc :value v')
+                                     creating (assoc :placeholder (field-type-label field)))]
+           :choice [:select]
+           :datetime [:input {:type :text}]
+           :number [:input {:type :number}]
+           (pr-str field))]])]))
 
-(defn editor [props]
-  [:div {:class "editor bg-white"}
-   [editor-impl props]])
+(defn new-content-item-page [{:keys [content-type]}]
+  (let [content-item {:content-type content-type
+                      :document (->> (:fields content-type)
+                                     (map (fn [field] [(:id field) ::new-field]))
+                                     (into {}))}
+        submitting false]
+    [:div.p-4
+     [admin-impl/box
+      {:class "mb-4"
+       :title (str "New " (inflections/singular (get-in content-item [:content-type :name])))}]
+     [admin-impl/box
+      {:content
+       [:div
+        [content-item-fields {:content-item content-item
+                              :creating true}]
+        [html/submit-button {:ready-label "Create"
+                             :submit-label "Creating..."
+                             :submitting submitting}]]}]]))
 
-(defn quill-get-semantic-html [^Quill quill]
-  (.getSemanticHTML quill))
+(html/add-element :new-content-item-page
+                  (admin-impl/wrap-component new-content-item-page)
+                  {:format :transit})
 
-(def title-field-id (uuid "cd334826-1ec6-4906-8e7f-16ece1865faf"))
-(def slug-field-id (uuid "6bd0ff7a-b720-4972-b98a-2aa85d179357"))
+(defn edit-content-item-page [{:keys [content-type content-item]}]
+  (let [submitting false]
+    [:div.p-4
+     [admin-impl/box
+      {:class "mb-4"
+       :title
+       [:div
+        [:span.italic.text-blue-600
+         (str (inflections/singular (:name content-type)) ": ")]
+        (get-in content-item [:fields "Title"])]}]
+     [admin-impl/box
+      {:content
+       [:div
+        [content-item-fields {:content-item content-item
+                              :editing true}]
+        [html/submit-button {:ready-label "Save"
+                             :submit-label "Saving..."
+                             :submitting submitting}]]}]]))
 
-(defn success-alert [{:keys [message]}]
-  [:div {:class "flex items-center p-4 mb-4 text-sm text-green-800 border border-green-300 rounded-lg bg-green-50 dark:bg-gray-800 dark:text-green-400 dark:border-green-800" :role "alert"}
-   [:svg {:class "flex-shrink-0 inline w-4 h-4 me-3" :aria-hidden "true" :xmlns "http://www.w3.org/2000/svg" :fill "currentColor" :viewBox "0 0 20 20"}
-    [:path {:d "M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5ZM9.5 4a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM12 15H8a1 1 0 0 1 0-2h1v-3H8a1 1 0 0 1 0-2h2a1 1 0 0 1 1 1v4h1a1 1 0 0 1 0 2Z"}]]
-   [:span {:class "sr-only"} "Info"]
-   [:div
-    message]])
-
-(defn content-type-new-item-form
-  [{:keys [content-type
-           content-item
-           site-base-url
-           title
-           submit-button-text
-           submit-button-class
-           submit-form-url
-           submitting-button-text]}]
-  (let [http-opts {:format :transit}
-        submitting false
-        content-item {:form-fields (or (:document content-item) {})}
-        messages []
-        add-editor (fn [_field-id _e] #_(set-state (assoc-in state [:editors %1] %2)))
-        add-message (fn [_message] #_(set-state (update state :messages conj %)))
-        update-field (fn [e _field-id]
-                       (let [_value (-> e .-target .-value)]
-                         #_(set-state (assoc-in state [:content-item :form-fields field-id] value))))
-        submit-form (fn [e {:keys [content-item-slug]}]
-                      (.preventDefault e)
-                      (let [v nil #_(assoc state :submitting true)
-                            form-fields (get-in v [:content-item :form-fields])
-                            editor-values (update-vals (:editors v) quill-get-semantic-html)
-                            document (merge form-fields editor-values
-                                            {slug-field-id content-item-slug})
-                            body (cond-> {:content-type-id (:id content-type)
-                                          :document document}
-                                   content-item (assoc :content-item-id (:id content-item)))
-                            on-complete (fn [res err]
-                                          (println res)
-                                          (if err
-                                            (println err)
-                                            (if content-item
-                                              (add-message [success-alert
-                                                            {:message
-                                                             [:span.font-semibold
-                                                              (inflections/capitalize (inflections/singular (name (:slug content-type)))) " updated!"]}])
-                                              (set! js/window.location
-                                                    (str "/admin/content-types/"
-                                                         (name (:slug content-type))
-                                                         "/"
-                                                         (:content-item-slug res)))))
-                                          #_(set-state (assoc state :submitting false)))
-                            http-opts' (-> http-opts
-                                           (assoc :body body)
-                                           (assoc :on-complete on-complete))]
-                        (http/post submit-form-url http-opts')))
-        #_#_router (permalinks/->permalink-router {:single permalink-single})]
-    [:div {:class "p-4 pt-0"}
-     (admin-impl/box
-       {:title title
-        :content
-        (let [content-item-slug (or (get-in content-item [:fields "Slug"])
-                                    (some-> (get-in content-item [:form-fields title-field-id]) ->slug))
-              #_#_path-params {:content-type-slug (:slug content-type)
-                               :content-item-slug content-item-slug}
-              #_#_match (reitit/match-by-name router :single path-params)
-              permalink-url (when-not (str/blank? content-item-slug)
-                              (str site-base-url #_(reitit/match->path match)))
-              fields (->> (:fields content-type)
-                          (sort-by :rank)
-                          (remove (comp #{"Slug"} :name))
-                          (map-indexed vector))]
-          [:div
-           (for [message (distinct messages)]
-             message)
-           [:form {:on-submit #(submit-form % {:content-item-slug content-item-slug})}
-            [:div
-             (for [[i field] fields
-                   :let [{:keys [type name]} field]]
-               [:div {:key (:id field)}
-                [:div
-                 {:class (str "mb-2 pb-2 pt-2 "
-                              (when-not (= i (dec (count fields)))
-                                "border-b"))}
-                 (case type
-                   :text [html/input {:type :text
-                                      :class (when (= (:name field) "Title")
-                                               "w-full")
-                                      :name name
-                                      :placeholder name
-                                      :default-value (get-in content-item [:form-fields (:id field)])
-                                      :on-change #(update-field % (:id field))}]
-                   :text-lg [editor {:class "h-72"
-                                     :html (get-in content-item [:form-fields (:id field)])
-                                     :on-start #(add-editor (:id field) %)}]
-                   :choice [html/select]
-                   :datetime [html/input {:type :text
-                                          :name name
-                                          :placeholder name}]
-                   :number [html/input {:type :number
-                                        :name name
-                                        :placeholder name}])
-                 (when (= (:name field) "Title")
-                   [:div {:class "mt-2 text-sm"}
-                    [:span {:class "text-gray-500"}
-                     "Permalink: "]
-                    (if permalink-url
-                      [:a {:class "underline" :href permalink-url}
-                       permalink-url]
-                      [:span {:class "text-gray-400"} site-base-url "/…"])])]])
-             [:button
-              {:type :submit
-               :class (str "text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
-                           submit-button-class)
-               :disabled submitting}
-              (if submitting
-                [:span [html/spinner] submitting-button-text]
-                submit-button-text)]]]])})]))
+(html/add-element :edit-content-item-page
+                  (admin-impl/wrap-component edit-content-item-page)
+                  {:format :transit})

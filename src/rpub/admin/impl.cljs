@@ -20,7 +20,7 @@
          title]]
        (when header-buttons
          [:div {:class "w-full md:w-auto flex flex-col md:flex-row space-y-2 md:space-y-0 items-stretch md:items-center justify-end md:space-x-3 flex-shrink-0"}
-          [header-buttons]])]
+          header-buttons])]
       [:div {:class (c "overflow-x-auto")}
        [:table {:class (c "w-full.text-sm.text-left.text-gray-500.dark:text-gray-400")}
         [:thead {:class (c "text-xs.text-gray-700.uppercase.bg-gray-50.dark:bg-gray-700.dark:text-gray-400")}

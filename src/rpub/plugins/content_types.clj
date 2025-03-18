@@ -77,7 +77,7 @@
                    (update :admin-menu-items conj (admin-menu-items model)))]
       (handler req'))))
 
-(defn single-content-type-page [{:keys [model path-params] :as req}]
+(defn single-content-type-handler [{:keys [model path-params] :as req}]
   (let [{:keys [content-type-slug]} path-params
         [content-type] (get-content-types (::model req) {:content-type-slugs [content-type-slug]})
         content-items (get-content-items (::model req) {:content-type-ids [(:id content-type)]})
@@ -96,7 +96,7 @@
                                      :content-items content-items'}]
          {:format :transit})})))
 
-(defn new-content-item-page [{:keys [::model path-params site-base-url settings] :as req}]
+(defn new-content-item-handler [{:keys [::model path-params site-base-url settings] :as req}]
   (let [{:keys [content-type-slug]} path-params
         [content-type] (get-content-types model {:content-type-slugs [content-type-slug]})
         permalink-single (get-in settings [:permalink-single :value])]
@@ -121,13 +121,13 @@
 (def content-field-id #uuid"65a6aa2e-73a3-4283-afe1-58e610d6727d")
 (def url-field-id #uuid"e37838ee-d16b-4a8d-87fe-d4f5042a04ed")
 
-(defn edit-content-item-page [{:keys [::model path-params site-base-url settings] :as req}]
+(defn edit-content-item-handler [{:keys [::model path-params site-base-url settings] :as req}]
   (let [{:keys [content-item-slug]} path-params
         [content-item] (get-content-items
                          model
                          {:content-item-slugs [content-item-slug]})
         content-item' (-> content-item
-                          (dissoc :fields)
+                          #_(dissoc :fields)
                           #_(update-in [:document content-field-id] md->html))
         {:keys [content-type]} content-item'
         permalink-single (get-in settings [:permalink-single :value])]
@@ -249,7 +249,7 @@
     (response/response {:content-item-id (:id content-item)
                         :content-item-slug (get-in content-item [:document slug-field-id])})))
 
-(defn edit-content-item [{:keys [::model body-params current-user] :as _req}]
+(defn edit-content-item-api [{:keys [::model body-params current-user] :as _req}]
   (let [{:keys [content-item-id document]} body-params
         [content-item] (get-content-items
                          model
@@ -264,7 +264,7 @@
     (update-content-item! model content-item')
     (response/response {:success true})))
 
-(defn delete-content-item [{:keys [::model body-params] :as _req}]
+(defn delete-content-item-api [{:keys [::model body-params] :as _req}]
   (let [{:keys [content-item-id]} body-params
         [content-item] (get-content-items
                          model
@@ -279,16 +279,16 @@
     ["/delete-content-type" {:post delete-content-type}]
     ["/new-content-type-field" {:post new-content-type-field}]
     ["/new-content-item" {:post new-content-item}]
-    ["/edit-content-item" {:post edit-content-item}]
-    ["/delete-content-item" {:post delete-content-item}]
+    ["/edit-content-item" {:post edit-content-item-api}]
+    ["/delete-content-item" {:post delete-content-item-api}]
     ["/update-content-type-field" {:post update-content-type-field}]
     ["/delete-content-type-field" {:post delete-content-type-field}]]
    ["/admin/content-types" {:middleware (admin-impl/admin-middleware opts)}
     [["" {:get all-content-types-handler
           :post update-content-types}]
-     ["/{content-type-slug}" {:get single-content-type-page}]
-     ["/{content-type-slug}/new" {:get new-content-item-page}]
-     ["/{content-type-slug}/{content-item-slug}" {:get edit-content-item-page}]]]])
+     ["/{content-type-slug}" {:get single-content-type-handler}]
+     ["/{content-type-slug}/content-items/new" {:get new-content-item-handler}]
+     ["/{content-type-slug}/content-items/{content-item-slug}" {:get edit-content-item-handler}]]]])
 
 (defn init [{:keys [model current-user] :as _opts}]
   (let [model (->model (merge (model/db-info model)

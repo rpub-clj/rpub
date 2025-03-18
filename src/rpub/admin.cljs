@@ -179,13 +179,9 @@
                 :name (:key setting)
                 :value (or (get field-values (:key setting)) (:value setting))
                 :on-change #(update-setting (:key setting) %)}]])
-           [:button
-            {:type :submit
-             :class "w-[120px] text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
-             :disabled submitting}
-            (if submitting
-              [:span [html/spinner] "Saving"]
-              "Save")]]]]]}]]))
+           [html/submit-button {:ready-label "Save"
+                                :submit-label "Saving..."
+                                :submitting submitting}]]]]]}]]))
 
 (html/add-element :settings-page
                   (admin-impl/wrap-component settings-page)
