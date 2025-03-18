@@ -50,8 +50,7 @@
 (defn content-type-fields-form [{:keys [anti-forgery-token content-type class]}]
   (let [[{:keys [:all-content-types-page/selection]}
          push] (use-dag [:all-content-types-page/selection])
-        _http-opts {:anti-forgery-token anti-forgery-token
-                    :format :transit}
+        _http-opts {:format :transit}
         #_#_update-field (useCallback
                            (fn [content-type-id field-key]
                              (html/debounce
@@ -147,14 +146,13 @@
     :description "Combine multiple fields into a group."
     :type :group}])
 
-(defn all-content-types-page [{:keys [anti-forgery-token] :as props}]
+(defn all-content-types-page [props]
   (let [[{:keys [:all-content-types-page/selection
                  :model/content-types-index]}
          push] (use-dag [:all-content-types-page/selection
                          :model/content-types-index])
         _ (useEffect #(push :init (select-keys props [:content-types])) #js[])
-        _http-opts {:anti-forgery-token anti-forgery-token
-                    :format :transit}
+        _http-opts {:format :transit}
         #_#_set-content-type-name (useCallback
                                     (html/debounce
                                       (fn [e content-type]
@@ -262,8 +260,7 @@
                        [:div {:key (:id content-type)}
                         [:div {:class "flex items-start"}]
                         [content-type-fields-form
-                         {:content-type content-type
-                          :anti-forgery-token anti-forgery-token}]])}]])]]
+                         {:content-type content-type}]])}]])]]
      (let [field (fn [{:keys [label description selected draggable] :as props}]
                    [:div {:class (str "border rounded-[6px] p-2 mb-4 bg-gray-100 "
                                       (if draggable "cursor-move hover:shadow-md border-gray-100" "cursor-pointer hover:border-blue-500")
@@ -377,9 +374,8 @@
                      js/Date.
                      format-datetime))}])
 
-(defn single-content-type-page [{:keys [content-type content-items anti-forgery-token]}]
-  (let [http-opts {:anti-forgery-token anti-forgery-token
-                   :format :transit}
+(defn single-content-type-page [{:keys [content-type content-items]}]
+  (let [http-opts {:format :transit}
         content-items (map (fn [content-item]
                              (update content-item :fields #(update-keys % name)))
                            content-items)
@@ -444,14 +440,12 @@
   [{:keys [content-type
            content-item
            site-base-url
-           anti-forgery-token
            title
            submit-button-text
            submit-button-class
            submit-form-url
            submitting-button-text]}]
-  (let [http-opts {:anti-forgery-token anti-forgery-token
-                   :format :transit}
+  (let [http-opts {:format :transit}
         submitting false
         content-item {:form-fields (or (:document content-item) {})}
         messages []
