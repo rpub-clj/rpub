@@ -129,18 +129,20 @@
     [:settings-page/update-settings :model/settings]
     [:themes-page/activate-theme :themes-page/current-theme-name-setting]]})
 
-(def tracing-xf
-  (comp))
-
-(defn tap-node [node]
+(defn node->trace [node]
   (let [pprint-meta {:portal.viewer/default :portal.viewer/pprint}
         add-meta (fn [x] (if (coll? x) (with-meta x pprint-meta) x))
         node' (-> node
                   (dissoc :key)
                   (update :args #(map add-meta %))
                   (update :ret add-meta))]
-    (tap> [(:key node) node'])))
+    [(:key node) node']))
+
+(def tracing-xf
+  (comp
+    (map node->trace)
+    (map tap>)))
 
 (defonce dag-atom
   (atom (-> (dag/->dag dag-config)
-            (dag/wrap-tracing tap-node tracing-xf))))
+            (dag/wrap-tracing tracing-xf))))

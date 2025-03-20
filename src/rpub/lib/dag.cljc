@@ -53,21 +53,19 @@
                  (update ::edges dep/remove-all node-key))]
     (assoc dag' ::dependents (dependents dag'))))
 
-(defn wrap-tracing
-  ([dag f] (wrap-tracing dag f (comp)))
-  ([dag f xf]
-   (let [rf (xf #(f %2))
-         wrap-fn (fn [k f]
-                   (fn [& args]
-                     (let [ret (apply f args)]
-                       (rf nil {:key k, :args args, :ret ret})
-                       ret)))
-         wrap-node (fn [k v]
-                     (cond-> v
-                       (:calc v) (update :calc #(wrap-fn k %))
-                       (:push v) (update :push #(wrap-fn k %))))]
-     (update dag ::nodes
-             (fn [nodes]
-               (->> nodes
-                    (map (fn [[k v]] [k (wrap-node k v)]))
-                    (into {})))))))
+(defn wrap-tracing [dag xf]
+  (let [wrap-fn (fn [k f]
+                  (fn [& args]
+                    (let [ret (apply f args)
+                          node {:key k, :args args, :ret ret}]
+                      (transduce xf (constantly nil) [node])
+                      ret)))
+        wrap-node (fn [k v]
+                    (cond-> v
+                      (:calc v) (update :calc #(wrap-fn k %))
+                      (:push v) (update :push #(wrap-fn k %))))]
+    (update dag ::nodes
+            (fn [nodes]
+              (->> nodes
+                   (map (fn [[k v]] [k (wrap-node k v)]))
+                   (into {}))))))
