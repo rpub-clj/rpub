@@ -1,6 +1,6 @@
 (ns rpub.lib.html
   {:no-doc true}
-  (:require ["react" :refer [useState] :as react]
+  (:require ["react" :refer [useState useRef useEffect] :as react]
             [clojure.set :as set]
             [clojure.string :as str]
             [rpub.lib.transit :as transit]))
@@ -32,22 +32,37 @@
            (some-> attr .-value transit/read)])))
 
 (defn add-element [tag component & {:as opts}]
-  (let [opts' (merge {:format :json} opts)]
+  (let [opts' (merge {:format :json} opts)
+        Component #(component (.-children %))]
     (when-not (.get js/customElements (name tag))
       (let [klass (fn self [] (js/Reflect.construct js/HTMLElement #js[] self))]
         (set! (.-prototype klass) (js/Object.create js/HTMLElement.prototype))
+        (set! (.-render (.-prototype klass))
+              (fn [props]
+                (this-as
+                  this
+                  (react/render #jsx [Component props] this))))
         (set! (.-connectedCallback (.-prototype klass))
               (fn []
                 (this-as
                   this
-                  (let [render (fn []
-                                 (let [props (case (:format opts')
-                                               :json (json-attrs->map this)
-                                               :transit (transit-attrs->map this))
-                                       Component #(component (.-children %))]
-                                   (react/render #jsx [Component props] this)))]
-                    (render)))))
+                  (when-not (zero? (-> this .-attributes .-length))
+                    (let [props (case (:format opts')
+                                  :json (json-attrs->map this)
+                                  :transit (transit-attrs->map this))]
+                      (.render this props))))))
         (js/customElements.define (name tag) klass)))))
+
+(defn custom-element [[tag props]]
+  (let [f (fn [_]
+            (let [ref (useRef nil)]
+              (useEffect
+                (fn []
+                  (when (.-current ref)
+                    (.render (.-current ref) props)))
+                #js[props])
+              (React/createElement (name tag) #js{:ref ref})))]
+    [f props]))
 
 (defn button [props]
   (let [defaults {:color :blue}

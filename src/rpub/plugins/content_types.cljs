@@ -1,10 +1,12 @@
 (ns rpub.plugins.content-types
-  (:require ["react" :refer [useEffect]]
+  (:require ["react" :refer [useEffect useRef]]
             [rads.inflections :as inflections]
             [rpub.admin.impl :as admin-impl]
             [rpub.lib.dag.react :refer [use-dag]]
             [rpub.lib.html :as html]
-            [rpub.lib.http :as http]))
+            [rpub.lib.http :as http]
+            [rpub.lib.reagent :as r]
+            [rpub.lib.transit :as transit]))
 
 (defn ->field [{:keys [name type]}]
   {:id (random-uuid)
@@ -393,7 +395,45 @@
                   (admin-impl/wrap-component single-content-type-page)
                   {:format :transit})
 
-(defn- content-item-fields [{:keys [content-item editing creating]}]
+(defn rpub-field-types-text
+  [{:keys [field editing creating value on-change] :as _props}]
+  [html/input2 (cond-> {:type :text
+                        :name (str (:key field))
+                        :on-change on-change}
+                 editing (assoc :value value)
+                 creating (assoc :placeholder (field-type-label field)))])
+
+(html/add-element :rpub-field-types-text
+                  (r/reactify-component rpub-field-types-text))
+
+(defn rpub-field-types-text-lg [{:keys [field editing creating value]}]
+  [html/textarea (cond-> {:name (:key field)
+                          :on-change prn}
+                   editing (assoc :value value)
+                   creating (assoc :placeholder (field-type-label field)))])
+
+(html/add-element :rpub-field-types-text-lg
+                  (r/reactify-component rpub-field-types-text-lg))
+
+(defn rpub-field-types-choice [_]
+  [:select])
+
+(html/add-element :rpub-field-types-choice
+                  (r/reactify-component rpub-field-types-choice))
+
+(defn rpub-field-types-datetime [_]
+  [:input {:type :datetime-local}])
+
+(html/add-element :rpub-field-types-datetime
+                  (r/reactify-component rpub-field-types-datetime))
+
+(defn rpub-field-types-number [_]
+  [:input {:type :number}])
+
+(html/add-element :rpub-field-types-number
+                  (r/reactify-component rpub-field-types-number))
+
+(defn- content-item-fields [{:keys [content-item editing creating field-types]}]
   (let [{:keys [content-type]} content-item
         document' (->> (:document content-item)
                        (sort-by (fn [[k _]]
@@ -408,22 +448,15 @@
         [:label.font-semibold.mb-1.block {:for (:name field)}
          (:name field)]
         [:div
-         (case (:type field)
-           :text [html/input2 (cond-> {:type :text
-                                       :name (:key field)
-                                       :on-change prn}
-                                editing (assoc :value v')
-                                creating (assoc :placeholder (field-type-label field)))]
-           :text-lg [html/textarea (cond-> {:name (:key field)
-                                            :on-change prn}
-                                     editing (assoc :value v')
-                                     creating (assoc :placeholder (field-type-label field)))]
-           :choice [:select]
-           :datetime [:input {:type :text}]
-           :number [:input {:type :number}]
-           (pr-str field))]])]))
+         (html/custom-element
+           [(get-in field-types [(:type field) :input])
+            {:field field
+             :value v'
+             :on-change #(prn (-> % .-target .-value))
+             :editing editing
+             :creating creating}])]])]))
 
-(defn new-content-item-page [{:keys [content-type]}]
+(defn new-content-item-page [{:keys [content-type field-types]}]
   (let [content-item {:content-type content-type
                       :document (->> (:fields content-type)
                                      (map (fn [field] [(:id field) ::new-field]))
@@ -437,6 +470,7 @@
       {:content
        [:div
         [content-item-fields {:content-item content-item
+                              :field-types field-types
                               :creating true}]
         [html/submit-button {:ready-label "Create"
                              :submit-label "Creating..."
@@ -446,7 +480,7 @@
                   (admin-impl/wrap-component new-content-item-page)
                   {:format :transit})
 
-(defn edit-content-item-page [{:keys [content-type content-item]}]
+(defn edit-content-item-page [{:keys [content-type content-item field-types]}]
   (let [submitting false]
     [:div.p-4
      [admin-impl/box
@@ -460,6 +494,7 @@
       {:content
        [:div
         [content-item-fields {:content-item content-item
+                              :field-types field-types
                               :editing true}]
         [html/submit-button {:ready-label "Save"
                              :submit-label "Saving..."

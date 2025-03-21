@@ -31,7 +31,7 @@
       req
       {:title "Content Types"
        :primary
-       (html/cljs
+       (html/custom-element
          [:all-content-types-page {:content-types content-types}]
          {:format :transit})})))
 
@@ -65,6 +65,29 @@
    :plugins [{:label "Content Types"
               :href "/admin/content-types"}]})
 
+(def default-field-types
+  {:text {:input :rpub-field-types-text
+          :label "Text"
+          :description "Ask for text with optional formatting."}
+   :text-lg {:input :rpub-field-types-text-lg
+             :label "Text (Large)"
+             :description "Ask for text with optional formatting."}
+   :number {:input :rpub-field-types-number
+            :label "Number"
+            :description "Ask for a whole number or a decimal."}
+   :datetime {:input :rpub-field-types-datetime
+              :label "Date and Time"
+              :description "Ask for a date and time with a date picker."}
+   :media {:input :rpub-field-types-media
+           :label "Media"
+           :description "Ask for an image or video."}
+   :choice {:input :rpub-field-types-choice
+            :label "Choice"
+            :description "Ask for a choice between multiple options."}
+   :group {:input :rpub-field-types-group
+           :label "Group"
+           :description "Combine multiple fields into a group."}})
+
 (defn wrap-content-types [handler]
   (fn [{:keys [db-type current-user] :as req}]
     (let [ds (get-in req [:model :ds])
@@ -74,6 +97,7 @@
           req' (-> req
                    (update :model assoc :content-types-model model)
                    (assoc ::model model)
+                   (update ::field-types #(or % default-field-types))
                    (update :admin-menu-items conj (admin-menu-items model)))]
       (handler req'))))
 
@@ -91,12 +115,12 @@
       req
       {:title (:name content-type)
        :primary
-       (html/cljs
+       (html/custom-element
          [:single-content-type-page {:content-type content-type
                                      :content-items content-items'}]
          {:format :transit})})))
 
-(defn new-content-item-handler [{:keys [::model path-params site-base-url settings] :as req}]
+(defn new-content-item-handler [{:keys [::model ::field-types path-params site-base-url settings] :as req}]
   (let [{:keys [content-type-slug]} path-params
         [content-type] (get-content-types model {:content-type-slugs [content-type-slug]})
         permalink-single (get-in settings [:permalink-single :value])]
@@ -104,9 +128,10 @@
       req
       {:title (str "New " (inflections/singular (:name content-type)))
        :primary
-       (html/cljs
+       (html/custom-element
          [:new-content-item-page
           {:content-type content-type
+           :field-types field-types
            :permalink-single permalink-single
            :site-base-url site-base-url}]
          {:format :transit})})))
@@ -121,7 +146,7 @@
 (def content-field-id #uuid"65a6aa2e-73a3-4283-afe1-58e610d6727d")
 (def url-field-id #uuid"e37838ee-d16b-4a8d-87fe-d4f5042a04ed")
 
-(defn edit-content-item-handler [{:keys [::model path-params site-base-url settings] :as req}]
+(defn edit-content-item-handler [{:keys [::model ::field-types path-params site-base-url settings] :as req}]
   (let [{:keys [content-item-slug]} path-params
         [content-item] (get-content-items
                          model
@@ -135,10 +160,11 @@
       req
       {:title (str "Edit " (inflections/singular (:name content-type)))
        :primary
-       (html/cljs
+       (html/custom-element
          [:edit-content-item-page
           {:content-item content-item'
            :content-type content-type
+           :field-types field-types
            :permalink-single permalink-single
            :site-base-url site-base-url}]
          {:format :transit})})))

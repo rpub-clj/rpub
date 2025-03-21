@@ -99,14 +99,13 @@
 (defn instants->strs [m]
   (walk/postwalk (fn [x] (if (instance? Instant x) (str x) x)) m))
 
-(defn cljs [element & {:as opts}]
+(defn custom-element [element & {:as opts}]
   (let [[k props] element
         opts' (merge {:format :json} opts)
         encode (case (:format opts')
                  :json #(json/write-str (instants->strs %))
                  :transit write-transit)
-        anti-forgery-token (force anti-forgery/*anti-forgery-token*)
-        props' (-> props
-                   (assoc :anti-forgery-token anti-forgery-token)
-                   (update-vals encode))]
+        props' (update-vals props encode)]
     [k props']))
+
+(def cljs custom-element)

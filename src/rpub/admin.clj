@@ -79,7 +79,7 @@
       req
       {:title "Dashboard"
        :primary
-       (html/cljs
+       (html/custom-element
          [:dashboard-page
           {:rpub-version @rpub-version
            :content-types content-types
@@ -95,7 +95,7 @@
     {:title "Users"
      :primary
      (let [users (model/get-users model {})]
-       (html/cljs
+       (html/custom-element
          [:users-page {:users users}]
          {:format :transit}))}))
 
@@ -112,7 +112,7 @@
                               :site-subtitle
                               :contact-email
                               :footer-links]})]
-       (html/cljs
+       (html/custom-element
          [:settings-page {:settings settings}]
          {:format :transit}))}))
 
@@ -123,7 +123,7 @@
       req
       {:title "Themes"
        :primary
-       (html/cljs
+       (html/custom-element
          [:themes-page {:theme-name-setting theme-name-setting
                         :themes themes'}]
          {:format :transit})})))
@@ -138,7 +138,7 @@
       req
       {:title "Plugins"
        :primary
-       (html/cljs
+       (html/custom-element
          [:plugins-page
           {:current-plugins current-plugins
            :available-plugins available-plugins}]
