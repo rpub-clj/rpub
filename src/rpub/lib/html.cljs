@@ -61,7 +61,7 @@
                   (when (.-current ref)
                     (.render (.-current ref) props)))
                 #js[props])
-              (React/createElement (name tag) #js{:ref ref})))]
+              (react/createElement (name tag) #js{:ref ref})))]
     [f props]))
 
 (defn button [props]

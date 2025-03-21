@@ -9,7 +9,6 @@
             [clojure.walk :as walk]
             [cognitect.transit :as transit]
             [hiccup2.core :as hiccup]
-            [ring.middleware.anti-forgery :as anti-forgery]
             [ring.util.response :as response])
   (:import (java.io ByteArrayInputStream ByteArrayOutputStream)
            (java.time Instant)))

@@ -1,12 +1,11 @@
 (ns rpub.plugins.content-types
-  (:require ["react" :refer [useEffect useRef]]
+  (:require ["react" :refer [useEffect]]
             [rads.inflections :as inflections]
             [rpub.admin.impl :as admin-impl]
             [rpub.lib.dag.react :refer [use-dag]]
             [rpub.lib.html :as html]
             [rpub.lib.http :as http]
-            [rpub.lib.reagent :as r]
-            [rpub.lib.transit :as transit]))
+            [rpub.lib.reagent :as r]))
 
 (defn ->field [{:keys [name type]}]
   {:id (random-uuid)
