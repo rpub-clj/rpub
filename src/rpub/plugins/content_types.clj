@@ -24,7 +24,7 @@
 
 (defmulti ->model :db-type)
 
-(defn all-content-types-handler [req]
+(defn all-content-types-handler [{:keys [::field-types] :as req}]
   (let [content-types (->> (get-content-types (::model req) {:count-items true})
                            (sort-by :name))]
     (admin-impl/page-response
@@ -32,7 +32,9 @@
       {:title "Content Types"
        :primary
        (html/custom-element
-         [:all-content-types-page {:content-types content-types}]
+         [:all-content-types-page
+          {:content-types content-types
+           :field-types field-types}]
          {:format :transit})})))
 
 (defn ->field [{:keys [current-user name type rank] :as opts}]

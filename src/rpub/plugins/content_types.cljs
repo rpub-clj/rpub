@@ -102,27 +102,7 @@
              :color :red}
             "Delete Field"]])]]))
 
-(def field-config
-  [{:label "Text"
-    :description "Ask for text with optional formatting."
-    :type :text}
-   {:label "Date and Time"
-    :description "Ask for a date and time with a date picker."
-    :type :datetime}
-   {:label "Number"
-    :description "Ask for a whole number or a decimal."
-    :type :number}
-   {:label "Media"
-    :description "Ask for an image or video."
-    :type :media}
-   {:label "Choice"
-    :description "Ask for a choice between multiple options."
-    :type :choice}
-   {:label "Group"
-    :description "Combine multiple fields into a group."
-    :type :group}])
-
-(defn all-content-types-page [props]
+(defn all-content-types-page [{:keys [field-types] :as props}]
   (let [[{:keys [:all-content-types-page/selection
                  :model/content-types-index]}
          push] (use-dag [:all-content-types-page/selection
@@ -172,7 +152,8 @@
                                         (str "Are you sure you want to delete the \""
                                              (:name field)
                                              "\" field?"))))
-        content-types (->> (vals content-types-index) (sort-by :created-at >))]
+        content-types (->> (vals content-types-index) (sort-by :created-at >))
+        field-config (map (fn [[k v]] (assoc v :type k)) field-types)]
     [:div {:class "flex"
            :onClick (fn [e]
                       (when-not (or (.closest (.-target e) "[data-no-select]")
