@@ -1,8 +1,6 @@
 (ns build
   (:require ["cherry-cljs/lib/compiler.js" :as cherry]
             ["esbuild" :as esbuild]
-            ["fast-glob$default" :as fast-glob]
-            ["node:child_process" :as cp]
             ["node:fs" :as fs]
             ["node:path" :as path]
             ["node:process" :as process]
@@ -48,19 +46,21 @@
     (.context
       esbuild
       (clj->js
-        {:entryPoints ["src/**/*.cljs" "src/**/*.cljc"]
+        {:entryPoints (for [dir ["src" "dev"]
+                            ext ["cljs" "cljc"]]
+                        (str dir "/**/*." ext))
          :entryNames "[dir]/[name].[hash]"
          :format "esm"
          :outdir "target/public/js/rpub"
-         :minify (not (contains? (set js/process.argv) "--no-minify"))
+         :minify (not (contains? (set process/argv) "--no-minify"))
          :jsx "automatic"
          :plugins [cherry-loader manifest-plugin]}))))
 
-(if (contains? (set js/process.argv) "--watch")
+(if (contains? (set process/argv) "--watch")
   (do
     (js/await (.watch ctx))
     (println "Watching..."))
   (do
     (js/await (.rebuild ctx))
     (println "Building...")
-    (js/process.exit 0)))
+    (process/exit 0)))
