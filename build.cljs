@@ -1,9 +1,16 @@
 (ns build
-  (:require ["esbuild" :as esbuild]
+  (:require ["cherry-cljs/lib/compiler.js" :as cherry]
+            ["esbuild" :as esbuild]
             ["fast-glob$default" :as fast-glob]
             ["node:child_process" :as cp]
             ["node:fs" :as fs]
+            ["node:path" :as path]
+            ["node:process" :as process]
+            ["node:url" :as url]
             [clojure.string :as str]))
+
+(def __filename (url/fileURLToPath js/import.meta.url))
+(def __dirname (path/dirname __filename))
 
 (defn write-manifest [result manifest-path]
   (let [result' (js->clj result)
@@ -22,32 +29,26 @@
             (set! (-> build .-initialOptions .-metafile) true)
             (.onEnd build #(write-manifest % manifest-path)))})
 
-(defn ^:async compile-cherry []
-  (let [cmd (concat ["./node_modules/.bin/cherry" "compile"]
-                    (js/await (fast-glob "src/**/*.{cljc,cljs}"))
-                    ["--output-dir=target/cherry"])]
-    (js/Promise.
-      (fn [resolve reject]
-        (.exec cp (str/join " " cmd)
-               (fn [error stdout stderr]
-                 (if error
-                   (reject error)
-                   (do
-                     (when stderr (js/console.error stderr))
-                     (when stdout (js/console.log stdout))
-                     (resolve)))))))))
+(defn ^:async compile-cherry [args]
+  (println "[esbuild] cherry compile" (path/relative __dirname (.-path args)))
+  (let [contents (js/await (.readFile (.-promises fs) (.-path args) "utf8"))
+        contents' (cherry/compileString contents)]
+    #js{:contents contents', :loader "jsx"}))
 
 (def cherry-loader
   {:name "cherry-loader"
-   :setup (fn [build] (.onStart build compile-cherry))})
+   :setup (fn [build]
+            (.onLoad
+              build
+              #js{:filter #"\.clj(s|c)$"}
+              compile-cherry))})
 
 (def ctx
   (js/await
     (.context
       esbuild
       (clj->js
-        {:entryPoints ["target/cherry/src/**/*.mjs",
-                       "target/cherry/src/**/*.jsx"]
+        {:entryPoints ["src/**/*.cljs" "src/**/*.cljc"]
          :entryNames "[dir]/[name].[hash]"
          :format "esm"
          :outdir "target/public/js/rpub"

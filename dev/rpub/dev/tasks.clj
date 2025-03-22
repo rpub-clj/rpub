@@ -71,13 +71,15 @@
   (p/shell "cp -r target/public/css resources/public/css"))
 
 (defn dev-cljs []
-  (p/shell "watchexec -e cljs,cljc bb prod:cljs --no-minify"))
+  (apply p/shell
+         "./node_modules/.bin/cherry" "run" "build.cljs"
+         "--watch" "--no-minify"
+         *command-line-args*))
 
 (defn prod-cljs []
   (p/shell "rm -rf target/cherry")
   (p/shell "rm -rf target/public/js")
   (apply p/shell
-         {:extra-env {:NODE_ENV "production"}}
          "./node_modules/.bin/cherry" "run" "build.cljs"
          *command-line-args*))
 
