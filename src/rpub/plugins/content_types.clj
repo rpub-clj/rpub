@@ -3,7 +3,6 @@
   (:require [rpub.model :as model]
             [rpub.plugins.content-types.admin :as ct-admin]
             [rpub.plugins.content-types.model :as ct-model]
-            [rpub.plugins.content-types.rest :as ct-rest]
             [rpub.plugins.content-types.rpc :as ct-rpc]))
 
 (def get-content-types ct-model/get-content-types)
@@ -84,7 +83,6 @@
 
 (defn routes [opts]
   [(ct-rpc/routes opts)
-   (ct-rest/routes opts)
    (ct-admin/routes opts)])
 
 (defn init [{:keys [model current-user] :as _opts}]
