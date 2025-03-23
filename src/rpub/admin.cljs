@@ -1,5 +1,6 @@
 (ns rpub.admin
   (:require ["flowbite"]
+            ["preact/devtools"]
             [clojure.string :as str]
             [rpub.admin.impl :as admin-impl]
             [rpub.lib.dag.react :refer [use-dag]]

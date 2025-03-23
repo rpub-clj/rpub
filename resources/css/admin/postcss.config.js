@@ -7,7 +7,7 @@ module.exports = {
       'postcss-hash': {
         algorithm: 'sha256',
         trim: 20,
-        manifest: 'resources/public/css/admin/manifest.json'
+        manifest: 'target/public/css/admin/manifest.json'
       }
     } : {}),
   },

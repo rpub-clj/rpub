@@ -147,7 +147,8 @@
 (defn- login-start-handler [{:keys [flash] :as req}]
   (admin-impl/page-response
     req
-    {:title "Log In"
+    {:cljs false
+     :title "Log In"
      :primary
      (form
        (redirect-field flash)
@@ -223,7 +224,8 @@
 (defn- setup-start-handler [req]
   (admin-impl/page-response
     req
-    {:title "rPub Setup"
+    {:cljs false
+     :title "rPub Setup"
      :primary (setup-form req)}))
 
 (defn- encrypt-session-store-key [session-store-key secret-key]

@@ -175,7 +175,7 @@
     cljsClient.start_BANG_();"
     "import 'rpub.admin';"))
 
-(defn layout [{:keys [title content head import-map] :as req}]
+(defn layout [{:keys [title content head cljs import-map] :as req}]
   (str
     (hiccup/html
       {:mode :html}
@@ -184,10 +184,12 @@
        [:head
         [:meta {:charset "utf-8"}]
         [:meta {:name "viewport" :content "width=device-width, initial-scale=1.0"}]
-        [:meta {:name "csrf-token" :content (force anti-forgery/*anti-forgery-token*)}]
-        [:script {:type "importmap"} (hiccup/raw (json/write-str import-map))]
-        (module-preloads import-map)
-        [:script {:type "module"} (hiccup/raw (import-script req))]
+        (when cljs
+          (list
+            [:meta {:name "csrf-token" :content (force anti-forgery/*anti-forgery-token*)}]
+            [:script {:type "importmap"} (hiccup/raw (json/write-str import-map))]
+            (module-preloads import-map)
+            [:script {:type "module"} (hiccup/raw (import-script req))]))
         head
         [:title title]
         (html/stylesheet-tag "admin/main.css")]
@@ -217,7 +219,8 @@
   (apply merge-with concat admin-menu-items))
 
 (defn page-response [{:keys [current-user head import-map cljs-repl] :as req} current-page]
-  (let [req' (merge req {:current-page current-page
+  (let [cljs (get current-page :cljs true)
+        req' (merge req {:current-page current-page
                          :current-user current-user
                          :site-title (get-in req [:settings :site-title :value])
                          :menu-items (->plugin-menu-items req)})
@@ -225,7 +228,7 @@
         content (if (or (login-page? req') (setup-page? req'))
                   (empty-content req')
                   (admin-content req'))
-        body (layout {:cljs true
+        body (layout {:cljs cljs
                       :cljs-repl cljs-repl
                       :title title
                       :content content
@@ -325,13 +328,13 @@
                (str "/js/" to)]))
        (into {})))
 
-(defn- cherry-imports []
-  {"cherry-cljs/cljs.core.js" "https://cdn.jsdelivr.net/npm/cherry-cljs@0.4.26/cljs.core.js"
-   "cherry-cljs/lib/clojure.walk.js" "https://cdn.jsdelivr.net/npm/cherry-cljs@0.4.26/lib/clojure.walk.js"
-   "cherry-cljs/lib/cljs.pprint.js" "https://cdn.jsdelivr.net/npm/cherry-cljs@0.4.26/lib/cljs.pprint.js"
-   "cherry-cljs/lib/compiler.js" "https://cdn.jsdelivr.net/npm/cherry-cljs@0.4.26/lib/compiler.js"
-   "cherry-cljs/lib/clojure.set.js" "https://cdn.jsdelivr.net/npm/cherry-cljs@0.4.26/lib/clojure.set.js"
-   "cherry-cljs/lib/clojure.string.js" "https://cdn.jsdelivr.net/npm/cherry-cljs@0.4.26/lib/clojure.string.js"})
+(defn- cherry-imports [{:keys [cljs-repl] :as _req}]
+  (cond-> {"cherry-cljs/cljs.core.js" "https://cdn.jsdelivr.net/npm/cherry-cljs@0.4.26/cljs.core.js"
+           "cherry-cljs/lib/clojure.walk.js" "https://cdn.jsdelivr.net/npm/cherry-cljs@0.4.26/lib/clojure.walk.js"
+           "cherry-cljs/lib/clojure.set.js" "https://cdn.jsdelivr.net/npm/cherry-cljs@0.4.26/lib/clojure.set.js"
+           "cherry-cljs/lib/clojure.string.js" "https://cdn.jsdelivr.net/npm/cherry-cljs@0.4.26/lib/clojure.string.js"}
+    cljs-repl (merge {"cherry-cljs/lib/cljs.pprint.js" "https://cdn.jsdelivr.net/npm/cherry-cljs@0.4.26/lib/cljs.pprint.js"
+                      "cherry-cljs/lib/compiler.js" "https://cdn.jsdelivr.net/npm/cherry-cljs@0.4.26/lib/compiler.js"})))
 
 (defn- flowbite-imports []
   {"flowbite" "https://cdn.jsdelivr.net/npm/flowbite@2.5.2/dist/flowbite.min.js"})
@@ -339,14 +342,15 @@
 (defn- transit-js-imports []
   {"transit-js" "https://cdn.jsdelivr.net/npm/transit-js@0.8.874/transit.js/+esm"})
 
-(defn- preact-imports []
-  {"preact" "https://cdn.jsdelivr.net/npm/preact@10.25.0/dist/preact.module.js"
-   "preact/debug" "https://cdn.jsdelivr.net/npm/preact@10.25.0/debug/dist/debug.module.js"
-   "preact/devtools" "https://cdn.jsdelivr.net/npm/preact@10.25.0/devtools/dist/devtools.module.js"
-   "preact/compat" "https://cdn.jsdelivr.net/npm/preact@10.25.0/compat/dist/compat.module.js"
-   "preact/hooks" "https://cdn.jsdelivr.net/npm/preact@10.25.0/hooks/dist/hooks.module.js"
-   "react" "https://cdn.jsdelivr.net/npm/preact@10.25.0/compat/dist/compat.module.js"
-   "react/jsx-runtime" "https://cdn.jsdelivr.net/npm/preact@10.25.0/jsx-runtime/dist/jsxRuntime.module.js"})
+(defn- preact-imports [{:keys [cljs-repl] :as _req}]
+  (cond->
+    {"preact" "https://cdn.jsdelivr.net/npm/preact@10.25.0/dist/preact.module.js"
+     "preact/compat" "https://cdn.jsdelivr.net/npm/preact@10.25.0/compat/dist/compat.module.js"
+     "preact/devtools" "https://cdn.jsdelivr.net/npm/preact@10.25.0/devtools/dist/devtools.module.js"
+     "preact/hooks" "https://cdn.jsdelivr.net/npm/preact@10.25.0/hooks/dist/hooks.module.js"
+     "react" "https://cdn.jsdelivr.net/npm/preact@10.25.0/compat/dist/compat.module.js"
+     "react/jsx-runtime" "https://cdn.jsdelivr.net/npm/preact@10.25.0/jsx-runtime/dist/jsxRuntime.module.js"}
+    cljs-repl (merge {"preact/debug" "https://cdn.jsdelivr.net/npm/preact@10.25.0/debug/dist/debug.module.js"})))
 
 (defn- rads-imports []
   {"rads.inflections" "/js/rads/inflections-v0.14.2-1.min.js"
@@ -355,14 +359,14 @@
 (defn- js-manifest-imports []
   (js-manifest->import-map (read-js-manifest)))
 
-(defn- npm-imports []
-  (merge (cherry-imports)
+(defn- npm-imports [req]
+  (merge (cherry-imports req)
          (flowbite-imports)
          (transit-js-imports)
-         (preact-imports)))
+         (preact-imports req)))
 
-(defn- load-import-map []
-  {:imports (merge (npm-imports)
+(defn- load-import-map [req]
+  {:imports (merge (npm-imports req)
                    (rads-imports)
                    (js-manifest-imports))})
 
@@ -370,10 +374,10 @@
   (let [cached-import-map (atom nil)]
     (fn [{:keys [reload] :as req}]
       (let [import-map (if reload
-                         (load-import-map)
+                         (load-import-map req)
                          (do
                            (when-not @cached-import-map
-                             (let [v (load-import-map)]
+                             (let [v (load-import-map req)]
                                (compare-and-set! cached-import-map nil v)))
                            @cached-import-map))
             req' (assoc req :import-map import-map)]
