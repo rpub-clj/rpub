@@ -18,6 +18,7 @@
                        "clojure -M:user:common:dev:test:app"
                        "--reload"
                        "--malli-dev"
+                       "--cljs-repl"
                        "--no-content-security-policy"
                        "--no-error-page"
                        "--repl-port" "0"
@@ -71,13 +72,13 @@
   (p/shell "cp -r target/public/css resources/public/css"))
 
 (defn dev-cljs []
+  (p/shell "rm -rf target/public/js")
   (apply p/shell
          "./node_modules/.bin/cherry" "run" "build.cljs"
          "--watch" "--no-minify"
          *command-line-args*))
 
 (defn prod-cljs []
-  (p/shell "rm -rf target/cherry")
   (p/shell "rm -rf target/public/js")
   (apply p/shell
          "./node_modules/.bin/cherry" "run" "build.cljs"

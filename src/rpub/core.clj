@@ -20,7 +20,8 @@
             [rpub.lib.html :as html]
             [rpub.lib.permalinks :as permalinks]
             [rpub.model :as model]
-            [rpub.plugins.content-types :as content-types]))
+            [rpub.plugins.content-types :as content-types])
+  (:import (org.eclipse.jetty.server Server)))
 
 (defmulti
   plugin
@@ -299,8 +300,7 @@
     (if (db-exists? database-url)
       (setup-finished)
       (setup-required))
-    (doto (jetty/run-jetty handler {:port port :join? false})
-      (.setStopAtShutdown false))))
+    (jetty/run-jetty handler {:port port, :join? false})))
 
 (defn- start-app! [opts]
   {:server (start-jetty! opts)})
@@ -316,7 +316,7 @@
 
 (defn- stop-app! [app]
   (when-let [{:keys [server]} app]
-    (jetty/stop-server server)))
+    (.stop ^Server server)))
 
 (defn start!
   "Start the rPub server."

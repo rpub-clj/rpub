@@ -146,3 +146,6 @@
 (defonce dag-atom
   (atom (-> (dag/->dag dag-config)
             (dag/wrap-tracing tracing-xf))))
+
+(comment
+  (println (:values @dag-atom)))

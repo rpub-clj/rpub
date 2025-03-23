@@ -7,11 +7,10 @@
             [clojure.java.io :as io]
             [clojure.string :as str]
             [clojure.walk :as walk]
-            [cognitect.transit :as transit]
             [hiccup2.core :as hiccup]
-            [ring.util.response :as response])
-  (:import (java.io ByteArrayInputStream ByteArrayOutputStream)
-           (java.time Instant)))
+            [ring.util.response :as response]
+            [rpub.lib.transit :as transit])
+  (:import (java.time Instant)))
 
 (defn script-hash [s]
   (let [hash (-> s codecs/str->bytes hash/sha256 codecs/bytes->b64-str)]
@@ -42,19 +41,6 @@
            headers {"Content-Security-Policy" v}
            res (handler req)]
        (update res :headers merge headers)))))
-
-(def transit-write-handlers
-  {Instant (transit/write-handler "time/instant" str)})
-
-(defn read-transit [s]
-  (let [in (ByteArrayInputStream. (.getBytes s))]
-    (transit/read (transit/reader in :json))))
-
-(defn write-transit [x]
-  (let [out (ByteArrayOutputStream.)
-        writer (transit/writer out :json {:handlers transit-write-handlers})]
-    (transit/write writer x)
-    (str out)))
 
 (defn- read-json [path]
   (json/read-str (slurp path) {:key-fn str}))
@@ -103,7 +89,7 @@
         opts' (merge {:format :json} opts)
         encode (case (:format opts')
                  :json #(json/write-str (instants->strs %))
-                 :transit write-transit)
+                 :transit transit/write)
         props' (update-vals props encode)]
     [k props']))
 

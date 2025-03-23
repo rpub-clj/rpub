@@ -67,6 +67,13 @@
   "The default options for Malli dev instrumentation."
   {:malli-dev false})
 
+(def cljs-repl-defaults
+  "The default options for the CLJS REPL."
+  {:cljs-repl false})
+
+(defn start-cljs-repl! [_]
+  ((requiring-resolve 'rpub.dev.cljs.server/start!)))
+
 (defn start!
   "Start the rPub server and an optional REPL.
 
@@ -84,6 +91,9 @@
     (let [malli-dev-opts (merge malli-dev-defaults opts')]
       (when (:malli-dev malli-dev-opts)
         (malli/start-dev! malli-dev-opts)))
+    (let [cljs-repl-opts (merge cljs-repl-defaults opts')]
+      (when (:cljs-repl cljs-repl-opts)
+        (start-cljs-repl! cljs-repl-opts)))
     (reset! current-system (rpub/start! opts'))))
 
 (defn stop!

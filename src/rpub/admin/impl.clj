@@ -169,9 +169,13 @@
   (for [[_ src] (set (:imports import-map))]
     [:link {:rel "modulepreload" :href src}]))
 
-(def import-script "import 'preact/debug'; import 'rpub.admin';")
+(defn import-script [{:keys [cljs-repl]}]
+  (if cljs-repl
+    "import * as cljsClient from 'rpub.dev.cljs.client';
+    cljsClient.start_BANG_();"
+    "import 'rpub.admin';"))
 
-(defn layout [{:keys [title content head import-map]}]
+(defn layout [{:keys [title content head import-map] :as req}]
   (str
     (hiccup/html
       {:mode :html}
@@ -183,7 +187,7 @@
         [:meta {:name "csrf-token" :content (force anti-forgery/*anti-forgery-token*)}]
         [:script {:type "importmap"} (hiccup/raw (json/write-str import-map))]
         (module-preloads import-map)
-        [:script {:type "module"} (hiccup/raw import-script)]
+        [:script {:type "module"} (hiccup/raw (import-script req))]
         head
         [:title title]
         (html/stylesheet-tag "admin/main.css")]
@@ -212,7 +216,7 @@
 (defn ->plugin-menu-items [{:keys [admin-menu-items] :as _req}]
   (apply merge-with concat admin-menu-items))
 
-(defn page-response [{:keys [current-user head import-map] :as req} current-page]
+(defn page-response [{:keys [current-user head import-map cljs-repl] :as req} current-page]
   (let [req' (merge req {:current-page current-page
                          :current-user current-user
                          :site-title (get-in req [:settings :site-title :value])
@@ -222,6 +226,7 @@
                   (empty-content req')
                   (admin-content req'))
         body (layout {:cljs true
+                      :cljs-repl cljs-repl
                       :title title
                       :content content
                       :head head
@@ -313,6 +318,7 @@
   (->> (json/read-str js-manifest {:key-fn str})
        (map (fn [[from to]]
               [(-> from
+                   (str/replace #"^rpub/[^/]+/" "")
                    (str/replace #"\.js$" "")
                    (str/replace "/" ".")
                    (str/replace "_" "-"))
@@ -320,10 +326,12 @@
        (into {})))
 
 (defn- cherry-imports []
-  {"cherry-cljs/cljs.core.js" "https://cdn.jsdelivr.net/npm/cherry-cljs@0.4.25/cljs.core.js"
-   "cherry-cljs/lib/clojure.walk.js" "https://cdn.jsdelivr.net/npm/cherry-cljs@0.4.25/lib/clojure.walk.js"
-   "cherry-cljs/lib/clojure.set.js" "https://cdn.jsdelivr.net/npm/cherry-cljs@0.4.25/lib/clojure.set.js"
-   "cherry-cljs/lib/clojure.string.js" "https://cdn.jsdelivr.net/npm/cherry-cljs@0.4.25/lib/clojure.string.js"})
+  {"cherry-cljs/cljs.core.js" "https://cdn.jsdelivr.net/npm/cherry-cljs@0.4.26/cljs.core.js"
+   "cherry-cljs/lib/clojure.walk.js" "https://cdn.jsdelivr.net/npm/cherry-cljs@0.4.26/lib/clojure.walk.js"
+   "cherry-cljs/lib/cljs.pprint.js" "https://cdn.jsdelivr.net/npm/cherry-cljs@0.4.26/lib/cljs.pprint.js"
+   "cherry-cljs/lib/compiler.js" "https://cdn.jsdelivr.net/npm/cherry-cljs@0.4.26/lib/compiler.js"
+   "cherry-cljs/lib/clojure.set.js" "https://cdn.jsdelivr.net/npm/cherry-cljs@0.4.26/lib/clojure.set.js"
+   "cherry-cljs/lib/clojure.string.js" "https://cdn.jsdelivr.net/npm/cherry-cljs@0.4.26/lib/clojure.string.js"})
 
 (defn- flowbite-imports []
   {"flowbite" "https://cdn.jsdelivr.net/npm/flowbite@2.5.2/dist/flowbite.min.js"})
@@ -371,10 +379,10 @@
             req' (assoc req :import-map import-map)]
         (handler req')))))
 
-(defn- csp-extra-script-src [{:keys [import-map] :as _req}]
+(defn- csp-extra-script-src [{:keys [import-map] :as req}]
   ["https://cdn.jsdelivr.net"
    (html/script-hash (json/write-str import-map))
-   (html/script-hash import-script)])
+   (html/script-hash (import-script req))])
 
 (defn- wrap-rename-keys [handler kmap]
   (fn [req] (handler (set/rename-keys req kmap))))
