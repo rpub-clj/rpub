@@ -1,4 +1,5 @@
-(ns rpub.lib.malli)
+(ns rpub.lib.malli
+  {:no-doc true})
 
 (defn- pretty-reporter []
   ((requiring-resolve 'malli.dev.pretty/reporter)))

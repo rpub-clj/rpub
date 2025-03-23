@@ -1,4 +1,5 @@
 (ns rpub.lib.dag
+  {:no-doc true}
   (:require [rads.dependency :as dep]))
 
 (defn- dependents [{:keys [::nodes ::edges]}]

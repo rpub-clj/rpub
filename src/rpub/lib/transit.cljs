@@ -1,4 +1,5 @@
 (ns rpub.lib.transit
+  {:no-doc true}
   (:require ["transit-js" :as t]))
 
 (declare ^:private transit->cljs)

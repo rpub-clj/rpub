@@ -1,4 +1,5 @@
 (ns rpub.lib.tap
+  {:no-doc true}
   (:require [rpub.lib.http :as http]))
 
 (defn- reify-metadata [x]

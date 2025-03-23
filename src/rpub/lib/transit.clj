@@ -1,4 +1,5 @@
 (ns rpub.lib.transit
+  {:no-doc true}
   (:refer-clojure :exclude [read])
   (:require [cognitect.transit :as transit])
   (:import (java.io ByteArrayInputStream ByteArrayOutputStream)

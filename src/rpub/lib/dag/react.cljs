@@ -1,4 +1,5 @@
 (ns rpub.lib.dag.react
+  {:no-doc true}
   (:require ["react"
              :as react
              :refer [useCallback useContext useSyncExternalStore useId]]

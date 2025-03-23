@@ -1,4 +1,5 @@
 (ns rpub.lib.tap
+  {:no-doc true}
   (:require [clojure.walk :as walk]
             [ring.util.response :as response]))
 

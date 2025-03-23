@@ -1,4 +1,5 @@
 (ns rpub.admin.dag
+  {:no-doc true}
   (:require [rpub.admin.impl :as admin-impl]
             [rpub.lib.dag :as dag]))
 
