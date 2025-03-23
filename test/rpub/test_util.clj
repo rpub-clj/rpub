@@ -37,7 +37,7 @@
      :error-page false
      :port (random-port)
      :reload false
-     :repl false}))
+     :clj-repl false}))
 
 (defn wait-url [driver url]
   (e/wait-predicate

@@ -40,22 +40,22 @@
   current-system
   (atom nil))
 
-(def repl-defaults
-  "The default options for the REPL."
-  {:repl true
-   :repl-bind "0.0.0.0"
-   :repl-port 7888
-   :repl-flow-storm-middleware false})
+(def clj-repl-defaults
+  "The default options for the Clojure REPL."
+  {:clj-repl true
+   :clj-repl-bind "0.0.0.0"
+   :clj-repl-port 7888
+   :clj-repl-flow-storm-middleware false})
 
 (defn- flow-storm-middleware []
   (requiring-resolve 'flow-storm.nrepl.middleware/wrap-flow-storm))
 
-(defn- start-repl! [opts]
-  (let [nrepl-cli-opts (-> (select-keys opts [:repl-port :repl-bind])
-                           (set/rename-keys {:repl-port :port
-                                             :repl-bind :bind}))
+(defn- start-clj-repl! [opts]
+  (let [nrepl-cli-opts (-> (select-keys opts [:clj-repl-port :repl-bind])
+                           (set/rename-keys {:clj-repl-port :port
+                                             :clj-repl-bind :bind}))
         nrepl-cli-opts' (cond-> nrepl-cli-opts
-                          (:repl-flow-storm-middleware opts)
+                          (:clj-repl-flow-storm-middleware opts)
                           (assoc :middleware [(flow-storm-middleware)]))
         repl-opts (nrepl/server-opts nrepl-cli-opts')
         repl-server (nrepl/start-server repl-opts)]
@@ -68,7 +68,7 @@
   {:malli-dev false})
 
 (def cljs-repl-defaults
-  "The default options for the CLJS REPL."
+  "The default options for the ClojureScript REPL."
   {:cljs-repl false})
 
 (defn start-cljs-repl! [_]
@@ -85,9 +85,9 @@
   (let [opts' (merge (cli/parse-opts *command-line-args*) opts)]
     (print-banner)
     (print-memory)
-    (let [repl-opts (merge repl-defaults opts')]
-      (when (:repl repl-opts)
-        (start-repl! repl-opts)))
+    (let [clj-repl-opts (merge clj-repl-defaults opts')]
+      (when (:clj-repl clj-repl-opts)
+        (start-clj-repl! clj-repl-opts)))
     (let [malli-dev-opts (merge malli-dev-defaults opts')]
       (when (:malli-dev malli-dev-opts)
         (malli/start-dev! malli-dev-opts)))
