@@ -16,13 +16,13 @@
     (loop []
       (let [app (apply p/shell
                        "clojure -M:user:common:dev:test:app"
-                       "--reload"
-                       "--malli-dev"
-                       "--cljs-repl"
                        "--no-content-security-policy"
                        "--no-error-page"
-                       "--repl-port" "0"
-                       "--repl-flow-storm-middleware"
+                       "--reload"
+                       "--malli-dev"
+                       "--clj-repl-port" "0"
+                       "--clj-repl-flow-storm-middleware"
+                       "--cljs-repl"
                        *command-line-args*)]
         (when (zero? (:exit app))
           (recur))))))
