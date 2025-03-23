@@ -1,4 +1,4 @@
-FROM clojure:temurin-21-tools-deps-1.12.0.1479-bookworm-slim@sha256:15ca1c5c74b3c2236cee735f71d39fa0f0321588d5812c2e18391fbce74c2f20 AS builder
+FROM clojure:temurin-21-tools-deps-1.12.0.1530-bookworm-slim@sha256:ad82d552dc9689ca349f5895d87e4ced90beedd4b462ecfed44fd0385b413e7a AS builder
 WORKDIR /app
 
 ## Cache Clojure Deps
@@ -12,7 +12,7 @@ RUN chmod +x install && ./install
 ## Cache Babashka Deps
 RUN bb -Sdeps '{:deps {dev.rpub/rpub {:mvn/version "0.1.1-SNAPSHOT"}}}' prepare
 
-FROM clojure:temurin-21-tools-deps-1.12.0.1479-bookworm-slim@sha256:15ca1c5c74b3c2236cee735f71d39fa0f0321588d5812c2e18391fbce74c2f20
+FROM clojure:temurin-21-tools-deps-1.12.0.1530-bookworm-slim@sha256:ad82d552dc9689ca349f5895d87e4ced90beedd4b462ecfed44fd0385b413e7a
 WORKDIR /app
 
 COPY --from=builder /root/.m2 /root/.m2
