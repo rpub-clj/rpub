@@ -15,12 +15,8 @@
 (defn- ws-handler [request]
   (assert (ws/upgrade-request? request))
   {::ws/listener
-   {:on-open (fn [socket]
-               (swap! ws-clients conj socket)
-               (println "WebSocket client connected"))
-    :on-close (fn [socket _code _reason]
-                (swap! ws-clients disj socket)
-                (println "WebSocket client disconnected"))
+   {:on-open (fn [socket] (swap! ws-clients conj socket))
+    :on-close (fn [socket _code _reason] (swap! ws-clients disj socket))
     :on-message (fn [_socket text]
                   (let [msg (transit/read text)]
                     (deliver (get @ws-responses (:id msg)) msg)
