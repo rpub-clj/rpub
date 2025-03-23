@@ -227,6 +227,29 @@
                      [:seqable :string]]]]]
        [:seqable #'ContentItemMap]])
 
+(defn content-item
+  "Returns a content item map from the params."
+  [params]
+  (ct-model/->content-item params))
+
+(defn create-content-item!
+  "Create a content item."
+  [model opts]
+  (let [content-types-model (or (:content-types-model model) model)]
+    (ct-model/create-content-item! content-types-model opts)))
+
+(defn update-content-item!
+  "Update a content item."
+  [model opts]
+  (let [content-types-model (or (:content-types-model model) model)]
+    (ct-model/update-content-item! content-types-model opts)))
+
+(defn delete-content-item!
+  "Delete a content item."
+  [model opts]
+  (let [content-types-model (or (:content-types-model model) model)]
+    (ct-model/delete-content-item! content-types-model opts)))
+
 (defn- ->app-handler [opts]
   (let [opts' (init-opts opts)]
     (reitit-ring/ring-handler

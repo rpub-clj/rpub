@@ -9,8 +9,6 @@
             [rpub.plugins.content-types :as-alias ct]
             [rpub.plugins.content-types.model :as ct-model]))
 
-(defmulti ->model :db-type)
-
 (defn all-content-types-handler [{:keys [::ct/field-types] :as req}]
   (let [content-types (->> (ct-model/get-content-types (::ct/model req) {:count-items true})
                            (sort-by :name))]
@@ -23,21 +21,6 @@
           {:content-types content-types
            :field-types field-types}]
          {:format :transit})})))
-
-(defn ->field [{:keys [current-user name type rank] :as opts}]
-  (as-> {:id (or (:id opts) (random-uuid))
-         :name name
-         :type type
-         :rank rank} $
-    (model/add-metadata $ current-user)))
-
-(defn ->content-type [{:keys [current-user name slug fields] :as opts}]
-  (let [fields (map #(->field (assoc % :current-user current-user)) fields)]
-    (as-> {:id (or (:id opts) (random-uuid))
-           :name name
-           :slug slug
-           :fields fields} $
-      (model/add-metadata $ current-user))))
 
 (defn single-content-type-handler [{:keys [model path-params] :as req}]
   (let [{:keys [content-type-slug]} path-params
@@ -124,7 +107,7 @@
                            field-ids
                            (map str->field-type (param-values form-params "field-type")))
                          (map (fn [[id type]] {:id id, :type type})))
-        fields (map #(->field (assoc % :current-user current-user))
+        fields (map #(ct-model/->field (assoc % :current-user current-user))
                     (-> field-names
                         (set/join field-types {:id :id})
                         (set/join field-ranks {:id :id})))
@@ -133,10 +116,10 @@
                          {:content-type-ids [content-type-id]})
         content-type' (if content-type
                         (assoc content-type :fields fields)
-                        (->content-type {:name content-type-name
-                                         :slug (model/->slug content-type-name)
-                                         :fields fields
-                                         :current-user current-user}))]
+                        (ct-model/->content-type {:name content-type-name
+                                                  :slug (model/->slug content-type-name)
+                                                  :fields fields
+                                                  :current-user current-user}))]
     (ct-model/update-content-type! (::ct/model req) content-type')
     (all-content-types-handler req)))
 
