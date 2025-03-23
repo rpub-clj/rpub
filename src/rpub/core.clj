@@ -20,7 +20,7 @@
             [rpub.lib.html :as html]
             [rpub.lib.permalinks :as permalinks]
             [rpub.model :as model]
-            [rpub.plugins.content-types :as content-types])
+            [rpub.plugins.content-types.model :as ct-model])
   (:import (org.eclipse.jetty.server Server)))
 
 (defmulti
@@ -100,8 +100,7 @@
 (defmulti ^:private init-db :db-type)
 
 (defmethod init-db :sqlite [_]
-  (require 'rpub.model.sqlite)
-  (require 'rpub.plugins.content-types.sqlite))
+  (require 'rpub.model.sqlite))
 
 (defn- init-model [{:keys [db-type ds] :as opts}]
   (init-db opts)
@@ -188,7 +187,7 @@
   "Get a sequence of content types."
   [model opts]
   (let [content-types-model (or (:content-types-model model) model)]
-    (content-types/get-content-types content-types-model opts)))
+    (ct-model/get-content-types content-types-model opts)))
 
 (m/=> get-content-types
       [:=> [:catn
@@ -212,7 +211,7 @@
   "Get a sequence of content items."
   [model opts]
   (let [content-types-model (or (:content-types-model model) model)]
-    (content-types/get-content-items content-types-model opts)))
+    (ct-model/get-content-items content-types-model opts)))
 
 (m/=> get-content-items
       [:=> [:catn

@@ -8,7 +8,8 @@
             [rpub.lib.db :as db]
             [rpub.model :as model]
             [rpub.model.sqlite :as sqlite]
-            [rpub.plugins.content-types :as content-types]))
+            [rpub.plugins.content-types :as ct]
+            [rpub.plugins.content-types.model :as ct-model]))
 
 (defn row->content-type [row]
   (-> (sqlite/row->metadata row)
@@ -143,10 +144,10 @@
               db/audit-columns)})])
 
 (defn default-content-types [{:keys [current-user] :as _opts}]
-  (let [title-field {:id content-types/title-field-id, :name "Title", :type :text, :rank 1}
-        slug-field {:id content-types/slug-field-id, :name "Slug", :type :text, :rank 2}
-        content-field {:id content-types/content-field-id, :name "Content", :type :text-lg, :rank 3}]
-    [(content-types/->content-type
+  (let [title-field {:id ct/title-field-id, :name "Title", :type :text, :rank 1}
+        slug-field {:id ct/slug-field-id, :name "Slug", :type :text, :rank 2}
+        content-field {:id ct/content-field-id, :name "Content", :type :text-lg, :rank 3}]
+    [(ct/->content-type
        {:id #uuid"5bd88a30-c4dd-4b3e-b4de-ae54ac4f4338"
         :name "Pages"
         :slug :pages
@@ -154,7 +155,7 @@
         :fields [title-field
                  slug-field
                  content-field]})
-     (content-types/->content-type
+     (ct/->content-type
        {:id #uuid"fdeb5967-84ea-41b1-a9b9-4a55874cd4c5"
         :name "Posts"
         :slug :posts
@@ -183,7 +184,7 @@
   (let [posts-type (content-type-by-slug content-types :posts)
         pages-type (content-type-by-slug content-types :pages)]
     (concat
-      [(content-types/->content-item
+      [(ct/->content-item
          {:id #uuid"972f2f2c-8681-4f91-b930-025c59d1739e"
           :current-user current-user
           :content-type posts-type
@@ -195,7 +196,7 @@
 
                      (content-type-field-id posts-type "Content")
                      (:content initial-post)}})
-       (content-types/->content-item
+       (ct/->content-item
          {:id #uuid"0b095750-af17-4d2c-9e53-9c9728f8ebeb"
           :current-user current-user
           :content-type pages-type
@@ -212,9 +213,9 @@
   (let [content-types (default-content-types model)
         content-items (default-content-items content-types model)]
     (doseq [content-type content-types]
-      (content-types/create-content-type! model content-type))
+      (ct-model/create-content-type! model content-type))
     (doseq [content-item content-items]
-      (content-types/create-content-item! model content-item))))
+      (ct-model/create-content-item! model content-item))))
 
 (defn- migrations [model]
   (let [{:keys [content-types-table
@@ -258,7 +259,7 @@
             content-type-fields-table
             content-items-table
             migration-events-table]
-  content-types/Model
+  ct-model/Model
   (migrate! [model]
     (migrate/migrate! (migration-config model)))
 
@@ -291,7 +292,7 @@
     (let [content-types-opts (cond-> {}
                                content-type-ids (assoc :content-type-ids content-type-ids)
                                content-type-slugs (assoc :content-type-slugs content-type-slugs))
-          content-types (content-types/get-content-types model content-types-opts)
+          content-types (ct-model/get-content-types model content-types-opts)
           content-types-by-id (medley/index-by :id content-types)
           fields-index (->> content-types
                             (mapcat :fields)
@@ -405,5 +406,5 @@
         opts' (merge defaults (select-keys opts (into no-default (keys defaults))))]
     (map->Model opts')))
 
-(defmethod content-types/->model :sqlite [opts]
+(defmethod ct-model/->model :sqlite [opts]
   (->model opts))
