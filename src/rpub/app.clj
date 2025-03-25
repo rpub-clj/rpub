@@ -8,6 +8,7 @@
             [ring.middleware.defaults :as defaults]
             [rpub.lib.html :as html]
             [rpub.lib.plugins :as plugins]
+            [rpub.lib.ring :as ring]
             [rpub.model :as model]
             [rpub.plugins.content-types :as content-types]))
 
@@ -139,17 +140,17 @@
     (fn [_] (html/not-found opts))))
 
 (defn- site-defaults [_]
-  (cond-> (-> defaults/site-defaults
-              (select-keys [:responses :security])
-              (assoc :proxy false)
-              (update :responses merge {:content-types false})
-              (update :security merge {:content-type-options false}))))
+  (-> defaults/site-defaults
+      (select-keys [:responses :security])
+      (assoc :proxy false)
+      (update :responses merge {:content-types false})
+      (update :security merge {:content-type-options false})))
 
 (defn app-middleware [{:keys [content-security-policy] :as opts}]
   (concat [[defaults/wrap-defaults (site-defaults opts)]]
           (plugins/plugin-middleware opts)
           (when content-security-policy
-            [html/wrap-content-security-policy])
+            [ring/wrap-content-security-policy])
           [wrap-cache]))
 
 (defn routes [opts]

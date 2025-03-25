@@ -1,21 +1,19 @@
 (ns rpub.admin.impl
   (:require [babashka.json :as json]
-            [buddy.auth :as buddy-auth]
             [buddy.auth.backends :as buddy-backends]
             [buddy.auth.middleware :as buddy-middleware]
             [buddy.core.codecs :as codecs]
             [clojure.edn :as edn]
             [clojure.java.io :as io]
-            [clojure.set :as set]
             [clojure.string :as str]
             [hiccup2.core :as hiccup]
-            [reitit.ring :as ring]
             [ring.middleware.anti-forgery :as anti-forgery]
             [ring.middleware.defaults :as defaults]
             [ring.middleware.session.cookie :as cookie]
             [ring.util.response :as response]
             [rpub.lib.html :as html]
             [rpub.lib.plugins :as plugins]
+            [rpub.lib.ring :as ring]
             [rpub.lib.secrets :as secrets]
             [rpub.model :as model]))
 
@@ -236,13 +234,6 @@
                       :import-map import-map})]
     (response/response body)))
 
-(defn wrap-logged-in-user [handler]
-  (fn [{:keys [model current-user] :as req}]
-    (let [[user] (model/get-users model {:ids [(:id current-user)]})
-          user' (some-> user (select-keys [:username]))
-          req' (update req :current-user merge user')]
-      (handler req'))))
-
 (defn wrap-no-cache [handler]
   (fn [req]
     (-> (handler req)
@@ -250,69 +241,6 @@
                 {"Cache-Control" "no-cache, no-store, must-revalidate"
                  "Pragma" "no-cache"
                  "Expires" "0"}))))
-
-(defn authenticated? [req]
-  (boolean (:current-user req)))
-
-(defn unauthorized-response []
-  (response/status 403))
-
-(defn unauthorized-handler [{:keys [uri] :as req} _metadata]
-  (if (authenticated? req)
-    (unauthorized-response)
-    (-> (response/redirect "/admin/login")
-        (assoc-in [:flash :redirect-to] uri))))
-
-(defn skip-auth? [req]
-  (= (-> req ring/get-match :path) "/admin/login"))
-
-(defn wrap-auth-required [handler]
-  (fn [req]
-    (if (or (skip-auth? req) (authenticated? req))
-      (handler req)
-      (buddy-auth/throw-unauthorized))))
-
-(defn- decrypt-session-store-key [encrypted-session-store-key secret-key]
-  (-> (secrets/decrypt encrypted-session-store-key secret-key)
-      codecs/hex->bytes))
-
-(defn get-session-store-key
-  [{:keys [session-store-key config secret-key-file]
-    :as _opts}]
-  (or session-store-key
-      (let [secret (edn/read-string {:readers *data-readers*}
-                                    (:encrypted-session-store-key config))]
-        (decrypt-session-store-key
-          secret
-          (secrets/get-secret-key secret-key-file)))))
-
-(defn- session-defaults [opts]
-  (let [session-store-key (get-session-store-key opts)
-        session-store (cookie/cookie-store {:key session-store-key})
-        cookie-max-age (* 60 60 24 7)]
-    {:cookie-name "rpub-session"
-     :cookie-attrs {:same-site :strict
-                    :max-age cookie-max-age}
-     :store session-store}))
-
-(defn site-defaults [opts]
-  (let [opts' (merge {:auth-required true} opts)
-        {:keys [auth-required]} opts']
-    (cond-> (-> defaults/site-defaults
-                (select-keys [:cookies :responses :security :session])
-                (assoc :proxy false)
-                (assoc :params {:multipart {:max-file-size (* 5 1024 1024)
-                                            :max-file-count 10}})
-                (update :responses merge {:content-types false})
-                (update :security merge {:content-type-options false})
-                (update :session merge (session-defaults opts)))
-      (not auth-required) (assoc-in [:security :anti-forgery] false))))
-
-(defn wrap-tap [handler]
-  (fn [req]
-    (let [res (handler req)]
-      (tap> {:req req :res res})
-      res)))
 
 (defn read-js-manifest []
   (slurp (io/resource "public/js/manifest.json")))
@@ -385,32 +313,25 @@
 
 (defn- csp-extra-script-src [{:keys [import-map] :as req}]
   ["https://cdn.jsdelivr.net"
-   (html/script-hash (json/write-str import-map))
-   (html/script-hash (import-script req))])
-
-(defn- wrap-rename-keys [handler kmap]
-  (fn [req] (handler (set/rename-keys req kmap))))
+   (ring/script-hash (json/write-str import-map))
+   (ring/script-hash (import-script req))])
 
 (defn admin-middleware
   [{:keys [content-security-policy ::defaults] :as opts}]
-  (let [opts' (merge {:auth-required true
-                      :tap true}
-                     opts)
-        defaults' (or defaults (site-defaults opts'))
-        {:keys [auth-required tap]} opts'
-        auth-backend (buddy-backends/session {:unauthorized-handler unauthorized-handler})]
+  (let [opts' (merge {:auth-required true, :tap true} opts)
+        defaults' (or defaults (ring/site-defaults opts'))
+        {:keys [auth-required tap]} opts']
     (concat
-      [[defaults/wrap-defaults defaults']
-       wrap-import-map]
+      [[defaults/wrap-defaults defaults']]
       (when auth-required
-        [[buddy-middleware/wrap-authentication auth-backend]
-         [buddy-middleware/wrap-authorization auth-backend]
-         [wrap-rename-keys {:identity :current-user}]
-         wrap-auth-required
-         wrap-logged-in-user])
+        (ring/auth-middleware
+          {:auth-backend (buddy-backends/session
+                           {:unauthorized-handler ring/unauthorized-handler})
+           :get-current-user model/get-current-user}))
       (plugins/plugin-middleware opts)
       (when content-security-policy
-        [[html/wrap-content-security-policy
+        [[ring/wrap-content-security-policy
           {:extra-script-src csp-extra-script-src}]])
-      [wrap-no-cache]
-      (when tap [wrap-tap]))))
+      [wrap-no-cache
+       wrap-import-map]
+      (when tap [ring/wrap-tap]))))

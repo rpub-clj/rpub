@@ -6,12 +6,14 @@
             [clojure.java.io :as io]
             [clojure.string :as str]
             [hiccup2.core :as hiccup]
+            [medley.core :as medley]
             [ring.middleware.anti-forgery :as anti-forgery]
             [ring.middleware.defaults :as defaults]
             [ring.util.response :as response]
             [rpub.admin.impl :as admin-impl]
             [rpub.lib.html :as html]
             [rpub.lib.plugins :as plugins]
+            [rpub.lib.ring :as ring]
             [rpub.lib.secrets :as secrets]
             [rpub.lib.tap :as tap]
             [rpub.model :as model]
@@ -263,25 +265,77 @@
 
 (defn setup-middleware [opts]
   (let [opts' (merge opts {:session false, :auth-required false})]
-    [[defaults/wrap-defaults (admin-impl/site-defaults opts')]
-     admin-impl/wrap-no-cache
-     admin-impl/wrap-tap]))
+    [[defaults/wrap-defaults (ring/site-defaults opts')]
+     ring/wrap-no-cache
+     ring/wrap-tap]))
 
 (defn setup-routes [opts]
   ["/admin/setup" {:middleware (setup-middleware opts)
                    :get setup-start-handler
                    :post setup-finish-handler}])
 
+(defn- update-settings-handler
+  [{:keys [model current-user body-params] :as _req}]
+  (let [updated-setting-index (->> (get body-params :settings)
+                                   (map #(select-keys % [:key :value]))
+                                   (medley/index-by :key))
+        ks (keys updated-setting-index)
+        existing-setting-index (->> (model/get-settings model {:keys ks})
+                                    (medley/index-by :key))
+        combined-setting-index (merge-with merge
+                                           existing-setting-index
+                                           updated-setting-index)
+        to-update (map #(model/add-metadata % current-user)
+                       (vals combined-setting-index))]
+    (doseq [setting to-update]
+      (model/update-setting! model setting))
+    (response/response {:success true})))
+
+(defn- activate-plugin-handler
+  [{:keys [body-params model current-user plugins] :as req}]
+  (let [plugin' (model/->plugin (merge (:plugin body-params)
+                                       {:activated true
+                                        :sha (plugins/get-latest-sha)
+                                        :current-user current-user}))
+        remote-plugins (plugins/get-plugins)]
+    (if-not (plugins/can-activate? plugins remote-plugins plugin')
+      (-> (response/status 403)
+          (assoc :body {:message "Plugin not in the list of installable plugins"
+                        :plugin-label (:label plugin')}))
+      (do
+        (when (plugins/remote-plugin? remote-plugins plugin')
+          (plugins/install! plugin' req))
+        (model/update-plugin! model plugin')
+        (response/response {:success true})))))
+
+(defn- deactivate-plugin-handler
+  [{:keys [body-params model current-user] :as _req}]
+  (let [plugin' (model/->plugin (merge (:plugin body-params)
+                                       {:activated false
+                                        :current-user current-user}))]
+    (plugins/uninstall! plugin')
+    (model/update-plugin! model plugin')
+    (response/response {:success true})))
+
+(defn- restart-server-handler [_]
+  (future
+    (Thread/sleep 1000)
+    (System/exit 0))
+  (response/response {:success true}))
+
 (defn routes [opts]
-  [["/admin/tap" {:middleware (admin-impl/admin-middleware
-                                (assoc opts :tap false))
-                  :post tap/handler}]
-   ["/admin" {:middleware (admin-impl/admin-middleware opts)}
-    ["" {:get dashboard-handler}]
-    ["/login" {:get login-start-handler
-               :post login-finish-handler}]
-    ["/logout" {:post logout-handler}]
-    ["/users" {:get users-handler}]
-    ["/settings" {:get settings-handler}]
-    ["/themes" {:get themes-handler}]
-    ["/plugins" {:get plugins-handler}]]])
+  [["" {:middleware (admin-impl/admin-middleware (assoc opts :tap false))}
+    ["/admin/api/tap" {:post #'tap/handler}]]
+   ["" {:middleware (admin-impl/admin-middleware opts)}
+    ["/admin" {:get #'dashboard-handler}]
+    ["/admin/api/activate-plugin" {:post #'activate-plugin-handler}]
+    ["/admin/api/deactivate-plugin" {:post #'deactivate-plugin-handler}]
+    ["/admin/api/restart-server" {:post #'restart-server-handler}]
+    ["/admin/api/update-settings" {:post #'update-settings-handler}]
+    ["/admin/login" {:get #'login-start-handler
+                     :post #'login-finish-handler}]
+    ["/admin/logout" {:post #'logout-handler}]
+    ["/admin/plugins" {:get #'plugins-handler}]
+    ["/admin/settings" {:get #'settings-handler}]
+    ["/admin/themes" {:get #'themes-handler}]
+    ["/admin/users" {:get #'users-handler}]]])

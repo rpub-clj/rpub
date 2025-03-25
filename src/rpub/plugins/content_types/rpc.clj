@@ -2,7 +2,7 @@
   {:no-doc true}
   (:require [medley.core :as medley]
             [ring.util.response :as response]
-            [rpub.api.impl :as api-impl]
+            [rpub.api :as api]
             [rpub.plugins.content-types.model :as ct-model]
             [rpug.plugins.content-types :as-alias ct])
   (:import (java.time Instant)))
@@ -101,7 +101,7 @@
     (response/response {:success true})))
 
 (defn routes [opts]
-  ["/api" {:middleware (api-impl/api-middleware opts)}
+  ["/api" {:middleware (api/api-middleware opts)}
    ["/new-content-type" {:post new-content-type}]
    ["/update-content-type" {:post update-content-type}]
    ["/delete-content-type" {:post delete-content-type}]

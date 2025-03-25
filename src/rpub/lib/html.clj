@@ -2,45 +2,12 @@
   {:no-doc true}
   (:require [babashka.fs :as fs]
             [babashka.json :as json]
-            [buddy.core.codecs :as codecs]
-            [buddy.core.hash :as hash]
             [clojure.java.io :as io]
-            [clojure.string :as str]
             [clojure.walk :as walk]
             [hiccup2.core :as hiccup]
             [ring.util.response :as response]
             [rpub.lib.transit :as transit])
   (:import (java.time Instant)))
-
-(defn script-hash [s]
-  (let [hash (-> s codecs/str->bytes hash/sha256 codecs/bytes->b64-str)]
-    (format "'sha256-%s'" hash)))
-
-(defn default-content-security-policy [req {:keys [extra-script-src]}]
-  (let [inline-script-hashes (map script-hash (:inline-scripts req))
-        extra-script-src-strs (when extra-script-src (extra-script-src req))
-        script-src-strs (concat inline-script-hashes extra-script-src-strs)]
-    (->> ["default-src 'self'"
-          (str "script-src 'self' " (str/join " " script-src-strs))
-          "style-src 'self' 'unsafe-inline'"
-          "img-src 'self' data:"
-          "font-src 'self'"
-          "connect-src 'self'"
-          "object-src 'none'"
-          "frame-ancestors 'none'"
-          "base-uri 'self'"
-          "form-action 'self'"]
-         (filter identity)
-         (str/join "; "))))
-
-(defn wrap-content-security-policy
-  ([handler] (wrap-content-security-policy handler nil))
-  ([handler config]
-   (fn [req]
-     (let [v (default-content-security-policy req config)
-           headers {"Content-Security-Policy" v}
-           res (handler req)]
-       (update res :headers merge headers)))))
 
 (defn- read-json [path]
   (json/read-str (slurp path) {:key-fn str}))

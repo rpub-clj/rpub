@@ -64,7 +64,7 @@
      (ns user
        (:require [rpub.lib.tap :as tap]
                  [rpub.dev.cljs.client :as client]))
-     (defonce tap-fn (fn [x] (tap/remote-tap "/admin/tap" x)))
+     (defonce tap-fn (fn [x] (tap/remote-tap "/admin/api/tap" x)))
      (add-tap tap-fn)
      (client/init-repl!)
 

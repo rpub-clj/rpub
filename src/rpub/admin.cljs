@@ -158,7 +158,7 @@
                                          vals)
                             http-opts' (merge http-opts {:body {:settings settings}
                                                          :on-complete on-complete})]
-                        (http/post "/api/update-settings" http-opts')))]
+                        (http/post "/admin/api/update-settings" http-opts')))]
     [:div {:class "p-4"}
      [admin-impl/box
       {:title "Settings"
@@ -280,7 +280,7 @@
                                                 (push :plugins-page/activate-plugin (:key plugin'))))
                                 http-opts' (merge http-opts {:body body
                                                              :on-complete on-complete})]
-                            (http/post "/api/activate-plugin" http-opts')))
+                            (http/post "/admin/api/activate-plugin" http-opts')))
         deactivate-plugin (fn [_e plugin]
                             (let [body {:plugin (select-keys plugin [:key])}
                                   on-complete (fn [res _err]
@@ -288,7 +288,7 @@
                                                   (push :plugins-page/deactivate-plugin (:key plugin))))
                                   http-opts' (merge http-opts {:body body
                                                                :on-complete on-complete})]
-                              (http/post "/api/deactivate-plugin" http-opts')))
+                              (http/post "/admin/api/deactivate-plugin" http-opts')))
         restart-server (fn [_e]
                          (let [on-complete (fn [_res _err])
                                http-opts' (merge http-opts {:on-complete on-complete})]
