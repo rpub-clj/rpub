@@ -5,6 +5,9 @@
             [rpub.plugins.content-types.model :as ct-model]
             [rpub.plugins.content-types.rpc :as ct-rpc]))
 
+(def slug-field-id ct-model/slug-field-id)
+(def title-field-id ct-model/title-field-id)
+(def content-field-id ct-model/content-field-id)
 (def get-content-types ct-model/get-content-types)
 (def get-content-items ct-model/get-content-items)
 (def create-content-item! ct-model/create-content-item!)

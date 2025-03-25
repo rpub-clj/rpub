@@ -147,7 +147,7 @@
   (let [title-field {:id ct/title-field-id, :name "Title", :type :text, :rank 1}
         slug-field {:id ct/slug-field-id, :name "Slug", :type :text, :rank 2}
         content-field {:id ct/content-field-id, :name "Content", :type :text-lg, :rank 3}]
-    [(ct/->content-type
+    [(ct-model/->content-type
        {:id #uuid"5bd88a30-c4dd-4b3e-b4de-ae54ac4f4338"
         :name "Pages"
         :slug :pages
@@ -155,7 +155,7 @@
         :fields [title-field
                  slug-field
                  content-field]})
-     (ct/->content-type
+     (ct-model/->content-type
        {:id #uuid"fdeb5967-84ea-41b1-a9b9-4a55874cd4c5"
         :name "Posts"
         :slug :posts
@@ -184,7 +184,7 @@
   (let [posts-type (content-type-by-slug content-types :posts)
         pages-type (content-type-by-slug content-types :pages)]
     (concat
-      [(ct/->content-item
+      [(ct-model/->content-item
          {:id #uuid"972f2f2c-8681-4f91-b930-025c59d1739e"
           :current-user current-user
           :content-type posts-type
@@ -196,7 +196,7 @@
 
                      (content-type-field-id posts-type "Content")
                      (:content initial-post)}})
-       (ct/->content-item
+       (ct-model/->content-item
          {:id #uuid"0b095750-af17-4d2c-9e53-9c9728f8ebeb"
           :current-user current-user
           :content-type pages-type
