@@ -219,8 +219,8 @@
                         [content-type-fields-form
                          {:content-type content-type}]])}]])]]
      (let [field (fn [{:keys [label description selected draggable] :as props}]
-                   [:div {:class (str "border rounded-[6px] p-2 mb-4 bg-gray-100 "
-                                      (if draggable "cursor-move hover:shadow-md border-gray-100" "cursor-pointer hover:border-blue-500")
+                   [:div {:class (str "border rounded-[6px] p-2 mb-4 bg-gray-50 "
+                                      (if draggable "cursor-move hover:shadow-md hover:bg-gray-100 border-gray-100" "cursor-pointer hover:border-blue-500")
                                       " "
                                       (if selected "ring-2 ring-blue-400 border-blue-500" "border-gray-100"))
                           :draggable draggable

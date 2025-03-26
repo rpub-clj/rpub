@@ -255,6 +255,7 @@
     (reitit-ring/ring-handler
       (reitit-ring/router
         (concat (admin/routes opts')
+                (api/routes opts')
                 (plugin-routes opts')
                 (app/routes opts'))
         {:conflicts handle-conflicts

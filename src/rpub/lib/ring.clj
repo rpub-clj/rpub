@@ -16,7 +16,8 @@
   (fn [req] (handler (set/rename-keys req kmap))))
 
 (defn skip-auth? [req]
-  (= (-> req reitit-ring/get-match :path) "/admin/login"))
+  (#{"/admin/login" "/api/token"}
+   (-> req reitit-ring/get-match :path)))
 
 (defn authenticated? [req]
   (boolean (:current-user req)))
