@@ -324,9 +324,9 @@
                            {:unauthorized-handler ring/unauthorized-handler})
            :get-current-user model/get-current-user}))
       (plugins/plugin-middleware opts)
+      [wrap-import-map]
       (when content-security-policy
         [[ring/wrap-content-security-policy
           {:extra-script-src csp-extra-script-src}]])
-      [wrap-no-cache
-       wrap-import-map]
+      [wrap-no-cache]
       (when tap [ring/wrap-tap]))))
