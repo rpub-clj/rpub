@@ -181,7 +181,7 @@
   [:map
    [:id :uuid]
    [:slug :keyword]
-   [:fields [:seqable [:map]]]])
+   [:fields {:optional true} [:seqable [:map]]]])
 
 (defn get-content-types
   "Get a sequence of content types."
