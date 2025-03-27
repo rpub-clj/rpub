@@ -29,9 +29,14 @@
         new-val (calc-fn calc-input)]
     (assoc-in dag [::values node-key] new-val)))
 
+(defn- assert-contains-node [dag node-key]
+  (when-not (contains? (::nodes dag) node-key)
+    (throw (ex-info (str "Unknown node: " node-key) {:node-key node-key}))))
+
 (defn push
   ([dag node-key] (push dag node-key ::no-value))
   ([dag node-key v]
+   (assert-contains-node dag node-key)
    (let [push-fn (get-in dag [::nodes node-key :push])
          dependents (get-in dag [::dependents node-key])
          dag' (if (= v ::no-value)
