@@ -7,7 +7,8 @@
             [nrepl.transport :as transport]
             [ring.adapter.jetty9 :as jetty]
             [ring.websocket :as ws]
-            [rpub.lib.transit :as transit]))
+            [rpub.lib.transit :as transit])
+  (:import (java.util.concurrent Executors TimeUnit)))
 
 (def ws-responses (atom {}))
 (def ws-clients (atom #{}))
@@ -64,6 +65,12 @@
   #'websocket-eval-middleware
   {:requires #{"clone"}, :expects #{"eval"}})
 
+(defn start-websocket-heartbeats! []
+  (let [scheduler (Executors/newScheduledThreadPool 1)
+        cb #(run! ws/ping @ws-clients)]
+    (.scheduleAtFixedRate scheduler cb 0 5 TimeUnit/SECONDS)
+    scheduler))
+
 (defn start-websocket-server! []
   (log/info "Starting WebSocket server on port 7778")
   (jetty/run-jetty ws-handler {:port 7778
@@ -77,5 +84,14 @@
     :handler (nrepl-server/default-handler #'websocket-eval-middleware)))
 
 (defn start! []
-  (start-websocket-server!)
-  (start-browser-nrepl-server!))
+  {:websocket-server (start-websocket-server!)
+   :websocket-heartbeats (start-websocket-heartbeats!)
+   :browser-nrepl-server (start-browser-nrepl-server!)})
+
+(defn stop!
+  [{:keys [websocket-server
+           websocket-heartbeats
+           browser-nrepl-server]}]
+  (.shutdown websocket-heartbeats)
+  (jetty/stop-server websocket-server)
+  (jetty/stop-server browser-nrepl-server))
