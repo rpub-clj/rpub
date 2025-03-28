@@ -44,7 +44,7 @@
   {:extra-deps {com.github.flow-storm/flow-storm-inst {:mvn/version "4.2.2"}}}
 
   :build
-  {:deps {io.github.clojure/tools.build {:mvn/version "0.10.7"}}
+  {:deps {io.github.clojure/tools.build {:mvn/version "0.10.8"}}
    :ns-default build}
 
   :deps-deploy
