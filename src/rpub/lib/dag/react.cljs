@@ -58,9 +58,5 @@
          get-snapshot #(deref dag-atom)
          dag (useSyncExternalStore sub get-snapshot)
          values (-> (::dag/values dag) (select-keys node-keys))
-         push (useCallback
-                (fn
-                  ([k] (swap! dag-atom dag/push k) nil)
-                  ([k v] (swap! dag-atom dag/push k v) nil))
-                #js[])]
+         push (useCallback #(apply swap! dag-atom dag/push %&) #js[])]
      [values push])))
