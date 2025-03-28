@@ -12,7 +12,7 @@
             [reitit.ring :as reitit-ring]
             [reitit.ring.middleware.muuntaja :as reitit-muuntaja]
             [reitit.ring.middleware.parameters :as reitit-parameters]
-            [ring.adapter.jetty9 :as jetty]
+            [ring.adapter.jetty :as jetty]
             [rpub.admin :as admin]
             [rpub.api :as api]
             [rpub.app :as app]

@@ -5,10 +5,12 @@
             [nrepl.misc :as nrepl-misc]
             [nrepl.server :as nrepl-server]
             [nrepl.transport :as transport]
-            [ring.adapter.jetty9 :as jetty]
+            [ring.adapter.jetty :as jetty]
             [ring.websocket :as ws]
             [rpub.lib.transit :as transit])
-  (:import (java.util.concurrent Executors TimeUnit)))
+  (:import (java.lang AutoCloseable)
+           (java.util.concurrent Executors TimeUnit)
+           (org.eclipse.jetty.server Server)))
 
 (def ws-responses (atom {}))
 (def ws-clients (atom #{}))
@@ -92,6 +94,6 @@
   [{:keys [websocket-server
            websocket-heartbeats
            browser-nrepl-server]}]
-  (.shutdown websocket-heartbeats)
-  (jetty/stop-server websocket-server)
-  (jetty/stop-server browser-nrepl-server))
+  (.close ^AutoCloseable websocket-heartbeats)
+  (.stop ^Server websocket-server)
+  (.stop ^Server browser-nrepl-server))
