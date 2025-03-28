@@ -17,8 +17,10 @@
             [rpub.api :as api]
             [rpub.app :as app]
             [rpub.lib.db :as db]
+            [rpub.lib.edn]
             [rpub.lib.html :as html]
             [rpub.lib.permalinks :as permalinks]
+            [rpub.lib.transit :as transit]
             [rpub.model :as model]
             [rpub.plugins.content-types.model :as ct-model])
   (:import (org.eclipse.jetty.server Server)))
@@ -250,6 +252,12 @@
   (let [content-types-model (or (:content-types-model model) model)]
     (ct-model/delete-content-item! content-types-model opts)))
 
+(def ^:private custom-muuntaja
+  (muuntaja/create
+    (-> muuntaja/default-options
+        (update-in [:formats "application/transit+json" :decoder-opts]
+                   #(update % :handlers merge transit/read-handlers)))))
+
 (defn- ->app-handler [opts]
   (let [opts' (init-opts opts)]
     (reitit-ring/ring-handler
@@ -259,7 +267,7 @@
                 (plugin-routes opts')
                 (app/routes opts'))
         {:conflicts handle-conflicts
-         :data {:muuntaja muuntaja/instance
+         :data {:muuntaja custom-muuntaja
                 :middleware [reitit-parameters/parameters-middleware
                              reitit-muuntaja/format-middleware
                              [wrap-rpub opts']
@@ -291,7 +299,7 @@
          ["*path" {:get (constantly nil)
                    :middleware [[app/wrap-default-handlers not-found-opts]]}]]
         {:conflicts handle-conflicts
-         :data {:muuntaja muuntaja/instance
+         :data {:muuntaja custom-muuntaja
                 :middleware [reitit-parameters/parameters-middleware
                              reitit-muuntaja/format-middleware
                              [wrap-setup opts']]}})

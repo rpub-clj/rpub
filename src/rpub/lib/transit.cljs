@@ -5,7 +5,7 @@
 (declare ^:private transit->cljs)
 
 (def ^:private read-handlers
-  {"time/instant" #(js/Date. %)
+  {"rpub/instant" #(js/Date. %)
    "list" #(map transit->cljs %)})
 
 (def ^:private array-builder
@@ -26,7 +26,7 @@
 
 (def ^:private DateHandler
   (t/makeWriteHandler
-    #js{:tag (fn [_v _h] "time/instant")
+    #js{:tag (fn [_v _h] "rpub/instant")
         :rep (fn [v _h] (.toISOString v))
         :stringRep (fn [_v _h] nil)}))
 
