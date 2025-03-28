@@ -11,6 +11,7 @@ pom.xml
 .repl
 .rebl
 .nrepl-port
+.socket-repl.port
 .cpcache/
 .rebel_readline_history
 node_modules
