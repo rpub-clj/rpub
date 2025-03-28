@@ -2,6 +2,7 @@
   (:require ["cherry-cljs/lib/compiler.js" :as cherry]
             ["preact/debug"]
             [cljs.pprint :as pprint]
+            [clojure.string :as str]
             [rpub.lib.transit :as transit]))
 
 (def cherry-state (atom nil))
@@ -46,8 +47,13 @@
                   (let [pretty (with-out-str (pprint/pprint value))
                         msg {:id id, :value (pr-str value)}]
                     (println (str "[cljs] => " code "\n" pretty))
-                    (.send ws (transit/write msg))))]
-    (.then (eval-cherry code) on-eval)))
+                    (.send ws (transit/write msg))))
+        on-error (fn [err]
+                   (on-eval #:error{:message (str err)
+                                    :stack (.-stack err)})
+                   (js/console.log err))]
+    (doto (eval-cherry code)
+      (.then on-eval on-error))))
 
 (defn init-repl! []
   (println "[cljs] REPL started")
