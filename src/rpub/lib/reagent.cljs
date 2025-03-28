@@ -9,6 +9,14 @@
                    classes)]
     (assoc attrs :class (str/join " " classes'))))
 
+(defn parse-hiccup-tag [el]
+  (let [tag-str (name el)
+        [_ tag] (re-find #"^([^#.]+)" tag-str)
+        [_ id] (re-find #"#([^.#]+)" tag-str)
+        classes (->> (re-seq #"\.([^.#]+)" tag-str) (map second))]
+    {:tag tag, :id id, :classes classes}))
+
+(comment (parse-hiccup-tag "div#foo"))
 (defn- parse-element [form]
   (let [parsed (if (map? (second form))
                  (let [[el attrs & children] form]
@@ -17,8 +25,9 @@
                    {:el el, :children children}))]
     (if-not (keyword? (:el parsed))
       parsed
-      (let [[el' & classes] (str/split (name (:el parsed)) #"\.")]
-        (cond-> (assoc parsed :el el')
+      (let [{:keys [tag id classes]} (parse-hiccup-tag (:el parsed))]
+        (cond-> (assoc parsed :el tag)
+          id (assoc-in [:attrs :id] id)
           (seq classes) (update :attrs add-classes classes))))))
 
 (defn- ->clj-props [js-props]
