@@ -2,7 +2,6 @@
   (:require ["cherry-cljs/lib/compiler.js" :as cherry]
             ["preact/debug"]
             [cljs.pprint :as pprint]
-            [clojure.string :as str]
             [rpub.lib.transit :as transit]))
 
 (def cherry-state (atom nil))
