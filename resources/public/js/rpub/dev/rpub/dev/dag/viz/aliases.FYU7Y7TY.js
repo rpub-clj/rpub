@@ -1,0 +1,1 @@
+import*as a from"cherry-cljs/cljs.core.js";var e=a.array_map(a.keyword("all-content-types-page"),a.array_map(":rpub.plugins.content-types.admin.all-content-types-page/","::"));export{e as default_aliases};

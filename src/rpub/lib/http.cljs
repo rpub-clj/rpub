@@ -6,7 +6,7 @@
   (-> (js/document.querySelector "meta[name='csrf-token']")
       (.getAttribute "content")))
 
-(defn post [url {:keys [body on-complete] :as opts}]
+(defn- post-callback [url {:keys [body on-complete] :as opts}]
   (let [opts' (merge {:format :json} opts)
         mime-type (case (:format opts')
                     :json "application/json"
@@ -31,3 +31,15 @@
           (.then #(on-complete (read-value %)) nil)
           (.catch #(on-complete nil %))))
     nil))
+
+(defn- post-promise [url opts]
+  (js/Promise.
+    (fn [resolve reject]
+      (let [on-complete (fn [res err] (if err (reject err) (resolve res)))
+            opts' (merge opts {:on-complete on-complete, :format :transit})]
+        (post-callback url opts')))))
+
+(defn post [url opts]
+  (if (:on-complete opts) ; deprecated option
+    (post-callback url opts)
+    (post-promise url opts)))

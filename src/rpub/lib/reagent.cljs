@@ -1,6 +1,7 @@
 (ns rpub.lib.reagent
   {:no-doc true}
   (:require ["react" :as react]
+            [clojure.set :as set]
             [clojure.string :as str]))
 
 (defn- add-classes [attrs classes]
@@ -16,7 +17,24 @@
         classes (->> (re-seq #"\.([^.#]+)" tag-str) (map second))]
     {:tag tag, :id id, :classes classes}))
 
-(comment (parse-hiccup-tag "div#foo"))
+(def attr-aliases
+  {:on-blur :onBlur
+   :on-change :onChange
+   :on-click :onClick
+   :on-drag :onDrag
+   :on-drag-end :onDragEnd
+   :on-drag-enter :onDragEnter
+   :on-drag-exit :onDragExit
+   :on-drag-leave :onDragLeave
+   :on-drag-over :onDragOver
+   :on-drag-start :onDragStart
+   :on-drop :onDrop
+   :on-focus :onFocus
+   :on-mouse-down :onMouseDown
+   :on-mouse-enter :onMouseEnter
+   :on-mouse-leave :onMouseLeave
+   :on-submit :onSubmit})
+
 (defn- parse-element [form]
   (let [parsed (if (map? (second form))
                  (let [[el attrs & children] form]
@@ -25,8 +43,11 @@
                    {:el el, :children children}))]
     (if-not (keyword? (:el parsed))
       parsed
-      (let [{:keys [tag id classes]} (parse-hiccup-tag (:el parsed))]
-        (cond-> (assoc parsed :el tag)
+      (let [{:keys [tag id classes]} (parse-hiccup-tag (:el parsed))
+            parsed' (-> parsed
+                        (assoc :el tag)
+                        (update :attrs set/rename-keys attr-aliases))]
+        (cond-> parsed'
           id (assoc-in [:attrs :id] id)
           (seq classes) (update :attrs add-classes classes))))))
 

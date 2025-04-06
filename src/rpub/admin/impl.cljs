@@ -1,11 +1,51 @@
 (ns rpub.admin.impl
   {:no-doc true}
-  (:require ["react" :refer [useId]]
+  (:require ["react" :refer [useId useEffect useState useCallback]]
             [clojure.string :as str]
             [rads.inflections :as inflections]
-            [rpub.admin.dag :as dag]
+            [rpub.lib.dag :as dag]
             [rpub.lib.dag.react :refer [DAGProvider]]
+            [rpub.lib.html :as html]
+            [rpub.lib.http :as http]
             [rpub.lib.reagent :as r]))
+
+(defn field-values
+  ([db] (field-values db (keys (:inputs db))))
+  ([db ks]
+   (-> (:inputs db)
+       (select-keys ks)
+       (update-vals :value))))
+
+(defn node->trace [node]
+  (let [pprint-meta {:portal.viewer/default :portal.viewer/pprint}
+        add-meta (fn [x] (if (coll? x) (with-meta x pprint-meta) x))
+        node' (-> node
+                  (dissoc :key)
+                  (update :args #(map add-meta %))
+                  (update :ret add-meta))]
+    [(:key node) node']))
+
+(def tracing-xf
+  (comp
+    (map node->trace)
+    (map tap>)))
+
+(defonce dag-atom (atom nil))
+
+(defonce client-id (random-uuid))
+
+(defn ->unsaved-changes [key value]
+  {:client-id client-id
+   :key key
+   :value value})
+
+(defn update-unsaved-changes! [unsaved-changes]
+  (let [http-opts' {:format :transit
+                    :body unsaved-changes
+                    :on-complete (fn [_ err]
+                                   (when err
+                                     (js/console.log err)))}]
+    (http/post "/admin/api/update-unsaved-changes" http-opts')))
 
 (defn- c [s]
   (str/replace s "." " "))
@@ -62,9 +102,9 @@
 (defn box [{:keys [title content class size selected on-drag-over on-drop
                    on-click hover]}]
   [:section {:class (str "bg-gray-50 dark:bg-gray-900 antialiased " class)
-             :onClick on-click
-             :onDragOver on-drag-over
-             :onDrop on-drop}
+             :on-click on-click
+             :on-drag-over on-drag-over
+             :on-drop on-drop}
    [:div {:class (str "h-full border bg-white dark:bg-gray-800 relative shadow sm:rounded-lg md:overflow-auto "
                       (if selected "ring-2 ring-blue-400 border-blue-500" "border-white") " "
                       (when hover "hover:border-blue-500"))}
@@ -97,12 +137,33 @@
            :href (str "/admin/content-types/" (name (:slug content-type)))}
        [content-item-count-text {:content-type content-type}]]])])
 
-(defn wrap-component [f]
-  (fn [props]
-    #jsx [DAGProvider {:dag-atom dag/dag-atom}
-          (r/as-element [f props])]))
-
 (defn index-by [f coll]
   (->> coll
        (map (fn [v] [(f v) v]))
        (into {})))
+
+(defn wrap-component [f {:keys [page-id prepend-element dag-config tracing]}]
+  (fn [props]
+    (let [[v set-v] (useState false)]
+      (useEffect (fn []
+                   (let [dag (cond-> (dag/->dag dag-config)
+                               tracing (dag/wrap-tracing tracing-xf))]
+                     (set-v (reset! dag-atom dag))))
+                 #js[])
+      #jsx [DAGProvider {:dag-atom dag-atom}
+            (when v
+              (r/as-element
+                (list
+                  (when prepend-element
+                    (prepend-element {:page-id page-id, :dag v}))
+                  [f props])))])))
+
+(defn add-page
+  [{:keys [page-id component dag-config prepend-element tracing]
+    :as _page-config}]
+  (let [component' (wrap-component component
+                                   {:page-id page-id
+                                    :dag-config dag-config
+                                    :prepend-element prepend-element
+                                    :tracing tracing})]
+    (html/add-element page-id component' {:format :transit})))

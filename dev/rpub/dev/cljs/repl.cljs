@@ -1,6 +1,4 @@
-(ns rpub.dev.cljs.repl
-  (:require [rpub.admin.dag :as admin-dag]))
+(ns rpub.dev.cljs.repl)
 
 (comment
-  (:model/content-types-index (:rpub.lib.dag/values @admin-dag/dag-atom))
   (keys *1))

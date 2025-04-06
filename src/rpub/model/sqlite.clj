@@ -1,9 +1,9 @@
 (ns rpub.model.sqlite
   {:no-doc true}
-  (:require [clojure.edn :as edn]
-            [rads.migrate :as migrate]
+  (:require [rads.migrate :as migrate]
             [rads.migrate.next-jdbc :as migrate-next-jdbc]
             [rpub.lib.db :as db]
+            [rpub.lib.edn :as edn]
             [rpub.model :as model])
   (:import (java.time Instant)))
 
@@ -103,8 +103,23 @@
   (doseq [plugin (initial-plugins opts)]
     (model/update-plugin! model plugin)))
 
+(defn- unsaved-changes-table-schema [{:keys [unsaved-changes-table] :as _model}]
+  [(db/strict
+     {:create-table [unsaved-changes-table :if-not-exists]
+      :with-columns (concat [(db/uuid-column :id [:primary-key] [:not nil])
+                             [:user-id :text [:not nil]]
+                             [:client-id :text [:not nil]]
+                             [:key :text [:not nil]]
+                             [:value :text [:not nil]]]
+                            db/audit-columns)})
+
+   {:create-index [[:unique (db/index-name unsaved-changes-table :key)
+                    :if-not-exists]
+                   [unsaved-changes-table :user-id :client-id :key]]}])
+
 (defn- migrations [model opts]
-  (let [{:keys [users-table settings-table plugins-table]} model]
+  (let [{:keys [users-table settings-table plugins-table
+                unsaved-changes-table]} model]
     [{:id :initial-schema
       :migrate (fn [{:keys [tx]}]
                  (doseq [stmt (initial-schema model)]
@@ -119,7 +134,14 @@
                    (seed model' opts)))
       :rollback (fn [{:keys [tx]}]
                   (doseq [table [users-table settings-table plugins-table]]
-                    (db/execute-one! tx {:delete-from table})))}]))
+                    (db/execute-one! tx {:delete-from table})))}
+
+     {:id :unsaved-changes-table
+      :migrate (fn [{:keys [tx]}]
+                 (doseq [stmt (unsaved-changes-table-schema model)]
+                   (db/execute-one! tx stmt)))
+      :rollback (fn [{:keys [tx]}]
+                  (db/execute-one! tx {:drop-table unsaved-changes-table}))}]))
 
 (defn row->metadata [row]
   (cond-> row
@@ -154,6 +176,19 @@
                     :updated-at :updated-by])
       (update :key str)))
 
+(defn row->unsaved-changes [row]
+  (-> (row->metadata row)
+      (update :user-id parse-uuid)
+      (update :key edn/read-string)
+      (update :value edn/read-string)))
+
+(defn unsaved-changes->row [unsaved-changes]
+  (-> unsaved-changes
+      (select-keys [:id :user-id :client-id :key :value :created-at :created-by
+                    :updated-at :updated-by])
+      (update :key pr-str)
+      (update :value pr-str)))
+
 (defn sql-or [constraints]
   (if (= (count constraints) 1)
     (first constraints)
@@ -168,7 +203,8 @@
   {:migrations (migrations model opts)
    :storage (migrate-next-jdbc/storage model)})
 
-(defrecord Model [db-type ds users-table settings-table plugins-table]
+(defrecord Model [db-type ds users-table settings-table plugins-table
+                  unsaved-changes-table]
   model/Model
   (db-info [model]
     (select-keys model [:db-type :ds]))
@@ -221,15 +257,52 @@
     (db/execute-one! ds {:insert-into plugins-table
                          :values [(plugin->row plugin)]
                          :on-conflict :key
-                         :do-update-set [:activated]})))
+                         :do-update-set [:activated]}))
+
+  (get-unsaved-changes [_ {:keys [user-ids client-ids keys] :as _opts}]
+    (let [constraints (cond-> [[:in :user-id user-ids]
+                               [:in :key (map pr-str keys)]]
+                        (seq client-ids) (conj [:in :client-id client-ids]))]
+      (->> (db/execute! ds {:select [:*]
+                            :from unsaved-changes-table
+                            :where (sql-and constraints)})
+           (map row->unsaved-changes))))
+
+  (update-unsaved-changes! [_ unsaved-changes]
+    (db/execute-one! ds {:insert-into unsaved-changes-table
+                         :values [(unsaved-changes->row unsaved-changes)]
+                         :on-conflict [:user-id :client-id :key]
+                         :do-update-set [:value :updated-at :updated-by]}))
+
+  (delete-unsaved-changes! [_ {:keys [user-ids keys] :as _opts}]
+    (let [constraints [[:in :user-id user-ids]
+                       [:in :key (map pr-str keys)]]]
+      (db/execute-one! ds {:delete-from unsaved-changes-table
+                           :where (sql-and constraints)}))))
 
 (defn ->model [params]
   (let [defaults {:users-table :users
                   :settings-table :settings
-                  :plugins-table :plugins}
-        valid-keys [:db-type :ds :users-table :settings-table :plugins-table]
+                  :plugins-table :plugins
+                  :unsaved-changes-table :unsaved-changes}
+        valid-keys [:db-type :ds :users-table :settings-table :plugins-table
+                    :unsaved-changes-table]
         params' (merge defaults (select-keys params valid-keys))]
     (map->Model params')))
 
 (defmethod model/->model :sqlite [opts]
   (->model opts))
+
+(comment
+  (def test-model
+    (model/->model {:db-type :sqlite
+                    :ds (db/get-datasource "jdbc:sqlite:data/app.db")}))
+
+  @(def test-unsaved-changes
+     (model/get-unsaved-changes
+       test-model
+       {:user-id #uuid"0c12755b-537f-4199-88cb-55c47ddecc67"}))
+
+  (model/update-unsaved-changes!
+    test-model
+    (assoc test-unsaved-changes :value {:a 1})))

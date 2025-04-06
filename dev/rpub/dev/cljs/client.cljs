@@ -64,19 +64,31 @@
      :on-error handle-ws-error
      :on-message handle-ws-message}))
 
-(def repl-ns
+(def repl-init-commands
   '(do
-     (ns user
+     (ns rpub.dev.cljs.repl
        (:require [rpub.lib.tap :as tap]
-                 [rpub.dev.cljs.client :as client]))
+                 [rpub.dev.cljs.client :as client]
+                 [rpub.admin :as admin]
+                 [rpub.lib.dag :as dag]
+                 [rpub.dev.dag.viz :as dag-viz]
+                 [rpub.dev.dag.viz.aliases :as dag-viz-aliases]))
+
      (defonce tap-fn (fn [x] (tap/remote-tap "/admin/api/tap" x)))
      (add-tap tap-fn)
      (client/init-repl!)
 
-     (ns rpub.dev.cljs.repl
-       (:require [rpub.admin :as admin]
-                 [rpub.admin.dag :as admin-dag]
-                 [rpub.lib.dag :as dag]))))
+     (dag/enable-assertions!)
+
+     (defn prepend-element [{:keys [page-id dag] :as _page-config}]
+       [dag-viz/overlay
+        {:storage-id page-id
+         :aliases (get dag-viz-aliases/default-aliases page-id)
+         :initial-nodes (dag-viz/initial-nodes dag)
+         :initial-edges (dag-viz/initial-edges dag)}])
+
+     (admin/start! {:prepend-element prepend-element
+                    :tracing false})))
 
 (defn start! []
-  (eval-cherry repl-ns))
+  (eval-cherry repl-init-commands))

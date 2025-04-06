@@ -2,6 +2,14 @@
   {:no-doc true}
   (:require [rads.dependency :as dep]))
 
+(def ^:private assertions-enabled (atom false))
+
+(defn assertions-enabled? []
+  @assertions-enabled)
+
+(defn enable-assertions! []
+  (reset! assertions-enabled true))
+
 (defn- dependents [{:keys [::nodes ::edges]}]
   (let [sorted (dep/topo-sort edges)]
     (->> (dep/nodes edges)
@@ -16,7 +24,18 @@
           graph
           edges))
 
-(defn ->dag [{:keys [nodes edges]}]
+(defn- valid-edge-config? [{:keys [nodes] :as _dag-config} edge]
+  (every? #(contains? nodes %) edge))
+
+(defn- assert-valid-edges-config [{:keys [edges] :as dag-config}]
+  (let [invalid-edges (remove #(valid-edge-config? dag-config %) edges)]
+    (when (seq invalid-edges)
+      (throw (ex-info (str "Invalid edges config: " (pr-str invalid-edges))
+                      {:invalid-edges invalid-edges})))))
+
+(defn ->dag [{:keys [nodes edges] :as dag-config}]
+  (when (assertions-enabled?)
+    (assert-valid-edges-config dag-config))
   (let [edges' (-> (dep/graph) (add-edges edges))]
     {::nodes nodes
      ::edges edges'
@@ -36,7 +55,8 @@
 (defn push
   ([dag node-key] (push dag node-key ::no-value))
   ([dag node-key v]
-   (assert-contains-node dag node-key)
+   (when (assertions-enabled?)
+     (assert-contains-node dag node-key))
    (let [push-fn (get-in dag [::nodes node-key :push])
          dependents (get-in dag [::dependents node-key])
          dag' (if (= v ::no-value)
@@ -75,3 +95,20 @@
               (->> nodes
                    (map (fn [[k v]] [k (wrap-node k v)]))
                    (into {}))))))
+
+(defn merge-configs [& configs]
+  (reduce #(merge-with into %1 %2) {:nodes {}, :edges []} configs))
+
+(defn nodes [dag]
+  (::nodes dag))
+
+(defn edges [dag]
+  (mapcat (fn [[from deps]]
+            (map (fn [to] [from to])
+                 deps))
+          (-> dag ::edges :dependencies)))
+
+(defn assert-valid-node-keys [dag node-keys]
+  (when-not (every? (::nodes dag) node-keys)
+    (throw (ex-info (str "Invalid node keys: " (pr-str node-keys))
+                    {:node-keys node-keys}))))

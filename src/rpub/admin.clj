@@ -7,6 +7,7 @@
             [clojure.string :as str]
             [hiccup2.core :as hiccup]
             [medley.core :as medley]
+            [rads.inflections :as inflections]
             [ring.middleware.anti-forgery :as anti-forgery]
             [ring.middleware.defaults :as defaults]
             [ring.util.response :as response]
@@ -291,6 +292,28 @@
       (model/update-setting! model setting))
     (response/response {:success true})))
 
+(defn- last-updated [unsaved-changes]
+  (->> unsaved-changes
+       (sort-by #(or (:updated-at %) (:created-at %)) #(compare %2 %1))
+       first))
+
+(defn- update-unsaved-changes-handler
+  [{:keys [model current-user body-params] :as _req}]
+  (let [existing-unsaved-changes (-> (model/get-unsaved-changes
+                                       model
+                                       {:user-ids [(:id current-user)]
+                                        :keys [(:key body-params)]})
+                                     last-updated)
+        updated-unsaved-changes (model/->unsaved-changes
+                                  (-> (if existing-unsaved-changes
+                                        (assoc existing-unsaved-changes :value (:value body-params))
+                                        body-params)
+                                      (dissoc :id)
+                                      (assoc :current-user current-user)
+                                      (assoc :client-id (:client-id body-params))))]
+    (model/update-unsaved-changes! model updated-unsaved-changes)
+    (response/response {:success true})))
+
 (defn- activate-plugin-handler
   [{:keys [body-params model current-user plugins] :as req}]
   (let [plugin' (model/->plugin (merge (:plugin body-params)
@@ -323,15 +346,39 @@
     (System/exit 0))
   (response/response {:success true}))
 
+(defn update-content-types-handler [_]
+  (response/response {:success true}))
+
+(defn dag-metadata-path [storage-id]
+  (format "dev/rpub/dev/dag/metadata/%s.edn"
+          (inflections/parameterize (str storage-id))))
+
+(defn get-dag-metadata-handler [{:keys [body-params] :as _req}]
+  (let [storage-id (get body-params :storage-id)
+        saved-nodes (when (.exists (io/file (dag-metadata-path storage-id)))
+                      (-> (slurp (dag-metadata-path storage-id))
+                          edn/read-string
+                          :saved-nodes))]
+    (response/response {:saved-nodes saved-nodes})))
+
+(defn- update-dag-metadata-handler [{:keys [body-params] :as _req}]
+  (let [storage-id (:key body-params)]
+    (spit (dag-metadata-path storage-id) (pr-str (:value body-params)))
+    (response/response {:success true})))
+
 (defn routes [opts]
   [["" {:middleware (admin-impl/admin-middleware (assoc opts :tap false))}
+    ["/admin/api/get-dag-metadata" {:post #'get-dag-metadata-handler}]
+    ["/admin/api/update-dag-metadata" {:post #'update-dag-metadata-handler}]
     ["/admin/api/tap" {:post #'tap/handler}]]
    ["" {:middleware (admin-impl/admin-middleware opts)}
     ["/admin" {:get #'dashboard-handler}]
     ["/admin/api/activate-plugin" {:post #'activate-plugin-handler}]
     ["/admin/api/deactivate-plugin" {:post #'deactivate-plugin-handler}]
     ["/admin/api/restart-server" {:post #'restart-server-handler}]
+    ["/admin/api/update-content-types" {:post #'update-content-types-handler}]
     ["/admin/api/update-settings" {:post #'update-settings-handler}]
+    ["/admin/api/update-unsaved-changes" {:post #'update-unsaved-changes-handler}]
     ["/admin/login" {:get #'login-start-handler
                      :post #'login-finish-handler}]
     ["/admin/logout" {:post #'logout-handler}]

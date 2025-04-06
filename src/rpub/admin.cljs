@@ -1,12 +1,73 @@
 (ns rpub.admin
-  (:require ["flowbite"]
-            ["preact/devtools"]
+  (:require ["preact/devtools"]
             [clojure.string :as str]
             [rpub.admin.impl :as admin-impl]
             [rpub.lib.dag.react :refer [use-dag]]
             [rpub.lib.html :as html]
             [rpub.lib.http :as http]
-            [rpub.plugins.content-types]))
+            [rpub.plugins.content-types.admin :as content-types-admin]))
+
+(defn change-input [db [k v]]
+  (assoc-in db [:inputs k :value] v))
+
+(defn activate-plugin [db k]
+  (-> db
+      (assoc :plugins-page/needs-restart true)
+      (update :plugins-page/activated-plugins (fnil conj #{}) k)))
+
+(defn deactivate-plugin [db k]
+  (-> db
+      (assoc :plugins-page/needs-restart true)
+      (update :plugins-page/activated-plugins disj k)))
+
+(defn restart-server [db]
+  (assoc db :plugins-page/restarted true))
+
+(defn submit-start [db]
+  (assoc db :settings-page/submitting true))
+
+(defn submit-error [db]
+  (assoc db :settings-page/submitting false))
+
+(defn activate-theme [db theme-label]
+  (assoc db :themes-page/current-theme-name-setting {:value theme-label}))
+
+(def plugins-page-dag-config
+  {:nodes
+   {:plugins-page/needs-restart {:calc :plugins-page/needs-restart}
+    :plugins-page/restart-server {:push restart-server}
+    :plugins-page/activated-plugins {:calc :plugins-page/activated-plugins}
+    :plugins-page/activate-plugin {:push activate-plugin}
+    :plugins-page/deactivate-plugin {:push deactivate-plugin}}
+
+   :edges
+   [[:plugins-page/activate-plugin :plugins-page/needs-restart]
+    [:plugins-page/activate-plugin :plugins-page/activated-plugins]
+    [:plugins-page/deactivate-plugin :plugins-page/needs-restart]
+    [:plugins-page/deactivate-plugin :plugins-page/activated-plugins]]})
+
+(def settings-page-dag-config
+  {:nodes
+   {:settings-page/change-input {:push change-input}
+    :settings-page/field-values {:calc admin-impl/field-values}
+    :settings-page/submit-error {:push submit-error}
+    :settings-page/submit-start {:push submit-start}
+    :settings-page/submitting {:calc :settings-page/submitting}
+    :settings-page/update-settings {:push change-input}}
+
+   :edges
+   [[:settings-page/change-input :settings-page/field-values]
+    [:settings-page/submit-error :settings-page/submitting]
+    [:settings-page/submit-start :settings-page/submitting]
+    [:settings-page/update-settings :settings-page/field-values]]})
+
+(def themes-page-dag-config
+  {:nodes
+   {:themes-page/activate-theme {:push activate-theme}
+    :themes-page/current-theme-name-setting {:calc :themes-page/current-theme-name-setting}}
+
+   :edges
+   [[:themes-page/activate-theme :themes-page/current-theme-name-setting]]})
 
 (defn- dashboard-content-types [{:keys [content-types]}]
   [:div {:class "w-full md:w-1/2 md:px-2 mb-4"
@@ -130,10 +191,6 @@
    [dashboard-user props]
    [dashboard-server props]])
 
-(html/add-element :dashboard-page
-                  (admin-impl/wrap-component dashboard-page)
-                  {:format :transit})
-
 (defn- settings-page [{:keys [settings] :as _props}]
   (let [[{:keys [:settings-page/field-values
                  :settings-page/submitting]}
@@ -165,7 +222,7 @@
        :content
        [:section {:class "bg-white dark:bg-gray-900"}
         [:div {:class "max-w-2xl"}
-         [:form {:onSubmit submit-form}
+         [:form {:on-submit submit-form}
           [:div {:class "grid gap-4 sm:grid-cols-2 sm:gap-6"}
            (for [setting (sort-by :label (vals settings-index))]
              [:div {:key (:key setting) :class "sm:col-span-2"}
@@ -180,10 +237,6 @@
                                 :submit-label "Saving..."
                                 :submitting submitting}]]]]]}]]))
 
-(html/add-element :settings-page
-                  (admin-impl/wrap-component settings-page)
-                  {:format :transit})
-
 (def ^:private columns
   [{:name "Username"
     :value (fn [{:keys [username]}]
@@ -195,10 +248,6 @@
     {:title "Users"
      :columns columns
      :rows users}]])
-
-(html/add-element :users-page
-                  (admin-impl/wrap-component users-page)
-                  {:format :transit})
 
 (defn- theme-icon [_]
   [:svg {:class "w-8 h-8 text-gray-500 dark:text-white mr-4" :aria-hidden "true" :xmlns "http://www.w3.org/2000/svg" :width "24" :height "24" :fill "currentColor" :viewBox "0 0 24 24"}
@@ -240,7 +289,7 @@
                        [:path {:fill-rule "evenodd" :d "M2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10S2 17.523 2 12Zm13.707-1.293a1 1 0 0 0-1.414-1.414L11 12.586l-1.793-1.793a1 1 0 0 0-1.414 1.414l2.5 2.5a1 1 0 0 0 1.414 0l4-4Z" :clip-rule "evenodd"}]]
                       "Active"]]
                     [:button {:class "font-app-sans inline-flex items-center px-5 py-2.5 text-sm font-medium text-center text-white bg-blue-700 rounded-lg focus:ring-4 focus:ring-primary-200 dark:focus:ring-primary-900 hover:bg-primary-800 shadow ml-auto w-44"
-                              :onClick #(activate-theme theme %)
+                              :on-click #(activate-theme theme %)
                               :type "submit"}
                      [:div {:class "inline-flex items-center mx-auto"}
                       [:svg {:class "w-6 h-6 text-white dark:text-white mr-2" :aria-hidden "true" :xmlns "http://www.w3.org/2000/svg" :width "24" :height "24" :fill "currentColor" :viewBox "0 0 24 24"}
@@ -250,10 +299,6 @@
           :content
           (when-let [v (:description theme)]
             [:p v])}]])]))
-
-(html/add-element :themes-page
-                  (admin-impl/wrap-component themes-page)
-                  {:format :transit})
 
 (defn- plugin-icon [_]
   [:svg {:class "w-8 h-8 text-gray-500 dark:text-white mr-4" :aria-hidden "true" :xmlns "http://www.w3.org/2000/svg" :width "24" :height "24" :fill "currentColor" :viewBox "0 0 24 24"}
@@ -311,7 +356,7 @@
         [:p {:class "italic"} "Note: The server must be restarted after activating a plugin for the first time."]
         (when needs-restart
           [:button {:class "font-app-sans inline-flex items-center px-5 py-2.5 text-sm font-medium text-center text-white bg-blue-700 rounded-lg focus:ring-4 focus:ring-primary-200 dark:focus:ring-primary-900 hover:bg-primary-800 shadow ml-auto w-44"
-                    :onClick restart-server}
+                    :on-click restart-server}
            [:div {:class "inline-flex items-center mx-auto"}
             "Restart"]])]}]
      (for [plugin (sort-by #(str/lower-case (or (:label %) (:key %)))
@@ -332,6 +377,27 @@
           (when-let [v (:description plugin)]
             [:p v])]}])]))
 
-(html/add-element :plugins-page
-                  (admin-impl/wrap-component plugins-page)
-                  {:format :transit})
+(defn- add-pages [opts]
+  (admin-impl/add-page
+    (merge opts {:page-id :dashboard-page
+                 :component dashboard-page}))
+  (admin-impl/add-page
+    (merge opts {:page-id :settings-page
+                 :component settings-page
+                 :dag-config settings-page-dag-config}))
+  (admin-impl/add-page
+    (merge opts {:page-id :users-page
+                 :component users-page}))
+  (admin-impl/add-page
+    (merge opts {:page-id :themes-page
+                 :component themes-page
+                 :dag-config themes-page-dag-config}))
+  (admin-impl/add-page
+    (merge opts {:page-id :plugins-page
+                 :component plugins-page
+                 :dag-config plugins-page-dag-config})))
+
+(defn start! [& {:as opts}]
+  (add-pages opts)
+  (content-types-admin/add-elements opts)
+  (content-types-admin/add-pages opts))

@@ -17,7 +17,10 @@
   (create-setting! [model setting])
   (update-setting! [model setting])
   (get-plugins [model opts])
-  (update-plugin! [model plugin]))
+  (update-plugin! [model plugin])
+  (get-unsaved-changes [model opts])
+  (update-unsaved-changes! [model unsaved-changes])
+  (delete-unsaved-changes! [model opts]))
 
 (defn ->slug [title]
   (inflections/parameterize title))
@@ -74,6 +77,18 @@
   (let [theme-name-value (get-in settings [:theme-name :value])
         theme (medley/find-first #(= (:label %) theme-name-value) themes)]
     (or theme {:label theme-name-value})))
+
+(defn ->unsaved-changes
+  [{:keys [id key client-id value created-at created-by current-user]
+    :as _opts}]
+  (-> {:id (or id (random-uuid))
+       :user-id (:id current-user)
+       :client-id client-id
+       :key key
+       :value value
+       :created-at created-at
+       :created-by created-by}
+      (add-metadata current-user)))
 
 (defmulti ->model :db-type)
 

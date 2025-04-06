@@ -92,7 +92,7 @@
        [:path {:fill-rule "evenodd" :d "M2 6a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v12c0 .556-.227 1.06-.593 1.422A.999.999 0 0 1 20.5 20H4a2.002 2.002 0 0 1-2-2V6Zm6.892 12 3.833-5.356-3.99-4.322a1 1 0 0 0-1.549.097L4 12.879V6h16v9.95l-3.257-3.619a1 1 0 0 0-1.557.088L11.2 18H8.892Z" :clip-rule "evenodd"}]])))
 
 (defn menu [{:keys [menu-items] :as req}]
-  [:aside#drawer-navigation.fixed.top-0.left-0.z-40.w-64.h-screen.pt-14.transition-transform.-translate-x-full.bg-white.border-r.border-gray-200.md:translate-x-0.dark:bg-gray-800.dark:border-gray-700 {:aria-label "Sidenav"}
+  [:aside#drawer-navigation.fixed.top-0.left-0.z-30.w-64.h-screen.pt-14.transition-transform.-translate-x-full.bg-white.border-r.border-gray-200.md:translate-x-0.dark:bg-gray-800.dark:border-gray-700 {:aria-label "Sidenav"}
    [:div.overflow-y-auto.py-5.px-3.h-full.bg-white.dark:bg-gray-800
     [:ul.space-y-2
      (menu-item (merge req {:key ::dashboard
@@ -105,7 +105,7 @@
                                           :href (:href content-type-menu-item)
                                           :icon #(icon :content-type %)}})))]
     [:ul.pt-5.mt-5.space-y-2.border-t.border-gray-200.dark:border-gray-700
-     (for [plugin (:plugins menu-items)
+     (for [plugin (sort-by :label (:plugins menu-items))
            :let [plugin' (assoc plugin :icon #(icon :plugin %))]]
        (menu-item (merge req {:key (:label plugin')
                               :menu-item plugin'})))]
@@ -139,7 +139,7 @@
    [:span.text-blue-500.italic "r"] "Pub"])
 
 (defn header [{:keys [settings] :as req}]
-  [:nav.bg-white.border-b.border-gray-200.px-4.py-2.5.dark:bg-gray-800.dark:border-gray-700.fixed.left-0.right-0.top-0.z-50
+  [:nav.bg-white.border-b.border-gray-200.px-4.py-2.5.dark:bg-gray-800.dark:border-gray-700.fixed.left-0.right-0.top-0.z-40
    [:div.flex.flex-wrap.justify-between.items-center
     [:div.flex.justify-start.items-center
      [:button.p-2.mr-2.text-gray-600.rounded-lg.cursor-pointer.md:hidden.hover:text-gray-900.hover:bg-gray-100.focus:bg-gray-100.dark:focus:bg-gray-700.focus:ring-2.focus:ring-gray-100.dark:focus:ring-gray-700.dark:text-gray-400.dark:hover:bg-gray-700.dark:hover:text-white {:data-drawer-target "drawer-navigation" :data-drawer-toggle "drawer-navigation" :aria-controls "drawer-navigation"}
@@ -159,16 +159,21 @@
    (:primary current-page)])
 
 (defn- module-preloads [import-map]
-  (for [[_ src] (set (:imports import-map))]
+  (for [src (set (vals (:imports import-map)))]
     [:link {:rel "modulepreload" :href src}]))
 
-(defn import-script [{:keys [cljs-repl]}]
-  (if cljs-repl
-    "import * as cljsClient from 'rpub.dev.cljs.client';
-    cljsClient.start_BANG_();"
-    "import 'rpub.admin';"))
+(def ^:private cljs-repl-script
+  "import * as cljsClient from 'rpub.dev.cljs.client';
+   cljsClient.start_BANG_();")
 
-(defn layout [{:keys [title content head cljs import-map] :as req}]
+(def ^:private prod-script
+  "import * as admin from 'rpub.admin';
+   admin.start_BANG_();")
+
+(defn- import-script [{:keys [cljs-repl]}]
+  (if cljs-repl cljs-repl-script prod-script))
+
+(defn layout [{:keys [title content head cljs cljs-repl import-map] :as req}]
   (str
     (hiccup/html
       {:mode :html}
@@ -185,7 +190,9 @@
             [:script {:type "module"} (hiccup/raw (import-script req))]))
         head
         [:title title]
-        (html/stylesheet-tag "admin/main.css")]
+        (html/stylesheet-tag "admin/main.css")
+        (when cljs-repl
+          [:link {:rel "stylesheet" :href "https://cdn.jsdelivr.net/npm/@xyflow/react@12.5.1/dist/style.css"}])]
        [:body
         content]])))
 
@@ -259,9 +266,6 @@
     cljs-repl (merge {"cherry-cljs/lib/cljs.pprint.js" "https://cdn.jsdelivr.net/npm/cherry-cljs@0.4.26/lib/cljs.pprint.js"
                       "cherry-cljs/lib/compiler.js" "https://cdn.jsdelivr.net/npm/cherry-cljs@0.4.26/lib/compiler.js"})))
 
-(defn- flowbite-imports []
-  {"flowbite" "https://cdn.jsdelivr.net/npm/flowbite@2.5.2/dist/flowbite.min.js"})
-
 (defn- transit-js-imports []
   {"transit-js" "https://cdn.jsdelivr.net/npm/transit-js@0.8.874/transit.js/+esm"})
 
@@ -272,8 +276,13 @@
      "preact/devtools" "https://cdn.jsdelivr.net/npm/preact@10.25.0/devtools/dist/devtools.module.js"
      "preact/hooks" "https://cdn.jsdelivr.net/npm/preact@10.25.0/hooks/dist/hooks.module.js"
      "react" "https://cdn.jsdelivr.net/npm/preact@10.25.0/compat/dist/compat.module.js"
+     "react-dom" "https://cdn.jsdelivr.net/npm/preact@10.25.0/compat/dist/compat.module.js"
      "react/jsx-runtime" "https://cdn.jsdelivr.net/npm/preact@10.25.0/jsx-runtime/dist/jsxRuntime.module.js"}
     cljs-repl (merge {"preact/debug" "https://cdn.jsdelivr.net/npm/preact@10.25.0/debug/dist/debug.module.js"})))
+
+(defn- dev-dag-imports [{:keys [cljs-repl] :as _req}]
+  (when cljs-repl
+    {"@xyflow/react" "/js/rpub/dev/xyflow-react-bundle.js"}))
 
 (defn- rads-imports []
   {"rads.inflections" "/js/rads/inflections-v0.14.2-1.min.js"
@@ -284,8 +293,8 @@
 
 (defn- npm-imports [req]
   (merge (cherry-imports req)
-         (flowbite-imports)
          (transit-js-imports)
+         (dev-dag-imports req)
          (preact-imports req)))
 
 (defn- load-import-map [req]

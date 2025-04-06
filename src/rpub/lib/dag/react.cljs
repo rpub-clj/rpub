@@ -57,6 +57,16 @@
          sub #(subscribe dag-atom component-id node-keys %)
          get-snapshot #(deref dag-atom)
          dag (useSyncExternalStore sub get-snapshot)
+         _ (when (dag/assertions-enabled?)
+             (dag/assert-valid-node-keys dag node-keys))
          values (-> (::dag/values dag) (select-keys node-keys))
-         push (useCallback #(apply swap! dag-atom dag/push %&) #js[])]
+         push (useCallback
+                (fn [& args]
+                  (let [d' (swap! dag-atom
+                                  (fn [d]
+                                    (when (dag/assertions-enabled?)
+                                      (dag/assert-valid-node-keys d (take 1 args)))
+                                    (apply dag/push d args)))]
+                    (-> (::dag/values d') (select-keys node-keys))))
+                #js[])]
      [values push])))
