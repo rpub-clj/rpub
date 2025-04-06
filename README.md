@@ -35,7 +35,7 @@
 ```shell
 mkdir rpub && cd rpub
 curl -O https://raw.githubusercontent.com/rpub-clj/rpub/refs/tags/v0.1.0/docker-compose.yaml
-docker compose up -d
+docker compose up
 ```
 
 ### App (Without Docker)
