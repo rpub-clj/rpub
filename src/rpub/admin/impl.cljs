@@ -1,6 +1,6 @@
 (ns rpub.admin.impl
   {:no-doc true}
-  (:require ["react" :refer [useId useEffect useState useCallback]]
+  (:require ["react" :refer [useId useEffect useState]]
             [clojure.string :as str]
             [rads.inflections :as inflections]
             [rpub.lib.dag :as dag]

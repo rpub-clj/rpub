@@ -1,7 +1,6 @@
 (ns rpub.lib.html
   {:no-doc true}
   (:require ["react" :refer [useState useRef useEffect] :as react]
-            [clojure.set :as set]
             [clojure.string :as str]
             [rpub.lib.transit :as transit]))
 
@@ -225,7 +224,7 @@
      [:span [spinner] submit-label]
      ready-label)])
 
-(defn modal* [{:keys [visible title content on-cancel on-confirm]}]
+(defn modal* [{:keys [title content on-cancel on-confirm]}]
   (useEffect
     (fn []
       (let [handler (fn [e]

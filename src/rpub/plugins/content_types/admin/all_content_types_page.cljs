@@ -129,7 +129,8 @@
      ::content-types-index (or (get-in unsaved-changes [:value ::content-types-index])
                                content-types-index)}))
 
-(defn field [{:keys [label description type selected draggable on-click] :as props}]
+(defn field
+  [{:keys [label description type selected draggable on-click] :as _props}]
   (let [[_ push] (use-dag)]
     (if-not draggable
       [:div.mb-2.flex.items-center.ps-4.border.border-gray-200.dark:border-gray-700
