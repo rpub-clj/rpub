@@ -37,7 +37,7 @@
 
  :aliases
  {:neil
-  {:project {:version "0.1.1-SNAPSHOT"
+  {:project {:version "0.2.0-SNAPSHOT"
              :name dev.rpub/rpub}}
 
   :flowstorm
