@@ -14,15 +14,20 @@
 (def delete-content-item! ct-model/delete-content-item!)
 
 (def default-field-types
-  {:text {:input :rpub-field-types-text
-          :label "Text"
-          :description "Ask for text with optional formatting."}
-   :text-lg {:input :rpub-field-types-text-lg
-             :label "Text (Large)"
-             :description "Ask for text with optional formatting."}
-   :datetime {:input :rpub-field-types-datetime
-              :label "Date and Time"
-              :description "Ask for a date and time with a date picker."}})
+  {:text
+   {:input :rpub-field-types-text
+    :label "Text"
+    :description "Ask for text with optional formatting."}
+
+   :text-lg
+   {:input :rpub-field-types-text-lg
+    :label "Text (Large)"
+    :description "Ask for text with optional formatting."}
+
+   :datetime
+   {:input :rpub-field-types-datetime
+    :label "Date and Time"
+    :description "Ask for a date and time with a date picker."}})
 
 (defn wrap-content-types [handler]
   (fn [{:keys [db-type current-user] :as req}]
