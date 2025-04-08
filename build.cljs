@@ -28,10 +28,14 @@
             (.onEnd build #(write-manifest % manifest-path)))})
 
 (defn ^:async compile-cherry [args]
-  (println "[esbuild] cherry compile" (path/relative __dirname (.-path args)))
-  (let [contents (js/await (.readFile (.-promises fs) (.-path args) "utf8"))
-        contents' (cherry/compileString contents)]
-    #js{:contents contents', :loader "jsx"}))
+  (try
+    (println "[esbuild] cherry compile" (path/relative __dirname (.-path args)))
+    (let [contents (js/await (.readFile (.-promises fs) (.-path args) "utf8"))
+          contents' (cherry/compileString contents)]
+      #js{:contents contents', :loader "jsx"})
+    (catch js/Error e
+      (println "[esbuild] cherry ERROR  " (path/relative __dirname (.-path args)))
+      (throw e))))
 
 (def cherry-loader
   {:name "cherry-loader"

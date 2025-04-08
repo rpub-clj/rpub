@@ -1,6 +1,17 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss" source(none);
+@plugin "@tailwindcss/typography";
+@plugin "flowbite/plugin";
+@source "../../../node_modules/flowbite";
+@source "../../../node_modules/flowbite-datepicker";
+@source "../../../src";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-app-sans: 'avenir next', 'avenir', 'sans-serif';
+  --font-app-mono: 'Consolas', 'Monaco', 'monospace';
+  --font-app-serif: 'baskerville', 'georgia', 'serif';
+}
 
 @layer base {
   html {

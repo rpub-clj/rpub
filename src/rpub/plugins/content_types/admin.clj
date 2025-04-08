@@ -39,7 +39,7 @@
            :field-types field-types
            :unsaved-changes unsaved-changes}])})))
 
-(defn single-content-type-handler [{:keys [model path-params permalink-router] :as req}]
+(defn single-content-type-handler [{:keys [model path-params] :as req}]
   (let [{:keys [content-type-slug]} path-params
         [content-type] (ct-model/get-content-types (::ct/model req) {:content-type-slugs [content-type-slug]})
         content-items (ct-model/get-content-items (::ct/model req) {:content-type-ids [(:id content-type)]})

@@ -1,8 +1,6 @@
-module.exports = {
+export default {
   plugins: {
-    tailwindcss: {},
-    autoprefixer: {},
-    'postcss-import': {},
+    '@tailwindcss/postcss': {},
     ...(process.env.NODE_ENV === 'production' ? {
       'postcss-hash': {
         algorithm: 'sha256',

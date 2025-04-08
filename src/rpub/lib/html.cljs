@@ -65,7 +65,7 @@
 
 (defn button [props]
   (let [defaults {:color :blue}
-        classes {:class (c "flex.items-center.justify-center.text-white.focus:ring-4.font-medium.rounded-lg.text-sm.px-4.py-2.focus:outline-none.shadow.transition-colors.duration-75")}
+        classes {:class "flex items-center justify-center text-white focus:ring-4 font-medium rounded-lg text-sm px-4 py-2 focus:outline-none shadow-sm transition-colors duration-75"}
         attrs' (as-> defaults $
                  (merge $ props)
                  (assoc $ :class (str (:class $) " "
@@ -77,7 +77,7 @@
     [:button attrs' (:children props)]))
 
 (defn action-button [props]
-  (let [classes {:class (c "flex.items-center.justify-center.text-white.focus:ring-4.font-medium.rounded-lg.text-sm.px-4.py-2.focus:outline-none.shadow.transition-colors.duration-75")}
+  (let [classes {:class "flex items-center justify-center text-white focus:ring-4 font-medium rounded-lg text-sm px-4 py-2 focus:outline-none shadow-sm transition-colors duration-75"}
         attrs' (as-> {} $
                  (merge $ props)
                  (assoc $ :class (str (:class $) " "
@@ -89,7 +89,7 @@
     [:button attrs' (:children props)]))
 
 (defn delete-button [props]
-  (let [classes {:class (c "font-app-sans.flex.items-center.justify-center.text-white.focus:ring-4.font-medium.rounded-lg.text-sm.px-4.py-2.focus:outline-none.shadow.transition-colors.duration-75")}
+  (let [classes {:class "font-app-sans flex items-center justify-center text-white focus:ring-4 font-medium rounded-lg text-sm px-4 py-2 focus:outline-none shadow-sm transition-colors duration-75"}
         attrs' (as-> {} $
                  (merge $ props)
                  (assoc $ :class (str (:class $) " "
@@ -107,22 +107,22 @@
            :on-mouse-leave #(set-hover false)
            :on-click on-click}
      (if hover
-       [:button {:type "submit" :class "font-app-sans inline-flex items-center px-5 py-2.5 text-sm font-medium text-center text-white bg-red-500 rounded-lg focus:ring-4 focus:ring-primary-200 dark:focus:ring-primary-900 hover:bg-primary-800 shadow w-44"}
+       [:button {:type "submit" :class "font-app-sans inline-flex items-center px-5 py-2.5 text-sm font-medium text-center text-white bg-red-500 rounded-lg focus:ring-4 focus:ring-primary-200 hover:bg-primary-800 shadow-sm w-44"}
         [:div {:class "inline-flex items-center mx-auto"}
-         [:svg {:class "w-6 h-6 text-white dark:text-white mr-2" :aria-hidden "true" :xmlns "http://www.w3.org/2000/svg" :width "24" :height "24" :fill "currentColor" :viewBox "0 0 24 24"}
+         [:svg {:class "w-6 h-6 text-white mr-2" :aria-hidden "true" :xmlns "http://www.w3.org/2000/svg" :width "24" :height "24" :fill "currentColor" :viewBox "0 0 24 24"}
           [:path {:fill-rule "evenodd" :d "M2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10S2 17.523 2 12Zm5.757-1a1 1 0 1 0 0 2h8.486a1 1 0 1 0 0-2H7.757Z" :clip-rule "evenodd"}]]
          "Deactivate"]]
-       [:button {:type "submit" :class "font-app-sans inline-flex items-center px-5 py-2.5 text-sm font-medium text-center text-white bg-green-500 rounded-lg focus:ring-4 focus:ring-primary-200 dark:focus:ring-primary-900 hover:bg-primary-800 shadow-inner w-44"}
+       [:button {:type "submit" :class "font-app-sans inline-flex items-center px-5 py-2.5 text-sm font-medium text-center text-white bg-emerald-600 rounded-lg focus:ring-4 focus:ring-primary-200 hover:bg-primary-800 shadow-inner w-44"}
         [:div {:class "inline-flex items-center mx-auto"}
          [:svg {:class "w-6 h-6 text-white mr-2" :aria-hidden "true" :xmlns "http://www.w3.org/2000/svg" :width "24" :height "24" :fill "currentColor" :viewBox "0 0 24 24"}
           [:path {:fill-rule "evenodd" :d "M2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10S2 17.523 2 12Zm13.707-1.293a1 1 0 0 0-1.414-1.414L11 12.586l-1.793-1.793a1 1 0 0 0-1.414 1.414l2.5 2.5a1 1 0 0 0 1.414 0l4-4Z" :clip-rule "evenodd"}]]
          "Active"]])]))
 
 (defn activate-button [{:keys [on-click label]}]
-  [:button {:class "font-app-sans inline-flex items-center px-5 py-2.5 text-sm font-medium text-center text-white bg-blue-700 rounded-lg focus:ring-4 focus:ring-primary-200 dark:focus:ring-primary-900 hover:bg-primary-800 shadow ml-auto w-44"
+  [:button {:class "font-app-sans inline-flex items-center px-5 py-2.5 text-sm font-medium text-center text-white bg-blue-700 rounded-lg focus:ring-4 focus:ring-primary-200 hover:bg-primary-800 shadow-sm ml-auto w-44"
             :on-click on-click}
    [:div {:class "inline-flex items-center mx-auto"}
-    [:svg {:class "w-6 h-6 text-white dark:text-white mr-2" :aria-hidden "true" :xmlns "http://www.w3.org/2000/svg" :width "24" :height "24" :fill "currentColor" :viewBox "0 0 24 24"}
+    [:svg {:class "w-6 h-6 text-white mr-2" :aria-hidden "true" :xmlns "http://www.w3.org/2000/svg" :width "24" :height "24" :fill "currentColor" :viewBox "0 0 24 24"}
      [:path {:fill-rule "evenodd" :d "M2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10S2 17.523 2 12Zm11-4.243a1 1 0 1 0-2 0V11H7.757a1 1 0 1 0 0 2H11v3.243a1 1 0 1 0 2 0V13h3.243a1 1 0 1 0 0-2H13V7.757Z" :clip-rule "evenodd"}]]
     label]])
 
@@ -133,11 +133,8 @@
     [:input
      (merge {:type (name type)
              :class (str "bg-gray-50 border border-gray-200 text-gray-900 rounded-lg
-                   focus:border-primary-600 focus:ring-0 focus:ring-offset-0 block w-full
-                   p-2 5 dark:bg-gray-700 dark:border-gray-600
-                   dark:placeholder-gray-400 dark:text-white
-                   focus:ring-2
-                   dark:focus:ring-primary-500 dark:focus:border-primary-500 "
+                          focus:border-primary-600 focus:ring-0 focus:ring-offset-0 block w-full
+                          p-2.5 focus:ring-2 "
                          (name (or size :text-sm)) " "
                          class)
              :name (name input-name)
@@ -159,10 +156,7 @@
              :type (name type)
              :class (str "bg-gray-50 border border-gray-300 text-gray-900 rounded-lg
                          focus:ring-primary-600 focus:border-primary-600 block w-full
-                         p-2 5 dark:bg-gray-700 dark:border-gray-600
-                         dark:placeholder-gray-400 dark:text-white
-                         focus:ring-0 focus:ring-offset-0
-                         dark:focus:ring-primary-500 dark:focus:border-primary-500 "
+                         p-2.5 focus:ring-0 focus:ring-offset-0 "
                          (name (or size :text-sm)) " "
                          class)
              :name (name input-name)
@@ -196,11 +190,8 @@
     [:textarea
      (merge {:key key
              :class (str "bg-gray-50 border border-gray-300 text-gray-900 rounded-lg
-                         focus:ring-primary-600 focus:border-primary-600 block w-full
-                         p-2 5 dark:bg-gray-700 dark:border-gray-600
-                         dark:placeholder-gray-400 dark:text-white
-                         focus:ring-0 focus:ring-offset-0
-                         dark:focus:ring-primary-500 dark:focus:border-primary-500 "
+                          focus:ring-primary-600 focus:border-primary-600 block w-full
+                          p-2.5 focus:ring-0 focus:ring-offset-0"
                          (name (or size :text-sm)) " "
                          class)
              :name (name input-name)
@@ -217,7 +208,7 @@
 (defn submit-button [{:keys [class ready-label submit-label submitting]}]
   [:button
    {:type :submit
-    :class (str "w-[120px] text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800 "
+    :class (str "w-[120px] text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center "
                 class)
     :disabled submitting}
    (if submitting
@@ -234,35 +225,35 @@
         #(js/document.body.removeEventListener "click" handler)))
     #js[])
   [:div
-   [:div.fixed.inset-0.z-40 {:class "bg-gray-900/50 dark:bg-gray-900/80"}]
-   [:div.fixed.top-0.right-0.left-0.justify-center.items-center.w-full.md:inset-0.flex
-    {:tabindex "-1"
-     :aria-hidden "true"
-     :class "h-[calc(100%-1rem)] z-[100000]"}
+   [:div.fixed.inset-0.z-50 {:class "bg-gray-900/50"}]
+   [:div
+    {:class "fixed top-0 right-0 left-0 justify-center items-center w-full md:inset-0 flex h-[calc(100%-1rem)] z-[100000]"
+     :tabindex "-1"
+     :aria-hidden "true"}
     [:div.relative.p-4.w-full.max-w-4xl
      {:data-modal true}
-     [:div.relative.bg-white.rounded-lg.shadow-sm.dark:bg-gray-700
-      [:div.flex.items-center.justify-between.p-4.md:p-5.border-b.rounded-t.dark:border-gray-600.border-gray-200
-       [:h3.text-3xl.font-semibold.font-app-serif.text-gray-900.dark:text-white
+     [:div.relative.bg-white.rounded-lg.shadow-sm
+      [:div {:class "flex items-center justify-between p-4 md:p-5 border-b rounded-t border-gray-200"}
+       [:h3.text-3xl.font-semibold.font-app-serif.text-gray-900
         title]
-       [:button.text-gray-400.bg-transparent.hover:bg-gray-200.hover:text-gray-900.rounded-lg.text-sm.w-8.h-8.ms-auto.inline-flex.justify-center.items-center.dark:hover:bg-gray-600.dark:hover:text-white
-        {:type "button"
-         :on-click on-cancel}
+       [:button {:class "text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center"
+                 :type "button"
+                 :on-click on-cancel}
         [:svg.w-3.h-3 {:aria-hidden "true" :xmlns "http://www.w3.org/2000/svg" :fill "none" :viewBox "0 0 14 14"}
          [:path {:stroke "currentColor" :stroke-linecap "round" :stroke-linejoin "round" :stroke-width "2" :d "m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"}]]
         [:span.sr-only "Close modal"]]]
       [:div.overflow-y-auto
        {:class "max-h-[50vh]"}
        content]
-      [:div.flex.p-4.md:p-5.border-t.border-gray-200.rounded-b.dark:border-gray-600
+      [:div {:class "flex p-4 md:p-5 border-t border-gray-200 rounded-b"}
        [:div.grow]
-       [:button.py-2.5.px-5.text-sm.font-medium.text-gray-900.focus:outline-none.bg-white.rounded-lg.border.border-gray-200.hover:bg-gray-100.hover:text-blue-700.focus:z-10.focus:ring-4.focus:ring-gray-100.dark:focus:ring-gray-700.dark:bg-gray-800.dark:text-gray-400.dark:border-gray-600.dark:hover:text-white.dark:hover:bg-gray-700
-        {:type "button"
-         :on-click on-cancel}
+       [:button {:class "py-2 5 px-5 text-sm font-medium text-gray-900 focus:outline-none bg-white rounded-lg border border-gray-200 hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-4 focus:ring-gray-100"
+                 :type "button"
+                 :on-click on-cancel}
         "Cancel"]
-       [:button.text-white.ms-3.bg-blue-700.hover:bg-blue-800.focus:ring-4.focus:outline-none.focus:ring-blue-300.font-medium.rounded-lg.text-sm.px-5.py-2.5.text-center.dark:bg-blue-600.dark:hover:bg-blue-700.dark:focus:ring-blue-800
-        {:type "button"
-         :on-click on-confirm}
+       [:button {:class "text-white ms-3 bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2 5 text-center"
+                 :type "button"
+                 :on-click on-confirm}
         "Save"]]]]]])
 
 (defn modal [{:keys [visible] :as props}]

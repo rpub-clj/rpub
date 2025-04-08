@@ -133,12 +133,12 @@
   [{:keys [label description type selected draggable on-click] :as _props}]
   (let [[_ push] (use-dag)]
     (if-not draggable
-      [:div.mb-2.flex.items-center.ps-4.border.border-gray-200.dark:border-gray-700
+      [:div.mb-2.flex.items-center.ps-4.border.border-gray-200
        {:class "rounded-[6px]"
         :on-click on-click}
-       [:input.w-4.h-4.text-blue-600.bg-gray-100.border-gray-300.focus:ring-blue-500.dark:focus:ring-blue-600.dark:ring-offset-gray-800.focus:ring-2.dark:bg-gray-700.dark:border-gray-600
+       [:input {:class "w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 focus:ring-2"}
         {:type "radio" :checked selected :value "" :name "bordered-radio"}]
-       [:label.w-full.py-4.ms-2.text-sm.font-medium.text-gray-900.dark:text-gray-300
+       [:label.w-full.py-4.ms-2.text-sm.font-medium.text-gray-900
         label]]
       [:div {:class (str "border rounded-[6px] p-2 mb-4 bg-gray-50 "
                          (if draggable "cursor-move hover:shadow-md hover:bg-gray-100 border-gray-100" "cursor-pointer hover:border-blue-500")
@@ -285,8 +285,8 @@
     [html/modal
      {:visible pending-save
       :title "Save Changes"
-      :content [:div.p-4.md:p-5.space-y-4
-                [:p.text-base.leading-relaxed.text-gray-500.dark:text-gray-400
+      :content [:div {:class "p-4 space-y-4 md:p-5"}
+                [:p.text-base.leading-relaxed.text-gray-500
                  "Are you sure you want to save your changes?"]
                 [:pre (with-out-str (prn content-types-index))]]
       :on-confirm ^:async (fn [_]

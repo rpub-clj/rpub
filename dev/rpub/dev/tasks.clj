@@ -50,22 +50,21 @@
   (p/shell "rm -rf target/public/css")
   (p/shell
     {:extra-env {:NODE_ENV "production"}}
-    "./node_modules/.bin/tailwindcss"
-    "--minify"
-    "--postcss" "resources/css/admin/postcss.config.js"
-    "--config" "resources/css/admin/tailwind.config.js"
-    "--input" "resources/css/admin/tailwind.css"
-    "--output" "target/public/css/admin/main.css"))
+    "./node_modules/.bin/postcss"
+    "resources/css/admin/tailwind.css"
+    "--verbose"
+    "--output" "target/public/css/admin/main.css"
+    "--config" "resources/css/admin"))
 
 (defn dev-admin-css []
   (p/shell
     {:extra-env {:NODE_ENV "development"}}
-    "./node_modules/.bin/tailwindcss"
+    "./node_modules/.bin/postcss"
+    "resources/css/admin/tailwind.css"
+    "--verbose"
     "--watch"
-    "--postcss" "resources/css/admin/postcss.config.js"
-    "--config" "resources/css/admin/tailwind.config.js"
-    "--input" "resources/css/admin/tailwind.css"
-    "--output" "target/public/css/admin/main.css"))
+    "--output" "target/public/css/admin/main.css"
+    "--config" "resources/css/admin"))
 
 (defn copy-css []
   (p/shell "rm -rf resources/public/css")
