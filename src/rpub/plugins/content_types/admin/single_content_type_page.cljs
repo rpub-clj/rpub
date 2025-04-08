@@ -53,22 +53,9 @@
        "/content-items/new"))
 
 (defn single-content-type-page [{:keys [content-type content-items]}]
-  (let [http-opts {:format :transit}
-        content-items (map (fn [content-item]
+  (let [content-items (map (fn [content-item]
                              (update content-item :fields #(update-keys % name)))
                            content-items)
-        delete-row (fn [_ content-item]
-                     (let [body {:content-item-id (:id content-item)}
-                           on-complete (fn [_ err]
-                                         (if err
-                                           (println err)
-                                           nil #_(set-state (update state :content-items
-                                                                    (fn [content-items]
-                                                                      (remove #(= (:id %) (:id content-item))
-                                                                              content-items))))))
-                           http-opts' (merge http-opts {:body body
-                                                        :on-complete on-complete})]
-                       (http/post "/api/delete-content-item" http-opts')))
         content-items' (->> content-items (map #(assoc % :content-type content-type)))]
     [:div {:class "p-4"}
      [admin-impl/table
@@ -77,8 +64,7 @@
        :rows content-items'
        :header-buttons [:a {:href (new-content-item-path content-type)}
                         [html/action-button
-                         (str "New " (inflections/singular (:name content-type)))]]
-       :delete-row delete-row}]]))
+                         (str "New " (inflections/singular (:name content-type)))]]}]]))
 
 (def config
   {:page-id :single-content-type-page
