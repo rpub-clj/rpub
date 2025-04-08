@@ -31,6 +31,8 @@ jobs:
 
       - run: bb lint
       - run: npm ci
+      # Fix for https://github.com/tailwindlabs/tailwindcss/issues/15806
+      - run: npm i lightningcss-linux-x64-gnu @tailwindcss/oxide-linux-x64-gnu
       - run: bb prod:css
       - run: bb prod:cljs
 
