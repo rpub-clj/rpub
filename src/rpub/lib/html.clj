@@ -53,11 +53,12 @@
 
 (defn custom-element [element & {:as opts}]
   (let [[k props] element
-        opts' (merge {:format :json} opts)
+        opts' (merge {:format :transit} opts)
         encode (case (:format opts')
                  :json #(json/write-str (instants->strs %))
                  :transit transit/write)
         props' (update-vals props encode)]
     [k props']))
 
-(def cljs custom-element)
+(defn cljs [element & {:as opts}]
+  (custom-element element (merge {:format :json} opts)))

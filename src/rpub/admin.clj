@@ -89,8 +89,7 @@
            :theme theme
            :activated-plugins activated-plugins'
            :current-user current-user'
-           :settings settings'}]
-         {:format :transit})})))
+           :settings settings'}])})))
 
 (defn- users-handler [{:keys [model] :as req}]
   (admin-impl/page-response
@@ -99,8 +98,7 @@
      :primary
      (let [users (model/get-users model {})]
        (html/custom-element
-         [:users-page {:users users}]
-         {:format :transit}))}))
+         [:users-page {:users users}]))}))
 
 (defn- settings-handler [{:keys [model] :as req}]
   (admin-impl/page-response
@@ -116,8 +114,7 @@
                               :contact-email
                               :footer-links]})]
        (html/custom-element
-         [:settings-page {:settings settings}]
-         {:format :transit}))}))
+         [:settings-page {:settings settings}]))}))
 
 (defn- themes-handler [{:keys [model themes] :as req}]
   (let [[theme-name-setting] (model/get-settings model {:keys [:theme-name]})
@@ -128,8 +125,7 @@
        :primary
        (html/custom-element
          [:themes-page {:theme-name-setting theme-name-setting
-                        :themes themes'}]
-         {:format :transit})})))
+                        :themes themes'}])})))
 
 (defn- plugins-handler [{:keys [plugins] :as req}]
   (let [available-plugins (->> (plugins/get-plugins)
@@ -144,8 +140,7 @@
        (html/custom-element
          [:plugins-page
           {:current-plugins current-plugins
-           :available-plugins available-plugins}]
-         {:format :transit})})))
+           :available-plugins available-plugins}])})))
 
 (defn- login-start-handler [{:keys [flash] :as req}]
   (admin-impl/page-response

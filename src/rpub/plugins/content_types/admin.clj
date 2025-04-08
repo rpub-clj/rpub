@@ -2,6 +2,7 @@
   {:no-doc true}
   (:require [medley.core :as medley]
             [rads.inflections :as inflections]
+            [reitit.core :as reitit]
             [ring.util.response :as response]
             [rpub.admin.impl :as admin-impl]
             [rpub.lib.html :as html]
@@ -36,10 +37,9 @@
          [:all-content-types-page
           {:content-types content-types
            :field-types field-types
-           :unsaved-changes unsaved-changes}]
-         {:format :transit})})))
+           :unsaved-changes unsaved-changes}])})))
 
-(defn single-content-type-handler [{:keys [model path-params] :as req}]
+(defn single-content-type-handler [{:keys [model path-params permalink-router] :as req}]
   (let [{:keys [content-type-slug]} path-params
         [content-type] (ct-model/get-content-types (::ct/model req) {:content-type-slugs [content-type-slug]})
         content-items (ct-model/get-content-items (::ct/model req) {:content-type-ids [(:id content-type)]})
@@ -54,9 +54,9 @@
       {:title (inflections/plural (:name content-type))
        :primary
        (html/custom-element
-         [:single-content-type-page {:content-type content-type
-                                     :content-items content-items'}]
-         {:format :transit})})))
+         [:single-content-type-page
+          {:content-type content-type
+           :content-items content-items'}])})))
 
 (defn new-content-item-handler [{:keys [::ct/model ::ct/field-types path-params site-base-url settings] :as req}]
   (let [{:keys [content-type-slug]} path-params
@@ -68,12 +68,11 @@
        :primary
        (html/custom-element
          [:single-content-item-page
-          {:editing true
+          {:editing false
            :content-type content-type
            :field-types field-types
            :permalink-single permalink-single
-           :site-base-url site-base-url}]
-         {:format :transit})})))
+           :site-base-url site-base-url}])})))
 
 (defn md->html [_s]
   #_(-> (md/md-to-html-string
@@ -82,7 +81,10 @@
 
 (def content-field-id #uuid"65a6aa2e-73a3-4283-afe1-58e610d6727d")
 
-(defn edit-content-item-handler [{:keys [::ct/model ::ct/field-types path-params site-base-url settings] :as req}]
+(defn edit-content-item-handler
+  [{:keys [::ct/model ::ct/field-types path-params site-base-url
+           permalink-router]
+    :as req}]
   (let [{:keys [content-item-slug]} path-params
         [content-item] (ct-model/get-content-items
                          model
@@ -90,8 +92,7 @@
         content-item' (-> content-item
                           #_(dissoc :fields)
                           #_(update-in [:document content-field-id] md->html))
-        {:keys [content-type]} content-item'
-        permalink-single (get-in settings [:permalink-single :value])]
+        {:keys [content-type]} content-item']
     (admin-impl/page-response
       req
       {:title (str "Edit " (inflections/singular (:name content-type)))
@@ -102,9 +103,8 @@
            :content-item content-item'
            :content-type content-type
            :field-types field-types
-           :permalink-single permalink-single
-           :site-base-url site-base-url}]
-         {:format :transit})})))
+           :permalink-routes (reitit/routes permalink-router)
+           :site-base-url site-base-url}])})))
 
 (defn- ->updated-content-types [{:keys [new-index existing-index current-user]}]
   (->> (vals new-index)

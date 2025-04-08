@@ -1,7 +1,9 @@
 (ns rpub.plugins.content-types.admin.single-content-item-page
-  (:require [rads.inflections :as inflections]
+  (:require [clojure.string :as str]
+            [rads.inflections :as inflections]
             [rpub.admin.impl :as admin-impl]
-            [rpub.lib.html :as html]))
+            [rpub.lib.html :as html]
+            [rpub.lib.permalinks :as permalinks]))
 
 (defn- content-item-fields [{:keys [content-item editing creating field-types]}]
   (let [{:keys [content-type]} content-item]
@@ -41,16 +43,38 @@
                              :submit-label "Creating..."
                              :submitting submitting}]]}]]))
 
-(defn edit-content-item-page [{:keys [content-type content-item field-types]}]
-  (let [submitting false]
+(defn- edit-content-item-page
+  [{:keys [content-type content-item field-types site-base-url
+           permalink-routes]}]
+  (let [submitting false
+        content-type-name-singular (inflections/singular (:name content-type))
+        content-item-title (get-in content-item [:fields "Title"])
+        permalink-router (permalinks/router permalink-routes)
+        content-item-href (str site-base-url
+                               (:path (permalinks/match-by-name
+                                        permalink-router
+                                        :single
+                                        {:content-type-slug (name (:slug content-type))
+                                         :content-item-slug (get-in content-item [:fields "Slug"])})))
+        handle-delete (fn [_e]
+                        (js/confirm (str "Are you sure you want to delete this "
+                                         (str/lower-case content-type-name-singular)
+                                         "?")))]
     [:div.p-4
      [admin-impl/box
       {:class "mb-4"
-       :title
-       [:div
-        [:span.italic.text-blue-600
-         (str (inflections/singular (:name content-type)) ": ")]
-        (get-in content-item [:fields "Title"])]}]
+       :title [:div.flex
+               [:div.grow
+                [:span.italic.text-blue-600 (str content-type-name-singular ": ")]
+                content-item-title]
+               [:div [html/delete-button
+                      {:on-click handle-delete}
+                      (str "Delete " content-type-name-singular)]]]
+       :content [:div
+                 [:a.underline.text-gray-500
+                  {:href content-item-href
+                   :target "_blank"}
+                  content-item-href]]}]
      [admin-impl/box
       {:content
        [:div
@@ -61,7 +85,7 @@
                              :submit-label "Saving..."
                              :submitting submitting}]]}]]))
 
-(defn single-content-item-page [{:keys [editing] :as props}]
+(defn- single-content-item-page [{:keys [editing] :as props}]
   (if editing
     [edit-content-item-page props]
     [new-content-item-page props]))
