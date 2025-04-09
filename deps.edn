@@ -1,7 +1,7 @@
 {:paths ["src" "resources" "target"]
 
  :deps {babashka/fs {:mvn/version "0.5.24"}
-        babashka/process {:mvn/version "0.5.22"}
+        babashka/process {:mvn/version "0.6.23"}
         borkdude/rewrite-edn {:mvn/version "0.4.9"}
         buddy/buddy-auth {:mvn/version "3.0.323"}
         buddy/buddy-hashers {:mvn/version "2.0.167"}
