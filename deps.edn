@@ -15,6 +15,7 @@
         io.github.rads/migrate {:mvn/version "0.0.1"}
         markdown-clj/markdown-clj {:mvn/version "1.12.3"}
         medley/medley {:mvn/version "1.4.0"}
+        metosin/jsonista {:mvn/version "0.3.13"}
         metosin/malli {:mvn/version "0.17.0"}
         metosin/muuntaja {:mvn/version "0.6.11"}
         metosin/reitit-core {:mvn/version "0.8.0"}
