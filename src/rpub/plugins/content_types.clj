@@ -30,11 +30,10 @@
     :description "Ask for a date and time with a date picker."}})
 
 (defn wrap-content-types [handler]
-  (fn [{:keys [db-type current-user] :as req}]
-    (let [ds (get-in req [:model :ds])
-          model (ct-model/->model {:db-type db-type
-                                   :ds ds
-                                   :current-user current-user})
+  (fn [{:keys [current-user] :as req}]
+    (let [model (ct-model/->model
+                  (merge (model/db-info (:model req))
+                         {:current-user current-user}))
           req' (-> req
                    (update :model assoc :content-types-model model)
                    (assoc ::model model)
