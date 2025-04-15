@@ -264,8 +264,15 @@
       (reitit-ring/router
         (concat (admin/routes opts')
                 (api/routes opts')
-                (plugin-routes opts')
-                (app/routes opts'))
+                [["/*" (reitit-ring/routes
+                         (reitit-ring/ring-handler
+                           (reitit-ring/router
+                             (plugin-routes opts')
+                             {:conflicts handle-conflicts}))
+                         (reitit-ring/ring-handler
+                           (reitit-ring/router
+                             (app/routes opts')
+                             {:conflicts handle-conflicts})))]])
         {:conflicts handle-conflicts
          :data {:muuntaja custom-muuntaja
                 :middleware [reitit-parameters/parameters-middleware
