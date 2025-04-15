@@ -266,6 +266,7 @@
 (defn setup-middleware [opts]
   (let [opts' (merge opts {:session false, :auth-required false})]
     [[defaults/wrap-defaults (ring/site-defaults opts')]
+     ring/wrap-session-cookie-attrs
      ring/wrap-no-cache
      ring/wrap-tap]))
 

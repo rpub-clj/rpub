@@ -101,13 +101,24 @@
           secret
           (secrets/get-secret-key secret-key-file)))))
 
+(defn session-cookie-attrs
+  [{:keys [server-name] :as _req}
+   & {:keys [domain] :as _opts}]
+  (cond-> {:same-site :strict
+           :max-age (* 60 60 24 7)}
+    (or domain (not= server-name "localhost"))
+    (assoc :domain (or domain server-name))))
+
+(defn wrap-session-cookie-attrs [handler]
+  (fn [req]
+    (let [attrs (session-cookie-attrs req)]
+      (-> (handler req)
+          (update :session-cookie-attrs merge attrs)))))
+
 (defn- session-defaults [opts]
   (let [session-store-key (get-session-store-key opts)
-        session-store (cookie/cookie-store {:key session-store-key})
-        cookie-max-age (* 60 60 24 7)]
+        session-store (cookie/cookie-store {:key session-store-key})]
     {:cookie-name "rpub-session"
-     :cookie-attrs {:same-site :strict
-                    :max-age cookie-max-age}
      :store session-store}))
 
 (defn site-defaults [opts]

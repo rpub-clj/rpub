@@ -21,7 +21,8 @@
   (let [opts' (merge {:auth-required true} opts)
         {:keys [auth-required]} opts']
     (concat
-      [[defaults/wrap-defaults (ring/api-defaults opts')]]
+      [[defaults/wrap-defaults (ring/api-defaults opts')]
+       ring/wrap-session-cookie-attrs]
       (when auth-required (auth-middleware opts))
       (plugins/plugin-middleware opts)
       [ring/wrap-no-cache

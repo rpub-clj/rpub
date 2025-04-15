@@ -339,7 +339,8 @@
         defaults' (or defaults (ring/site-defaults opts'))
         {:keys [auth-required tap]} opts']
     (concat
-      [[defaults/wrap-defaults defaults']]
+      [[defaults/wrap-defaults defaults']
+       ring/wrap-session-cookie-attrs]
       (when auth-required
         (ring/auth-middleware
           {:auth-backend (buddy-backends/session
