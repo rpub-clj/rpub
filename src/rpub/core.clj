@@ -112,7 +112,7 @@
 (defn- init-plugins [opts]
   (let [plugins (model/->plugins (get-registered-plugins) opts)
         opts' (merge opts {:plugins plugins
-                           :current-user admin/system-user})]
+                           :current-user model/system-user})]
     (doseq [init (keep :init plugins)]
       (init opts'))
     plugins))
@@ -126,7 +126,7 @@
 (defn- init-opts [opts]
   (as-> opts $
     (assoc $ :model (init-model $))
-    (do (model/migrate! (:model $) {:current-user admin/system-user}) $)
+    (do (model/migrate! (:model $) {:current-user model/system-user}) $)
     (assoc $ :config (get-config $))
     (assoc $ :plugins (init-plugins $))))
 

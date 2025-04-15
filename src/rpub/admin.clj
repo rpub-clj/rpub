@@ -18,7 +18,10 @@
             [rpub.lib.secrets :as secrets]
             [rpub.lib.tap :as tap]
             [rpub.model :as model]
+            [rpub.model.app :as-alias model-app]
             [rpub.plugins.content-types :as content-types]))
+
+(def system-user model/system-user)
 
 (defn page-response [req current-page]
   (admin-impl/page-response req current-page))
@@ -28,9 +31,6 @@
 
 (defn layout [req]
   (admin-impl/layout req))
-
-(def system-user
-  {:id #uuid"00000000-0000-0000-0000-000000000000"})
 
 (defn- form [& args]
   (let [[attrs content] (if (map? (first args))
@@ -249,12 +249,12 @@
                                       secret-key)
         new-user (model/->user {:username (get form-params "username")
                                 :password (get form-params "password")
-                                :current-user system-user})
+                                :current-user model/system-user})
         current-user (select-keys new-user [:id])
         session' (assoc session :identity current-user)]
     (let [site-title (get form-params "site-title")
           site-base-url (get form-params "site-base-url")]
-      (model/migrate! model {:current-user system-user
+      (model/migrate! model {:current-user model/system-user
                              :new-user new-user
                              :encrypted-session-store-key encrypted-session-store-key
                              :site-title site-title

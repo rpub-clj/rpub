@@ -90,6 +90,9 @@
        :created-by created-by}
       (add-metadata current-user)))
 
+(def system-user
+  {:id #uuid"00000000-0000-0000-0000-000000000000"})
+
 (defmulti ->model :db-type)
 
 (comment
