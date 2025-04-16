@@ -1,7 +1,6 @@
 (ns rpub.lib.db
   {:no-doc true}
   (:require [clj-uuid :as uuid]
-            [clojure.tools.logging :as log]
             [clojure.tools.logging.readable :as logr]
             [honey.sql :as sql]
             [next.jdbc :as jdbc]))
