@@ -1,6 +1,8 @@
 (ns rpub.lib.db
   {:no-doc true}
   (:require [clj-uuid :as uuid]
+            [clojure.tools.logging :as log]
+            [clojure.tools.logging.readable :as logr]
             [honey.sql :as sql]
             [next.jdbc :as jdbc]))
 
@@ -33,10 +35,12 @@
 
 (defn execute! [ds sql]
   (let [stmt (cond-> sql (map? sql) sql/format)]
+    (logr/trace 'execute! {:sql sql :stmt stmt})
     (jdbc/execute! ds stmt)))
 
 (defn execute-one! [ds sql]
   (let [stmt (cond-> sql (map? sql) sql/format)]
+    (logr/trace 'execute-one! {:sql sql :stmt stmt})
     (jdbc/execute-one! ds stmt)))
 
 (defn strict [sql-map]
