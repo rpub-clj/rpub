@@ -41,8 +41,9 @@
 (defn verify-password [user attempt]
   (:valid (hashers/verify attempt (:password-hash user))))
 
-(defn get-current-user [{:keys [model current-user] :as _req}]
-  (first (get-users model {:ids [(:id current-user)]})))
+(defn get-current-user [{:keys [model] :as req}]
+  (let [user-id (get-in req [:identity :id])]
+    (first (get-users model {:ids [user-id]}))))
 
 (defn ->setting [& {:keys [id key label value current-user] :as _opts}]
   (-> {:id (or id (random-uuid))
