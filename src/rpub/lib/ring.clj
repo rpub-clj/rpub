@@ -4,16 +4,12 @@
             [buddy.core.codecs :as codecs]
             [buddy.core.hash :as hash]
             [clojure.edn :as edn]
-            [clojure.set :as set]
             [clojure.string :as str]
             [reitit.ring :as reitit-ring]
             [ring.middleware.defaults :as defaults]
             [ring.middleware.session.cookie :as cookie]
             [ring.util.response :as response]
             [rpub.lib.secrets :as secrets]))
-
-(defn wrap-rename-keys [handler kmap]
-  (fn [req] (handler (set/rename-keys req kmap))))
 
 (defn skip-auth? [req]
   (#{"/admin/login" "/api/token"}
@@ -39,9 +35,9 @@
 
 (defn wrap-current-user [handler get-current-user]
   (fn [req]
-    (let [user (some-> (get-current-user req) (select-keys [:username]))
-          req' (update req :current-user merge user)]
-      (handler req'))))
+    (if-let [user (some-> (get-current-user req) (select-keys [:username]))]
+      (handler (assoc req :current-user (merge (:identity req) user)))
+      (handler req))))
 
 (defn script-hash [s]
   (let [hash (-> s codecs/str->bytes hash/sha256 codecs/bytes->b64-str)]
@@ -149,6 +145,5 @@
 (defn auth-middleware [{:keys [auth-backend get-current-user] :as _opts}]
   [[buddy-middleware/wrap-authentication auth-backend]
    [buddy-middleware/wrap-authorization auth-backend]
-   [wrap-rename-keys {:identity :current-user}]
-   wrap-auth-required
-   [wrap-current-user get-current-user]])
+   [wrap-current-user get-current-user]
+   wrap-auth-required])
