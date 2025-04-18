@@ -26,7 +26,7 @@
       (when auth-required (auth-middleware opts))
       (plugins/plugin-middleware opts)
       [ring/wrap-no-cache
-       ring/wrap-tap])))
+       ring/wrap-trace])))
 
 #_(defn- token-handler [{:keys [model] :as req}]
     (let [username (get-in req [:body-params :username])

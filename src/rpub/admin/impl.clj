@@ -352,4 +352,4 @@
         [[ring/wrap-content-security-policy
           {:extra-script-src csp-extra-script-src}]])
       [wrap-no-cache]
-      (when tap [ring/wrap-tap]))))
+      (when tap [ring/wrap-trace]))))

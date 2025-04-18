@@ -3,7 +3,6 @@
   (:require [babashka.fs :as fs]
             [buddy.core.nonce :as nonce]
             [clojure.tools.logging :as log]
-            [clojure.tools.logging.readable :as logr]
             [malli.core :as m]
             [malli.util :as mu]
             [medley.core :as medley]
@@ -22,7 +21,8 @@
             [rpub.lib.permalinks :as permalinks]
             [rpub.lib.transit :as transit]
             [rpub.model :as model]
-            [rpub.plugins.content-types.model :as ct-model])
+            [rpub.plugins.content-types.model :as ct-model]
+            [taoensso.telemere :as tel])
   (:import (org.eclipse.jetty.server Server)))
 
 (defmulti
@@ -79,7 +79,7 @@
     (try
       (handler req)
       (catch Throwable e
-        (log/error e)
+        (tel/error! e)
         (error-response req)))))
 
 (defn- handle-conflicts [conflicts]
@@ -349,7 +349,8 @@
    :error-page true
    :port 3000
    :reload false
-   :secret-key-file "data/secret.key"})
+   :secret-key-file "data/secret.key"
+   :http-tracing-enabled false})
 
 (defn- stop-app! [app]
   (when-let [{:keys [server]} app]
@@ -359,7 +360,7 @@
   "Start the rPub server."
   [& {:as opts}]
   (let [opts' (merge defaults opts)
-        _ (logr/info 'start! opts')
+        _ (tel/event! `start! {:data opts'})
         opts'' (merge opts' {:ds (db/get-datasource (:database-url opts'))
                              :db-type (db/db-type (:database-url opts'))})]
     (start-app! opts'')))

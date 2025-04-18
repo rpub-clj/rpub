@@ -268,7 +268,7 @@
     [[defaults/wrap-defaults (ring/site-defaults opts')]
      ring/wrap-session-cookie-attrs
      ring/wrap-no-cache
-     ring/wrap-tap]))
+     ring/wrap-trace]))
 
 (defn setup-routes [opts]
   ["/admin/setup" {:middleware (setup-middleware opts)

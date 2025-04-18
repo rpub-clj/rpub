@@ -11,6 +11,11 @@
             [ring.util.response :as response]
             [rpub.lib.secrets :as secrets]))
 
+(def default-trace-xf
+  (comp
+    (filter #(:http-tracing-enabled (:req %)))
+    (map tap>)))
+
 (defn skip-auth? [req]
   (#{"/admin/login" "/api/token"}
    (-> req reitit-ring/get-match :path)))
@@ -77,11 +82,13 @@
                  "Pragma" "no-cache"
                  "Expires" "0"}))))
 
-(defn wrap-tap [handler]
-  (fn [req]
-    (let [res (handler req)]
-      (tap> {:req req :res res})
-      res)))
+(defn wrap-trace
+  ([handler] (wrap-trace handler #'default-trace-xf))
+  ([handler trace-xf]
+   (fn [req]
+     (let [res (handler req)]
+       (transduce trace-xf (constantly nil) [{:req req, :res res}])
+       res))))
 
 (defn- decrypt-session-store-key [encrypted-session-store-key secret-key]
   (-> (secrets/decrypt encrypted-session-store-key secret-key)

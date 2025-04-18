@@ -45,6 +45,9 @@
       (let [deps {:deps {'dev.rpub/app {:local/root data-dir}}}
             app (apply p/shell
                        "clojure"
+                       "-J-Dbabashka.json.provider=metosin/jsonista"
+                       "-J-Dclojure.tools.logging.to-telemere=true"
+                       "-J-Dslf4j.internal.verbosity=ERROR"
                        "-Sdeps" (pr-str deps)
                        "-M" "-m" "app"
                        *command-line-args*)]

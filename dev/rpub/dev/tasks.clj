@@ -20,6 +20,8 @@
                        "--no-error-page"
                        "--reload"
                        "--malli-dev"
+                       "--logs-pretty"
+                       "--http-tracing-enabled"
                        "--clj-repl-port" "0"
                        "--clj-repl-flow-storm-middleware"
                        "--cljs-repl"
@@ -128,7 +130,7 @@
   (apply p/shell "clojure -M:common:default-plugins:dev:test" *command-line-args*))
 
 (defn install [_]
-  (p/shell "clojure -X:dev:deps-deploy install"))
+  (p/shell "clojure -X:common:dev:deps-deploy install"))
 
 (defn deploy [_]
-  (p/shell "clojure -X:dev:deps-deploy deploy"))
+  (p/shell "clojure -X:common:dev:deps-deploy deploy"))

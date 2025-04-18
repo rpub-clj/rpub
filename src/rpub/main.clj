@@ -3,15 +3,16 @@
   (:require [babashka.cli :as cli]
             [clojure.set :as set]
             [clojure.string :as str]
-            [clojure.tools.logging :as log]
             [nrepl.cmdline :as nrepl]
             [rpub.admin]
             [rpub.api]
             [rpub.app]
             [rpub.core :as rpub]
+            [rpub.lib.logs :as logs]
             [rpub.lib.malli :as malli]
             [rpub.model.sqlite]
-            [rpub.plugins.content-types]))
+            [rpub.plugins.content-types]
+            [taoensso.telemere :as tel]))
 
 (def ^:private banner-text "
       ____        _
@@ -23,17 +24,17 @@
 
 (defn- print-banner []
   (doseq [line (rest (str/split-lines banner-text))]
-    (log/info line))
-  (log/info ""))
+    (println line))
+  (println ""))
 
 (defn- print-memory []
   (let [bytes->mb #(Math/round (double (/ % 1024 1024)))
         runtime (Runtime/getRuntime)]
-    (log/info
-      (format (str "Initial Heap Size (Xms): %d MiB - "
-                   "Max Heap Size (Xmx): %d MiB")
-              (bytes->mb (.totalMemory runtime))
-              (bytes->mb (.maxMemory runtime))))))
+    (tel/log! :info
+              (format (str "Initial Heap Size (Xms): %d MiB - "
+                           "Max Heap Size (Xmx): %d MiB")
+                      (bytes->mb (.totalMemory runtime))
+                      (bytes->mb (.maxMemory runtime))))))
 
 (defonce
   ^{:doc "An atom containing the current rPub server and REPL processes."}
@@ -61,7 +62,7 @@
         repl-server (nrepl/start-server repl-opts)]
     (nrepl/ack-server repl-server repl-opts)
     (nrepl/save-port-file repl-server repl-opts)
-    (log/info (nrepl/server-started-message repl-server repl-opts))))
+    (tel/log! :info (nrepl/server-started-message repl-server repl-opts))))
 
 (def malli-dev-defaults
   "The default options for Malli dev instrumentation."
@@ -71,8 +72,24 @@
   "The default options for the ClojureScript REPL."
   {:cljs-repl false})
 
+(def logs-defaults
+  {:logs-path "data/logs"
+   :logs-pretty false})
+
 (defn start-cljs-repl! [_]
   ((requiring-resolve 'rpub.dev.cljs.server/start!)))
+
+(defn setup-shutdown-hook! []
+  (.addShutdownHook
+    (Runtime/getRuntime)
+    (Thread. (fn []
+               (tel/stop-handlers!)))))
+
+(defn set-default-uncaught-exception-handler! []
+  (Thread/setDefaultUncaughtExceptionHandler
+    (reify Thread$UncaughtExceptionHandler
+      (uncaughtException [_ _thread ex]
+        (tel/error! ex)))))
 
 (defn start!
   "Start the rPub server and an optional REPL.
@@ -82,7 +99,11 @@
   Malli dev instrumentation is disabled by default
   (see `rpub.main/malli-dev-defaults`)."
   [& {:as opts}]
+  (set-default-uncaught-exception-handler!)
+  (setup-shutdown-hook!)
   (let [opts' (merge (cli/parse-opts *command-line-args*) opts)]
+    (let [logs-opts (merge logs-defaults opts')]
+      (logs/setup! logs-opts))
     (print-banner)
     (print-memory)
     (let [clj-repl-opts (merge clj-repl-defaults opts')]
