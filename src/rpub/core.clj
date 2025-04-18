@@ -2,7 +2,6 @@
   "The core API for using rPub as a library."
   (:require [babashka.fs :as fs]
             [buddy.core.nonce :as nonce]
-            [clojure.tools.logging :as log]
             [malli.core :as m]
             [malli.util :as mu]
             [medley.core :as medley]
@@ -83,7 +82,7 @@
         (error-response req)))))
 
 (defn- handle-conflicts [conflicts]
-  (log/debug (exception/format-exception :path-conflicts nil conflicts)))
+  (tel/log! :debug (exception/format-exception :path-conflicts nil conflicts)))
 
 (defn- wrap-plugin-activated [handler plugin-key]
   (fn [{:keys [plugins] :as req}]

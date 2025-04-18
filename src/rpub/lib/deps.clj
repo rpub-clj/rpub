@@ -8,10 +8,10 @@
             [clojure.java.io :as io]
             [clojure.set :as set]
             [clojure.string :as str]
-            [clojure.tools.logging :as log]
             [rewrite-clj.node :as n]
             [rewrite-clj.zip :as z]
             [rpub.lib.git :as git]
+            [taoensso.telemere :as tel]
             [version-clj.core :as version-clj])
   (:import (java.io File)))
 
@@ -189,7 +189,7 @@
                    :git/url "https://github.com/rpub-clj/plugins.git"
                    :sha (:sha plugin)
                    :deps/root (str "plugins/" plugin-name)}]
-    (log/info (dep-add {:opts neil-opts}))))
+    (tel/log! :info (dep-add {:opts neil-opts}))))
 
 (defn- find-main-file [dir]
   (let [depth #(count (str/split (.getPath %) (re-pattern File/separator)))]

@@ -1,11 +1,11 @@
 (ns rpub.test-util
   (:require [babashka.fs :as fs]
-            [clojure.tools.logging :as log]
             [etaoin.api :as e]
             [rpub.lib.malli :as malli]
             [rpub.main :as main]
             [rpub.plugins.external-editing]
-            [rpub.plugins.starter-theme])
+            [rpub.plugins.starter-theme]
+            [taoensso.telemere :as tel])
   (:import (java.net ServerSocket)))
 
 (malli/start-dev!)
@@ -42,14 +42,14 @@
 (defn wait-url [driver url]
   (e/wait-predicate
     (fn []
-      (log/info (format "matching url: %s" url))
+      (tel/log! :info (format "matching url: %s" url))
       (= (e/get-url driver) url))))
 
 (defn wait-match-text [driver q re]
   (e/wait-predicate
     (fn []
       (let [text (e/get-element-text driver q)]
-        (log/info (format "matching element text: %s" text))
+        (tel/log! :info (format "matching element text: %s" text))
         (re-matches re text)))))
 
 (def setup-fields
@@ -68,7 +68,7 @@
         (if t2
           (do
             (let [delay-ms (- t2 t1)]
-              (log/info (format "Retrying after %sms..." delay-ms))
+              (tel/log! :info (format "Retrying after %sms..." delay-ms))
               (Thread/sleep ^long delay-ms)
               (recur (rest remaining))))
           (throw result))))))

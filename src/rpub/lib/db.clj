@@ -1,9 +1,9 @@
 (ns rpub.lib.db
   {:no-doc true}
   (:require [clj-uuid :as uuid]
-            [clojure.tools.logging.readable :as logr]
             [honey.sql :as sql]
-            [next.jdbc :as jdbc]))
+            [next.jdbc :as jdbc]
+            [taoensso.telemere :as tel]))
 
 (defn db-type [database-url]
   (let [[_ v] (re-matches #"jdbc:([^:]+):.+" database-url)]
@@ -34,12 +34,12 @@
 
 (defn execute! [ds sql]
   (let [stmt (cond-> sql (map? sql) sql/format)]
-    (logr/trace 'execute! {:sql sql :stmt stmt})
+    (tel/event! 'execute! {:level :trace, :sql sql, :stmt stmt})
     (jdbc/execute! ds stmt)))
 
 (defn execute-one! [ds sql]
   (let [stmt (cond-> sql (map? sql) sql/format)]
-    (logr/trace 'execute-one! {:sql sql :stmt stmt})
+    (tel/event! 'execute-one! {:level :trace, :sql sql, :stmt stmt})
     (jdbc/execute-one! ds stmt)))
 
 (defn strict [sql-map]

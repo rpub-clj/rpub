@@ -1,13 +1,13 @@
 (ns rpub.dev.cljs.server
   (:require [clojure.string :as str]
-            [clojure.tools.logging :as log]
             [nrepl.middleware :as nrepl-middleware]
             [nrepl.misc :as nrepl-misc]
             [nrepl.server :as nrepl-server]
             [nrepl.transport :as transport]
             [ring.adapter.jetty :as jetty]
             [ring.websocket :as ws]
-            [rpub.lib.transit :as transit])
+            [rpub.lib.transit :as transit]
+            [taoensso.telemere :as tel])
   (:import (java.lang AutoCloseable)
            (java.util.concurrent Executors TimeUnit)
            (org.eclipse.jetty.server Server)))
@@ -74,13 +74,13 @@
     scheduler))
 
 (defn start-websocket-server! []
-  (log/info "Starting WebSocket server on port 7778")
+  (tel/log! :info "Starting WebSocket server on port 7778")
   (jetty/run-jetty ws-handler {:port 7778
                                :websockets true
                                :join? false}))
 
 (defn start-browser-nrepl-server! []
-  (log/info "Starting browser nREPL server on port 7777")
+  (tel/log! :info "Starting browser nREPL server on port 7777")
   (nrepl-server/start-server
     :port 7777
     :handler (nrepl-server/default-handler #'websocket-eval-middleware)))
