@@ -36,17 +36,12 @@
            (.write stream (str output))
            (.flush stream)))))))
 
-(defn log-file-name [local-date-time]
-  (let [formatter (DateTimeFormatter/ofPattern "yyyy-MM-dd_HH-mm-ss-SSS")
-        timestamp (.format local-date-time formatter)]
-    (str "rpub_" timestamp ".edn")))
-
 (defn setup! [{:keys [logs-pretty logs-path]}]
   (run! tel/remove-handler! (keys (tel/get-handlers)))
   (tel/add-handler!
     ::file
     (tel/handler:file
-      {:path (str (fs/path logs-path (log-file-name (LocalDateTime/now))))
+      {:path (str (fs/path logs-path "app.edn"))
        :output-fn (tel-utils/pr-signal-fn)}))
   (tel/add-handler!
     ::console
