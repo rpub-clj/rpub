@@ -3,9 +3,7 @@
             [clojure.string :as str]
             [taoensso.telemere :as tel]
             [taoensso.telemere.utils :as tel-utils])
-  (:import (java.io OutputStreamWriter PrintWriter Writer)
-           (java.time LocalDateTime)
-           (java.time.format DateTimeFormatter)))
+  (:import (java.io OutputStreamWriter PrintWriter Writer)))
 
 (defn bling-signal-fn []
   (let [clean-signal (tel-utils/clean-signal-fn)]
