@@ -24,8 +24,11 @@
 
 (defn- print-banner []
   (doseq [line (rest (str/split-lines banner-text))]
-    (println line))
-  (println ""))
+    (tel/log! :info line))
+  (tel/log! :info ""))
+
+(def banner-defaults
+  {:banner true})
 
 (defn- print-memory []
   (let [bytes->mb #(Math/round (double (/ % 1024 1024)))
@@ -73,8 +76,7 @@
   {:cljs-repl false})
 
 (def logs-defaults
-  {:logs-path "data/logs"
-   :logs-pretty false})
+  {:logs-pretty false})
 
 (defn start-cljs-repl! [_]
   ((requiring-resolve 'rpub.dev.cljs.server/start!)))
@@ -82,14 +84,7 @@
 (defn setup-shutdown-hook! []
   (.addShutdownHook
     (Runtime/getRuntime)
-    (Thread. (fn []
-               (tel/stop-handlers!)))))
-
-(defn set-default-uncaught-exception-handler! []
-  (Thread/setDefaultUncaughtExceptionHandler
-    (reify Thread$UncaughtExceptionHandler
-      (uncaughtException [_ _thread ex]
-        (tel/error! ex)))))
+    (Thread. (fn [] (tel/stop-handlers!)))))
 
 (defn start!
   "Start the rPub server and an optional REPL.
@@ -99,12 +94,14 @@
   Malli dev instrumentation is disabled by default
   (see `rpub.main/malli-dev-defaults`)."
   [& {:as opts}]
-  (set-default-uncaught-exception-handler!)
+  (tel/uncaught->error!)
   (setup-shutdown-hook!)
-  (let [opts' (merge (cli/parse-opts *command-line-args*) opts)]
-    (let [logs-opts (merge logs-defaults opts')]
-      (logs/setup! logs-opts))
-    (print-banner)
+  (let [opts' (merge (cli/parse-opts *command-line-args*) opts)
+        logs-opts (merge logs-defaults opts')]
+    (logs/setup! logs-opts)
+    (let [banner-opts (merge banner-defaults opts')]
+      (when (:banner banner-opts)
+        (print-banner)))
     (print-memory)
     (let [clj-repl-opts (merge clj-repl-defaults opts')]
       (when (:clj-repl clj-repl-opts)
