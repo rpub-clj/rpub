@@ -115,7 +115,7 @@
     (let [cljs-repl-opts (merge cljs-repl-defaults opts')]
       (when (:cljs-repl cljs-repl-opts)
         (start-cljs-repl! cljs-repl-opts)))
-    (reset! current-system (rpub/start! opts'))))
+    (reset! current-system {:app (rpub/start! opts')})))
 
 (defn stop!
   "Stop the rPub server but not the REPL."
