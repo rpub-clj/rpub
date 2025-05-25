@@ -176,10 +176,13 @@
        :content
        [:div
         "This server is running "
-        [:a {:class "font-semibold underline"
-             :href rpub-url
-             :target "_blank"}
-         (str "rPub v" rpub-version)]
+        (if-not rpub-version
+          [:span {:class "font-semibold"}
+           "rPub from a local directory"]
+          [:a {:class "font-semibold underline"
+               :href rpub-url
+               :target "_blank"}
+           (str "rPub v" rpub-version)])
         "."]}]]))
 
 (defn- dashboard-page [props]
