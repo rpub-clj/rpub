@@ -2,6 +2,7 @@
   (:require [babashka.fs :as fs]
             [etaoin.api :as e]
             [rpub.lib.malli :as malli]
+            [rpub.lib.router :as router]
             [rpub.main :as main]
             [rpub.plugins.external-editing]
             [rpub.plugins.starter-theme]
@@ -100,6 +101,7 @@
              base-url (format "http://localhost:%s" port)
              server (start-fn {:start-opts start-opts'})]
          (try
+           (reset! router/global-handler-cache (router/->handler-cache))
            (setup driver base-url)
            (f {:start-opts start-opts'
                :server server

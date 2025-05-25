@@ -337,10 +337,9 @@
   [{:keys [content-security-policy ::defaults] :as opts}]
   (let [opts' (merge {:auth-required true, :tap true} opts)
         defaults' (or defaults (ring/site-defaults opts'))
-        {:keys [auth-required tap]} opts']
+        {:keys [auth-required]} opts']
     (concat
-      [[defaults/wrap-defaults defaults']
-       ring/wrap-session-cookie-attrs]
+      [[defaults/wrap-defaults defaults']]
       (when auth-required
         (ring/auth-middleware
           {:auth-backend (buddy-backends/session
@@ -351,5 +350,4 @@
       (when content-security-policy
         [[ring/wrap-content-security-policy
           {:extra-script-src csp-extra-script-src}]])
-      [wrap-no-cache]
-      (when tap [ring/wrap-trace]))))
+      [wrap-no-cache])))

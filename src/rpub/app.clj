@@ -4,9 +4,7 @@
             [hiccup2.core :as hiccup]
             [markdown.core :as md]
             [reitit.core :as reitit]
-            [reitit.ring :as reitit-ring]
             [ring.middleware.defaults :as defaults]
-            [rpub.lib.html :as html]
             [rpub.lib.plugins :as plugins]
             [rpub.lib.ring :as ring]
             [rpub.model :as model]
@@ -105,9 +103,8 @@
              :author {:name created-name}}
       updated-at (assoc :updated updated-at))))
 
-(defn main-feed-handler [{:keys [settings] :as req}]
-  (let [{:keys [content-type-slugs]} (:data (reitit-ring/get-match req))
-        posts (content-types/get-content-items
+(defn main-feed-handler [{:keys [settings ::content-type-slugs] :as req}]
+  (let [posts (content-types/get-content-items
                 (::content-types/model req)
                 {:content-type-slugs content-type-slugs})
         feed-entries (map #(post->feed-entry % req) posts)
@@ -117,10 +114,11 @@
 
 (defn wrap-cache [handler]
   (fn [req]
-    (let [res (handler req)
-          headers (cond-> {"Cache-Control" (str "public, s-maxage=31536000, max-age=0, "
-                                                "must-revalidate")})]
-      (update res :headers merge headers))))
+    (when-let [res (handler req)]
+      (let [headers {"Cache-Control"
+                     (str "public, s-maxage=31536000, max-age=0, "
+                          "must-revalidate")}]
+        (update res :headers merge headers)))))
 
 (defn- parse-permalink-uri [{:keys [uri permalink-router] :as _req}]
   (:path-params (reitit/match-by-path permalink-router uri)))
@@ -129,15 +127,6 @@
   (when-let [path-params (parse-permalink-uri req)]
     (let [req' (update req :path-params merge path-params)]
       (content-item-page req'))))
-
-(defn wrap-default-handlers [handler & {:as opts}]
-  (reitit-ring/routes
-    (reitit-ring/create-resource-handler
-      {:parameter :path
-       :not-found-handler (constantly nil)})
-    handler
-    (reitit-ring/redirect-trailing-slash-handler {:method :strip})
-    (fn [_] (html/not-found opts))))
 
 (defn- site-defaults [_]
   (-> defaults/site-defaults
@@ -153,10 +142,13 @@
             [ring/wrap-content-security-policy])
           [wrap-cache]))
 
+(defn wildcard-handler [{:keys [uri] :as req}]
+  (case uri
+    "/" (index-handler req)
+    "/feeds/main" (main-feed-handler
+                    (assoc req ::content-type-slugs [:posts]))
+    (permalink-handler req)))
+
 (defn routes [opts]
-  [["" {:middleware (app-middleware opts)}
-    [["/" {:get #'index-handler}]
-     ["/feeds/main" {:get #'main-feed-handler
-                     :content-type-slugs [:posts]}]
-     ["*path" {:get #'permalink-handler
-               :middleware [wrap-default-handlers]}]]]])
+  [["*path" {:handler wildcard-handler
+             :middleware (app-middleware opts)}]])

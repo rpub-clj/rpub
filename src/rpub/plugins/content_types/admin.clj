@@ -106,6 +106,12 @@
            :permalink-routes (reitit/routes permalink-router)
            :site-base-url site-base-url}])})))
 
+(defn single-content-item-handler [{:keys [path-params] :as req}]
+  (let [{:keys [content-item-slug]} path-params]
+    (if (= content-item-slug "new")
+      (new-content-item-handler req)
+      (edit-content-item-handler req))))
+
 (defn- ->updated-content-types [{:keys [new-index existing-index current-user]}]
   (->> (vals new-index)
        (map #(merge (get existing-index (:id %)) %))
@@ -149,7 +155,5 @@
      {:get #'all-content-types-handler}]
     ["/admin/content-types/{content-type-slug}"
      {:get #'single-content-type-handler}]
-    ["/admin/content-types/{content-type-slug}/content-items/new"
-     {:get #'new-content-item-handler}]
     ["/admin/content-types/{content-type-slug}/content-items/{content-item-slug}"
-     {:get #'edit-content-item-handler}]]])
+     {:get #'single-content-item-handler}]]])

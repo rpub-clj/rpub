@@ -93,6 +93,8 @@
 (defn initial-plugins [{:keys [current-user] :as _opts}]
   (->> [{:key :rpub.plugins.starter-theme/plugin, :activated true}
         {:key :rpub.plugins.external-editing/plugin, :activated true}
+        {:key :rpub.plugins.app/plugin, :activated true}
+        {:key :rpub.plugins.admin/plugin, :activated true}
         {:key :rpub.plugins.content-types/plugin, :activated true}]
        (map #(model/->plugin (assoc % :current-user current-user)))))
 

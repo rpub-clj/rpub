@@ -21,12 +21,10 @@
   (let [opts' (merge {:auth-required true} opts)
         {:keys [auth-required]} opts']
     (concat
-      [[defaults/wrap-defaults (ring/api-defaults opts')]
-       ring/wrap-session-cookie-attrs]
+      [[defaults/wrap-defaults (ring/api-defaults opts')]]
       (when auth-required (auth-middleware opts))
       (plugins/plugin-middleware opts)
-      [ring/wrap-no-cache
-       ring/wrap-trace])))
+      [ring/wrap-no-cache])))
 
 #_(defn- token-handler [{:keys [model] :as req}]
     (let [username (get-in req [:body-params :username])

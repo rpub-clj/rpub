@@ -6,20 +6,23 @@
             [malli.util :as mu]
             [medley.core :as medley]
             [muuntaja.core :as muuntaja]
-            [reitit.exception :as exception]
             [reitit.ring :as reitit-ring]
             [reitit.ring.middleware.muuntaja :as reitit-muuntaja]
             [reitit.ring.middleware.parameters :as reitit-parameters]
             [ring.adapter.jetty :as jetty]
             [rpub.admin :as admin]
-            [rpub.api :as api]
             [rpub.app :as app]
             [rpub.lib.db :as db]
             [rpub.lib.edn]
             [rpub.lib.html :as html]
+            [rpub.lib.otel :as otel]
             [rpub.lib.permalinks :as permalinks]
+            [rpub.lib.ring :as ring]
+            [rpub.lib.router :as rpub-router]
             [rpub.lib.transit :as transit]
             [rpub.model :as model]
+            [rpub.plugins.admin]
+            [rpub.plugins.app]
             [rpub.plugins.content-types.model :as ct-model]
             [taoensso.telemere :as tel])
   (:import (org.eclipse.jetty.server Server)))
@@ -80,23 +83,6 @@
       (catch Throwable e
         (tel/error! e)
         (error-response req)))))
-
-(defn- handle-conflicts [conflicts]
-  (tel/log! :debug (exception/format-exception :path-conflicts nil conflicts)))
-
-(defn- wrap-plugin-activated [handler plugin-key]
-  (fn [{:keys [plugins] :as req}]
-    (let [plugin (medley/find-first #(= (:key %) plugin-key) plugins)]
-      (if (:activated plugin)
-        (handler req)
-        (html/not-found req)))))
-
-(defn- plugin-routes [opts]
-  (->> (:plugins opts)
-       (filter :routes)
-       (map (fn [plugin]
-              ["" {:middleware [[wrap-plugin-activated (:key plugin)]]}
-               ((:routes plugin) opts)]))))
 
 (defmulti ^:private init-db :db-type)
 
@@ -259,28 +245,18 @@
 
 (defn- ->app-handler [opts]
   (let [opts' (init-opts opts)]
-    (reitit-ring/ring-handler
-      (reitit-ring/router
-        (concat (admin/routes opts')
-                (api/routes opts')
-                [["/*" (reitit-ring/routes
-                         (reitit-ring/ring-handler
-                           (reitit-ring/router
-                             (plugin-routes opts')
-                             {:conflicts handle-conflicts}))
-                         (reitit-ring/ring-handler
-                           (reitit-ring/router
-                             (app/routes opts')
-                             {:conflicts handle-conflicts})))]])
-        {:conflicts handle-conflicts
-         :data {:muuntaja custom-muuntaja
-                :middleware [reitit-parameters/parameters-middleware
-                             reitit-muuntaja/format-middleware
-                             [wrap-rpub opts']
-                             db/wrap-db-transaction]}})
-      (reitit-ring/routes
-        (reitit-ring/redirect-trailing-slash-handler {:method :strip})
-        (reitit-ring/create-default-handler {:not-found html/not-found})))))
+    (rpub-router/ring-handler
+      (merge opts' {:muuntaja custom-muuntaja
+                    :handler-middleware (if (:otel opts')
+                                          [[otel/wrap-server-span {:create-span? true}]
+                                           otel/wrap-exception-event]
+                                          [])
+                    :route-middleware [ring/wrap-trace
+                                       reitit-parameters/parameters-middleware
+                                       reitit-muuntaja/format-middleware
+                                       [wrap-rpub opts']
+                                       db/wrap-db-transaction]
+                    :not-found #'html/not-found}))))
 
 (defn- wrap-exceptions [handler]
   ((requiring-resolve 'prone.middleware/wrap-exceptions)
@@ -297,22 +273,20 @@
   (nonce/random-bytes 16))
 
 (defn- ->setup-handler [opts]
-  (let [opts' (assoc opts :session-store-key (->session-store-key))
-        not-found-opts {:redirect-to "/admin/setup"}]
+  (let [opts' (assoc opts :session-store-key (->session-store-key))]
     (reitit-ring/ring-handler
       (reitit-ring/router
-        [["" (admin/setup-routes opts')]
-         ["*path" {:get (constantly nil)
-                   :middleware [[app/wrap-default-handlers not-found-opts]]}]]
-        {:conflicts handle-conflicts
-         :data {:muuntaja custom-muuntaja
+        (admin/setup-routes opts')
+        {:data {:muuntaja custom-muuntaja
                 :middleware [reitit-parameters/parameters-middleware
                              reitit-muuntaja/format-middleware
                              [wrap-setup opts']]}})
       (reitit-ring/routes
+        (reitit-ring/create-resource-handler {:path "/"})
         (reitit-ring/redirect-trailing-slash-handler {:method :strip})
         (reitit-ring/create-default-handler
-          {:not-found (fn [_] (html/not-found not-found-opts))})))))
+          {:not-found (fn [_]
+                        (html/not-found {:redirect-to "/admin/setup"}))})))))
 
 (defn- db-exists? [database-url]
   (let [[_ db-path] (re-matches #"^jdbc:sqlite:(.+)$" database-url)]
