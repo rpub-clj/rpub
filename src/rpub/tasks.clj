@@ -10,7 +10,8 @@
 (alter-var-root (var babashka.process/*defaults*) assoc
                 :pre-start-fn
                 (fn [opts]
-                  (apply println "+" (:cmd opts))))
+                  (binding [*out* *err*]
+                    (apply println "+" (:cmd opts)))))
 
 (def ^:no-doc default-opts
   {:data-dir "data"})
