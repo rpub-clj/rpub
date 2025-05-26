@@ -332,10 +332,11 @@
   {:content-security-policy true
    :database-url "jdbc:sqlite:data/app.db"
    :error-page true
+   :http-tracing-enabled false
+   :otel false
    :port 3000
    :reload false
-   :secret-key-file "data/secret.key"
-   :http-tracing-enabled false})
+   :secret-key-file "data/secret.key"})
 
 (defn- stop-app! [app]
   (when-let [{:keys [server]} app]
