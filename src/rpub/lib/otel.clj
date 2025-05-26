@@ -13,7 +13,7 @@
         (throw e)))))
 
 (defn wrap-server-span [& {:as opts}]
-  ((requiring-resolve 'steffan-westcott.clj-otel.api.trace.span/wrap-server-span)
+  ((requiring-resolve 'steffan-westcott.clj-otel.api.trace.http/wrap-server-span)
    opts))
 
 (defn wrap-reitit-route [& {:as opts}]
