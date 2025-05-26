@@ -48,21 +48,28 @@
        (map (fn [[k f]] [k (f k)]))
        (into {})))
 
+(defn- get-current-app [{:keys [model headers server-name] :as _req}]
+  (let [domain (get headers "x-forwarded-host" server-name)]
+    (first (model/get-apps model {:domains [domain]}))))
+
 (defn- wrap-rpub [handler {:keys [model] :as opts}]
-  (fn [{:keys [port] :as req}]
-    (let [settings (->> (model/get-settings model {})
+  (fn wrap-rpub-handler [{:keys [port] :as req}]
+    (let [current-app (get-current-app (assoc req :model model))
+          model' (assoc model :app-id (:id current-app))
+          opts' (assoc opts :model model')
+          settings (->> (model/get-settings model' {})
                         (medley/index-by :key))
           site-base-url (->site-base-url (:site-base-url settings) port)
           permalink-single (get-in settings [:permalink-single :value])
           permalink-router (if (seq permalink-single)
                              (permalinks/->permalink-router {:single permalink-single})
                              (permalinks/default-permalink-router))
-          plugins (model/->plugins (get-registered-plugins) opts)
-          req' (merge req opts {:site-base-url site-base-url
-                                :permalink-router permalink-router
-                                :settings settings
-                                :plugins plugins
-                                :themes []})]
+          plugins (model/->plugins (get-registered-plugins) opts')
+          req' (merge req opts' {:site-base-url site-base-url
+                                 :permalink-router permalink-router
+                                 :settings settings
+                                 :plugins plugins
+                                 :themes []})]
       (handler req'))))
 
 (defn- error-response [_]
@@ -94,16 +101,21 @@
   (let [model (model/->model {:db-type db-type :ds ds})]
     model))
 
-(defn- init-plugins [opts]
-  (let [plugins (model/->plugins (get-registered-plugins) opts)
-        opts' (merge opts {:plugins plugins
-                           :current-user model/system-user})]
+(defn- init-plugins [{:keys [model] :as opts}]
+  (let [[app] (model/get-apps (:model opts) {})
+        model' (assoc model :app-id (:id app))
+        opts' (assoc opts :model model')
+        plugins (model/->plugins (get-registered-plugins) opts')
+        opts'' (merge opts' {:plugins plugins
+                             :current-user model/system-user})]
     (doseq [init (keep :init plugins)]
-      (init opts'))
+      (init opts''))
     plugins))
 
 (defn- get-config [{:keys [model]}]
-  (let [settings (model/get-settings model {:keys [:encrypted-session-store-key]})]
+  (let [[app] (model/get-apps model {})
+        model' (assoc model :app-id (:id app))
+        settings (model/get-settings model' {:keys [:encrypted-session-store-key]})]
     (->> settings
          (map (fn [setting] [(:key setting) (:value setting)]))
          (into {}))))

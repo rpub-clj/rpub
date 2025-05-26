@@ -13,6 +13,8 @@
 (def update-content-item! ct-model/update-content-item!)
 (def delete-content-item! ct-model/delete-content-item!)
 
+(def seed! ct-model/seed!)
+
 (def default-field-types
   {:text
    {:input :rpub-field-types-text

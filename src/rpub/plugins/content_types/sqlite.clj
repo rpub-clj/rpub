@@ -4,12 +4,11 @@
             [clojure.set :as set]
             [medley.core :as medley]
             [rads.migrate :as migrate]
-            [rads.migrate.next-jdbc :as migrate-next-jdbc]
             [rpub.lib.db :as db]
             [rpub.model :as model]
             [rpub.model.sqlite :as sqlite]
-            [rpub.plugins.content-types :as ct]
-            [rpub.plugins.content-types.model :as ct-model]))
+            [rpub.plugins.content-types.model :as ct-model]
+            [rpub.plugins.content-types.sqlite.migrations :as migrations]))
 
 (defn row->content-type [row]
   (-> (sqlite/row->metadata row)
@@ -68,12 +67,16 @@
   (-> content-item
       (update :document json/write-str)
       (assoc :content-type-id (:id content-type))
-      (dissoc :content-type)))
+      (dissoc :content-type)
+      (select-keys [:id :content-type-id :document :created-at :created-by
+                    :updated-at :updated-by])))
 
 (defn- field->row [field]
   (-> field
       (update :type name)
-      (dissoc :rank)))
+      (dissoc :rank)
+      (select-keys [:id :app-id :name :type :created-at :created-by
+                    :updated-at :updated-by])))
 
 (defn ->content-type-field [{:keys [current-user content-type field rank] :as opts}]
   (as-> {:id (or (:id opts) (random-uuid))
@@ -83,7 +86,9 @@
     (model/add-metadata $ current-user)))
 
 (defn content-type-field->row [content-type-field]
-  content-type-field)
+  (select-keys content-type-field [:id :content-type-id :field-id :rank
+                                   :created-at :created-by :updated-at
+                                   :updated-by]))
 
 (defn add-content-item-counts
   [{:keys [ds content-items-table] :as _model}
@@ -102,157 +107,9 @@
              (assoc content-type :content-item-count c)))
          content-types)))
 
-(defn- initial-schema
-  [{:keys [fields-table
-           content-types-table
-           content-type-fields-table
-           content-items-table]}]
-  [(db/strict
-     {:create-table [fields-table :if-not-exists]
-      :with-columns
-      (concat [(db/uuid-column :id [:primary-key] [:not nil])
-               [:name :text [:not nil]]
-               [:type :text [:not nil]]]
-              db/audit-columns)})
-
-   (db/strict
-     {:create-table [content-types-table :if-not-exists]
-      :with-columns
-      (concat [(db/uuid-column :id [:primary-key] [:not nil])
-               [:name :text [:not nil]]
-               [:slug :text [:not nil]]]
-              db/audit-columns)})
-
-   (db/strict
-     {:create-table [content-type-fields-table :if-not-exists]
-      :with-columns
-      (concat [(db/uuid-column :id [:primary-key] [:not nil])
-               (-> (db/uuid-column :content-type-id)
-                   (db/references :content-types :id))
-               (-> (db/uuid-column :field-id)
-                   (db/references :fields :id))
-               [:rank :integer [:not nil]]]
-              db/audit-columns)})
-
-   (db/strict
-     {:create-table [content-items-table :if-not-exists]
-      :with-columns
-      (concat [(db/uuid-column :id [:primary-key] [:not nil])
-               (-> (db/uuid-column :content-type-id)
-                   (db/references :content-types :id))
-               [:document :text :not nil]]
-              db/audit-columns)})])
-
-(defn default-content-types [{:keys [current-user] :as _opts}]
-  (let [title-field {:id ct/title-field-id, :name "Title", :type :text, :rank 1}
-        slug-field {:id ct/slug-field-id, :name "Slug", :type :text, :rank 2}
-        content-field {:id ct/content-field-id, :name "Content", :type :text-lg, :rank 3}]
-    [(ct-model/->content-type
-       {:id #uuid"5bd88a30-c4dd-4b3e-b4de-ae54ac4f4338"
-        :name "Pages"
-        :slug :pages
-        :current-user current-user
-        :fields [title-field
-                 slug-field
-                 content-field]})
-     (ct-model/->content-type
-       {:id #uuid"fdeb5967-84ea-41b1-a9b9-4a55874cd4c5"
-        :name "Posts"
-        :slug :posts
-        :current-user current-user
-        :fields [title-field
-                 slug-field
-                 content-field]})]))
-
-(defn- content-type-field-id [content-type field-name]
-  (:id (some #(when (= (:name %) field-name) %) (:fields content-type))))
-
-(def initial-post
-  {:title "Hello World!"
-   :slug "hello-world"
-   :content "This is the first post."})
-
-(def initial-page
-  {:title "About"
-   :slug "about"
-   :content "This is the about page."})
-
-(defn- content-type-by-slug [content-types slug]
-  (some #(when (= (:slug %) slug) %) content-types))
-
-(defn default-content-items [content-types {:keys [current-user]}]
-  (let [posts-type (content-type-by-slug content-types :posts)
-        pages-type (content-type-by-slug content-types :pages)]
-    (concat
-      [(ct-model/->content-item
-         {:id #uuid"972f2f2c-8681-4f91-b930-025c59d1739e"
-          :current-user current-user
-          :content-type posts-type
-          :document {(content-type-field-id posts-type "Title")
-                     (:title initial-post)
-
-                     (content-type-field-id posts-type "Slug")
-                     (:slug initial-post)
-
-                     (content-type-field-id posts-type "Content")
-                     (:content initial-post)}})
-       (ct-model/->content-item
-         {:id #uuid"0b095750-af17-4d2c-9e53-9c9728f8ebeb"
-          :current-user current-user
-          :content-type pages-type
-          :document {(content-type-field-id pages-type "Title")
-                     (:title initial-page)
-
-                     (content-type-field-id pages-type "Slug")
-                     (:slug initial-page)
-
-                     (content-type-field-id pages-type "Content")
-                     (:content initial-page)}})])))
-
-(defn- seed [model]
-  (let [content-types (default-content-types model)
-        content-items (default-content-items content-types model)]
-    (doseq [content-type content-types]
-      (ct-model/create-content-type! model content-type))
-    (doseq [content-item content-items]
-      (ct-model/create-content-item! model content-item))))
-
-(defn- migrations [model]
-  (let [{:keys [content-types-table
-                content-type-fields-table
-                content-items-table
-                migration-events-table]} model]
-    [{:id :initial-schema
-      :migrate (fn [{:keys [tx]}]
-                 (doseq [stmt (initial-schema model)]
-                   (db/execute-one! tx stmt)))
-      :rollback (fn [{:keys [tx]}]
-                  (doseq [table [content-types-table
-                                 content-type-fields-table
-                                 content-items-table
-                                 migration-events-table]]
-                    (db/execute-one! tx {:drop-table table})))}
-
-     {:id :initial-rows
-      :migrate (fn [{:keys [tx]}]
-                 (let [model' (assoc model :ds tx)]
-                   (seed model')))
-      :rollback (fn [{:keys [tx]}]
-                  (doseq [table [content-types-table
-                                 content-type-fields-table
-                                 content-items-table
-                                 migration-events-table]]
-                    (db/execute-one! tx {:delete-from table})))}]))
-
-(defn- migration-config [model]
-  (let [{:keys [ds migration-events-table]} model]
-    {:migrations (migrations model)
-     :storage (migrate-next-jdbc/storage
-                {:ds ds
-                 :events-table migration-events-table})}))
-
 (defrecord Model
            [ds
+            app-id
             current-user
             fields-table
             content-types-table
@@ -261,19 +118,21 @@
             migration-events-table]
   ct-model/Model
   (migrate! [model]
-    (migrate/migrate! (migration-config model)))
+    (migrate/migrate! (migrations/config model)))
 
   (get-content-types
     [model
      {:keys [content-type-ids
              content-type-slugs
              count-items]}]
-    (let [constraints (cond-> []
-                        content-type-ids (conj [:in :id content-type-ids])
-                        content-type-slugs (conj [:in :slug (map name content-type-slugs)]))
+    (let [or-constraints (cond-> []
+                           content-type-ids (conj [:in :id content-type-ids])
+                           content-type-slugs (conj [:in :slug (map name content-type-slugs)]))
           sql (cond-> {:select [:id :name :slug :created-at :created-by :updated-at :updated-by]
-                       :from content-types-table}
-                (seq constraints) (assoc :where (sqlite/sql-or constraints)))
+                       :from content-types-table
+                       :where [:= :app-id app-id]}
+                (seq or-constraints)
+                (update :where (fn [x] [:and x (sqlite/sql-or or-constraints)])))
           content-types (->> (db/execute! ds sql)
                              (map row->content-type))
           content-type-fields (get-content-type-fields
@@ -402,7 +261,7 @@
                   :content-type-fields-table :content-type-fields
                   :content-items-table :content-items
                   :migration-events-table :content-types-migration-events}
-        no-default [:ds :current-user]
+        no-default [:ds :app-id :current-user]
         opts' (merge defaults (select-keys opts (into no-default (keys defaults))))]
     (map->Model opts')))
 

@@ -19,7 +19,8 @@
             [rpub.lib.tap :as tap]
             [rpub.model :as model]
             [rpub.model.app :as-alias model-app]
-            [rpub.plugins.content-types :as content-types]))
+            [rpub.plugins.content-types :as content-types]
+            [rpub.plugins.content-types.model :as ct-model]))
 
 (def system-user model/system-user)
 
@@ -244,21 +245,32 @@
            session-store-key]
     :as _req}]
   (let [secret-key (secrets/init-secret-key secret-key-file)
-        encrypted-session-store-key (encrypt-session-store-key
-                                      session-store-key
-                                      secret-key)
+        config {:encrypted-session-store-key (encrypt-session-store-key
+                                               session-store-key
+                                               secret-key)}
+        app-id (random-uuid)
+        current-user (assoc model/system-user :app-id app-id)
         new-user (model/->user {:username (get form-params "username")
                                 :password (get form-params "password")
-                                :current-user model/system-user})
-        current-user (select-keys new-user [:id])
-        session' (assoc session :identity current-user)]
-    (let [site-title (get form-params "site-title")
-          site-base-url (get form-params "site-base-url")]
-      (model/migrate! model {:current-user model/system-user
-                             :new-user new-user
-                             :encrypted-session-store-key encrypted-session-store-key
-                             :site-title site-title
-                             :site-base-url site-base-url}))
+                                :current-user current-user})
+        app (model/->app {:id app-id
+                          :new-user new-user
+                          :domains ["localhost"]
+                          :current-user current-user})
+        session' (assoc session :identity (select-keys new-user [:id]))
+        site-title (get form-params "site-title")
+        site-base-url (get form-params "site-base-url")
+        seed-opts {:current-user current-user
+                   :app app
+                   :config config
+                   :site-title site-title
+                   :site-base-url site-base-url}
+        _ (content-types/init {:model model, :current-user current-user})
+        ct-model (ct-model/->model (merge (model/db-info model)
+                                          {:current-user current-user}))]
+    (model/migrate! model seed-opts)
+    (model/seed! model seed-opts)
+    (content-types/seed! ct-model)
     (setup-finished)
     (-> (response/redirect "/admin")
         (assoc :session session'))))
