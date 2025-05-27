@@ -32,3 +32,4 @@ repl-client-debug
 build.mjs
 .env.local
 .envrc
+.claude
