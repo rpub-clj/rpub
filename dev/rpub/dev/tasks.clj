@@ -86,8 +86,10 @@
          *command-line-args*))
 
 (defn copy-js []
-  (p/shell "rm -rf resources/public/js")
-  (p/shell "cp -r target/public/js resources/public/js"))
+  (p/shell "rm -rf resources/public/js/rpub")
+  (p/shell "rm -f resources/public/js/manifest.json")
+  (p/shell "cp -r target/public/js/rpub resources/public/js")
+  (p/shell "cp target/public/js/manifest.json resources/public/js"))
 
 (defn flowstorm
   [& {:keys [port debugger-host]

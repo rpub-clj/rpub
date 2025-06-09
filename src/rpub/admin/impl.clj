@@ -298,7 +298,8 @@
 
 (defn- rads-imports []
   {"rads.inflections" "/js/rads/inflections-v0.14.2-1.min.js"
-   "rads.dependency" "/js/rads/dependency-v1.0.0-1.min.js"})
+   "rads.dependency" "/js/rads/dependency-v1.0.0-1.min.js"
+   "rads.dnd" "/js/rads/dnd.mjs"})
 
 (defn- js-manifest-imports []
   (js-manifest->import-map (read-js-manifest)))

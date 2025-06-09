@@ -17,7 +17,8 @@
 (defn clean [_]
   (b/delete {:path "target"})
   (b/delete {:path "resources/public/css"})
-  (b/delete {:path "resources/public/js"}))
+  (b/delete {:path "resources/public/js/rpub"})
+  (b/delete {:path "resources/public/js/manifest.json"}))
 
 (defn- compile-css [_]
   (b/process {:command-args ["bb" "prod:css"]})

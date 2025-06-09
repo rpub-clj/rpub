@@ -1,12 +1,14 @@
 (ns rpub.plugins.content-types.admin.all-content-types-page
-  (:require ["react" :refer [useEffect]]
+  (:require ["rads.dnd" :as dnd]
+            ["react" :refer [useEffect Fragment]]
+            [clojure.set :as set]
+            [clojure.string :as str]
+            [rads.inflections :as inflections]
             [rpub.admin.impl :as admin-impl]
             [rpub.lib.dag :as dag]
             [rpub.lib.dag.react :refer [use-dag]]
             [rpub.lib.html :as html]
-            [rpub.lib.http :as http]
-            [rpub.plugins.content-types.admin.all-content-types-page.draggable-list
-             :as draggable-list]))
+            [rpub.lib.http :as http]))
 
 (defn ->unsaved-changes [value]
   (admin-impl/->unsaved-changes
@@ -90,6 +92,9 @@
 (defn cancel-save [db]
   (assoc db ::pending-save false))
 
+(defn dnd-item-id [content-type content-type-field]
+  (str (:id content-type) "|" (:id content-type-field)))
+
 (defn content-type-fields-item
   [{:keys [content-type content-type-field field-types]}]
   (let [[{:keys [::selection]} push] (use-dag [::selection])
@@ -98,12 +103,15 @@
                       (= (get-in selection [:content-type-field :id])
                          (:id content-type-field)))
         field-type (get field-types (:type content-type-field))]
-    [:div {:class (str "bg-white my-2 flex items-center"
+    [:div {:class (str "bg-white my-2 flex items-center "
                        "w-full font-semibold border "
                        "rounded-[6px] hover:border-blue-500 "
                        (if selected
                          "ring-2 ring-blue-400 border-blue-500"
                          "border-gray-100"))
+           :data-draggable "true"
+           :data-id (dnd-item-id content-type content-type-field)
+           :data-container-id (:id content-type)
            :data-content-type-field-id (:id content-type-field)
            :key (:id content-type-field)}
      [:label {:for "field-name"}]
@@ -121,42 +129,46 @@
                           :content-type-field content-type-field}))}
       [(:label field-type)]]]))
 
-(defn init [_ {:keys [content-types unsaved-changes]}]
+(defn init [_ {:keys [content-types field-types unsaved-changes]}]
   (let [content-types-index (admin-impl/index-by :id content-types)]
     {::past (get-in unsaved-changes [:value ::past])
      ::future (get-in unsaved-changes [:value ::future])
      ::original-content-types content-types
+     ::field-types field-types
      ::content-types-index (or (get-in unsaved-changes [:value ::content-types-index])
                                content-types-index)}))
 
+(def template-items-id (uuid "019750e2-46c0-7573-aae9-d8f1a8c08c8b"))
+
 (defn field
   [{:keys [label description type selected draggable on-click] :as _props}]
-  (let [[_ push] (use-dag)]
-    (if-not draggable
-      [:div.mb-2.flex.items-center.ps-4.border.border-gray-200
-       {:class "rounded-[6px]"
-        :on-click on-click}
-       [:input {:class "w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 focus:ring-2"}
-        {:type "radio" :checked selected :value "" :name "bordered-radio"}]
-       [:label.w-full.py-4.ms-2.text-sm.font-medium.text-gray-900
-        label]]
-      [:div {:class (str "border rounded-[6px] p-2 mb-4 bg-gray-50 "
-                         (if draggable "cursor-move hover:shadow-md hover:bg-gray-100 border-gray-100" "cursor-pointer hover:border-blue-500")
-                         " "
-                         (if selected "ring-2 ring-blue-400 border-blue-500" "border-gray-100"))
-             :draggable draggable
-             :on-drag-start (fn [_e]
-                              (push ::drag-start {:id (random-uuid)
-                                                  :name "New Field"
-                                                  :type type}))}
-       [:h4 {:class "font-semibold"}
-        label]
-       [:p {:class "text-sm text-gray-500"}
-        description]])))
+  (if-not draggable
+    [:div
+     {:class "mb-2 flex items-center ps-4 border border-gray-200 rounded-[6px]"
+      :on-click on-click}
+     [:input {:class "w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 focus:ring-2"}
+      {:type "radio" :checked selected :value "" :name "bordered-radio"}]
+     [:label {:class "w-full py-4 ms-2 text-sm font-medium text-gray-900"}
+      label]]
+    [:div {:class (str "border rounded-[6px] p-2 mb-4 bg-gray-50 "
+                       (if draggable "cursor-move hover:shadow-md hover:bg-gray-100 border-gray-100" "cursor-pointer hover:border-blue-500")
+                       " "
+                       (if selected "ring-2 ring-blue-400 border-blue-500" "border-gray-100"))
+           :data-draggable draggable
+           :data-field-type (name type)
+           :data-container-id template-items-id}
+     [:h4 {:class "font-semibold"}
+      label]
+     [:p {:class "text-sm text-gray-500"}
+      description]]))
 
-(defn inspector [{:keys [field-config]}]
+(defn- ->field-config [field-types]
+  (map (fn [[k v]] (assoc v :type k)) field-types))
+
+(defn inspector [{:keys [field-types]}]
   (let [[{:keys [::selection]}
          push] (use-dag [::selection ::content-types-index ::past ::future])
+        field-config (->field-config field-types)
         change-field-type (fn [_e opts]
                             (-> (push ::change-field-type opts)
                                 update-unsaved-changes!))
@@ -329,28 +341,33 @@
                    "Unsaved changes."
                    "All changes saved.")]]}]))
 
+(defn drop-indicator-ui [{:keys [drop-indicator divider-element item-id item-element]}]
+  (let [before (and (= (:id drop-indicator) item-id)
+                    (= (:position drop-indicator) :before))
+        after (and (= (:id drop-indicator) item-id)
+                   (= (:position drop-indicator) :after))]
+    (list
+      (when before divider-element)
+      item-element
+      (when after divider-element))))
+
 (defn content-type-fields-list [{:keys [content-type field-types]}]
-  (let [[{:keys [::drag-source]}
+  (let [[{:keys [::drag-source ::drop-indicator]}
          push] (use-dag [::content-types-index ::selection ::past ::future
-                         ::drag-source])]
-    [draggable-list/draggable-list
-     {:drag-source drag-source
-      :items (sort-by :rank (:fields content-type))
-      :divider-component (fn [_]
-                           [:div {:class "h-[3px] bg-[#2196F3] my-[8px] rounded-[3px]"}])
-      :item-component (fn [{:keys [item-props item-data]}]
-                        [:div item-props
-                         [content-type-fields-item
-                          {:content-type content-type
-                           :field-types field-types
-                           :content-type-field item-data}]])
-      :on-items-change (fn [new-fields]
-                         (let [new-fields' (map-indexed (fn [i field] (assoc field :rank (inc i)))
-                                                        new-fields)]
-                           (-> (push ::update-content-type-fields
-                                     {:content-type content-type
-                                      :new-fields new-fields'})
-                               update-unsaved-changes!)))}]))
+                         ::drag-source ::drop-indicator])
+        divider-element [:div
+                         {:class "h-[3px] bg-[#2196F3] my-[8px] rounded-[3px]"}]]
+    [:div {:data-droppable "true"
+           :data-id (:id content-type)}
+     (for [content-type-field (sort-by :rank (:fields content-type))
+           :let [item-element [content-type-fields-item
+                               {:content-type content-type
+                                :field-types field-types
+                                :content-type-field content-type-field}]]]
+       [drop-indicator-ui {:drop-indicator drop-indicator
+                           :divider-element divider-element
+                           :item-id (dnd-item-id content-type content-type-field)
+                           :item-element item-element}])]))
 
 (defn content-types-list [{:keys [field-types] :as _props}]
   (let [[{:keys [::content-types-index ::selection]}
@@ -385,6 +402,26 @@
                       {:field-types field-types
                        :content-type content-type}]])}]])))
 
+(defn dnd-provider [{:keys [children] :as props}]
+  (useEffect
+    (fn []
+      (let [dnd-opts (-> props
+                         (dissoc :children)
+                         (inflections/camel-case-keys :lower)
+                         clj->js)
+            dnd-instance (dnd/start dnd-opts)]
+        #(dnd/stop dnd-instance)))
+    #js[])
+  children)
+
+(defn ->drop-indicator [dnd-event]
+  (-> (dnd/dropIndicator dnd-event)
+      (js->clj :keywordize-keys true)
+      (update :position keyword)))
+
+(defn- dnd-generate-id [drag-element]
+  (str (-> drag-element .-dataset .-containerId) "|" (random-uuid)))
+
 (defn page [{:keys [field-types unsaved-changes] :as props}]
   (let [[{:keys [::content-types-index]} push] (use-dag [::content-types-index])
         _ (useEffect (fn [] (push ::init props)) #js[])
@@ -394,22 +431,30 @@
         on-click (fn [e]
                    (when (clear? e)
                      (push ::clear-selection)))
-        field-config (map (fn [[k v]] (assoc v :type k)) field-types)
-        content-types (->> (vals content-types-index) (sort-by :created-at >))]
-    (list
-      [save-modal]
-      [:div.flex {:class "flex"
-                  :on-click on-click}
-       [:div {:class "flex-grow"}
-        [:div {:class "p-4 pr-[384px]"}
-         [header {:content-types content-types}]
-         [content-types-list {:content-types content-types
-                              :field-types field-types
-                              :unsaved-changes unsaved-changes}]]
-        [:div {:class "p-4 pl-2 w-[376px] fixed right-0 bottom-0 top-12"
-               :data-no-select true}
-         [controls {:unsaved-changes unsaved-changes}]
-         [inspector {:field-config field-config}]]]])))
+        content-types (->> (vals content-types-index) (sort-by :created-at >))
+        handle-dnd-event (fn [e]
+                           (let [drop-indicator (->drop-indicator e)]
+                             (case (keyword (.-type e))
+                               :drag (push ::drag {:drop-indicator drop-indicator})
+                               :drop (push ::drop {:drop-indicator drop-indicator
+                                                   :dnd-event e}))))]
+    [dnd-provider {:on-event handle-dnd-event
+                   :generate-id dnd-generate-id
+                   :placeholder-classes "opacity-50"
+                   :draggable-classes "shadow-lg"}
+     [save-modal]
+     [:div.flex {:class "flex"
+                 :on-click on-click}
+      [:div {:class "flex-grow"}
+       [:div {:class "p-4 pr-[384px]"}
+        [header {:content-types content-types}]
+        [content-types-list {:content-types content-types
+                             :field-types field-types
+                             :unsaved-changes unsaved-changes}]]
+       [:div {:class "p-4 pl-2 w-[376px] fixed right-0 bottom-0 top-12"
+              :data-no-select true}
+        [controls {:unsaved-changes unsaved-changes}]
+        [inspector {:field-types field-types}]]]]]))
 
 (defn delete-content-type [db {:keys [content-type]}]
   (-> db
@@ -485,6 +530,117 @@
         (assoc ::content-types-index content-types-index')
         (dissoc ::drag-source))))
 
+(defn drag [db {:keys [drop-indicator]}]
+  (assoc db ::drop-indicator drop-indicator))
+
+(defn to-spliced [coll start delete-count & items]
+  (let [v (vec coll)
+        len (count v)
+        start (if (neg? start)
+                (max 0 (+ len start))
+                (min start len))
+        delete-count (min delete-count (- len start))
+        before (subvec v 0 start)
+        after (subvec v (min len (+ start delete-count)))]
+    (vec (concat before items after))))
+
+(defn drop
+  [{:keys [::content-types-index ::field-types] :as db}
+   {:keys [drop-indicator dnd-event]}]
+  (let [source-container-id (-> dnd-event .-dragClone .-dataset .-containerId parse-uuid)
+        source-field-id (-> dnd-event .-dragClone .-dataset .-id (str/split #"\|") second parse-uuid)
+        source-field-type (some-> dnd-event .-dragClone .-dataset .-fieldType keyword)
+        source-fields (->> (get-in content-types-index [source-container-id :fields])
+                           (sort-by :rank))
+        source-index (some (fn [[i v]] (when (= (:id v) source-field-id) i))
+                           (map-indexed vector source-fields))
+        target-container-id (some-> dnd-event .-dropTarget .-dataset .-id parse-uuid)
+        target-field-id (some-> (:id drop-indicator) (str/split #"\|") second parse-uuid)
+        target-fields (->> (get-in content-types-index [target-container-id :fields])
+                           (sort-by :rank))
+        target-index (some (fn [[i v]] (when (= (:id v) target-field-id) i))
+                           (map-indexed vector target-fields))
+        insert-index (if (= (:position drop-indicator) :before)
+                       target-index
+                       (inc target-index))
+        update-ranks #(map-indexed (fn [i v] (assoc v :rank (inc i))) %)
+        _ (prn {'source-container-id source-container-id
+                'source-field-id source-field-id
+                'source-fields source-fields
+                'source-index source-index
+                'target-container-id target-container-id
+                'target-field-id target-field-id
+                'target-fields target-fields
+                'target-index target-index
+                'template-items-id template-items-id
+                'insert-index insert-index})
+        db' (cond
+              ; Move within container
+              (and target-container-id
+                   (= (str source-container-id) (str target-container-id)))
+              (let [target-fields' (-> target-fields
+                                       (to-spliced source-index 1)
+                                       (to-spliced (if (<= insert-index source-index)
+                                                     insert-index
+                                                     (dec insert-index))
+                                                   0
+                                                   (nth source-fields source-index))
+                                       update-ranks)]
+                (assoc-in db [::content-types-index target-container-id :fields]
+                          target-fields'))
+
+              ; Move between containers
+              (and target-container-id
+                   (not= (str source-container-id) (str target-container-id))
+                   (not= (str source-container-id) (str template-items-id)))
+              (let [source-fields' (-> source-fields
+                                       (to-spliced source-index 1)
+                                       update-ranks)
+                    target-fields' (-> target-fields
+                                       (to-spliced insert-index
+                                                   0
+                                                   (nth source-fields source-index))
+                                       update-ranks)]
+                (-> db
+                    (assoc-in [::content-types-index source-container-id :fields]
+                              source-fields')
+                    (assoc-in [::content-types-index target-container-id :fields]
+                              target-fields')))
+
+              ; Create item
+              (and target-container-id
+                   (not= (str source-container-id) (str target-container-id))
+                   (= (str source-container-id) (str template-items-id)))
+              (let [new-field (-> (some #(when (= (:type %) source-field-type) %)
+                                        (->field-config field-types))
+                                  (merge {:id source-field-id
+                                          :name "New Field"}))
+                    target-fields' (-> target-fields
+                                       (to-spliced insert-index
+                                                   0
+                                                   new-field)
+                                       update-ranks)]
+                (assoc-in db [::content-types-index target-container-id :fields]
+                          target-fields'))
+
+              ; Remove item
+              (and (not target-container-id)
+                   (not= (str source-container-id) (str template-items-id)))
+              db
+              #_(let [source-fields' (-> source-fields
+                                         (to-spliced source-index 1)
+                                         update-ranks)]
+                  (assoc-in db [::content-types-index source-container-id :fields]
+                            source-fields'))
+
+              ; Drop on template (no change)
+              (and (not target-container-id)
+                   (= (str source-container-id) (str template-items-id)))
+              db)]
+    (when-not db'
+      (throw (ex-info "Invalid condition" {})))
+    (dissoc db' ::drop-indicator)))
+
 (def dag-config
   {:nodes
    {::cancel-save {:push cancel-save}
@@ -496,6 +652,9 @@
     ::delete-content-type-field {:push (with-undo delete-content-type-field)}
     ::drag-source {:calc ::drag-source}
     ::drag-start {:push drag-start}
+    ::drag {:push drag}
+    ::drop {:push drop}
+    ::drop-indicator {:calc ::drop-indicator}
     ::future {:calc ::future}
     ::init {:push init}
     ::new-content-type {:push (with-undo new-content-type)}
@@ -520,6 +679,9 @@
     [::clear-selection ::selection]
     [::confirm-save ::pending-save]
     [::content-types-index ::selection]
+    [::drop ::content-types-index]
+    [::drop ::drop-indicator]
+    [::drag ::drop-indicator]
     [::delete-content-type ::content-types-index]
     [::delete-content-type ::future]
     [::delete-content-type ::past]
