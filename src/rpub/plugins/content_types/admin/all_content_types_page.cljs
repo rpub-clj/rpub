@@ -1,7 +1,6 @@
 (ns rpub.plugins.content-types.admin.all-content-types-page
   (:require ["rads.dnd" :as dnd]
-            ["react" :refer [useEffect Fragment]]
-            [clojure.set :as set]
+            ["react" :refer [useEffect]]
             [clojure.string :as str]
             [rads.inflections :as inflections]
             [rpub.admin.impl :as admin-impl]
@@ -47,9 +46,6 @@
              (->> (:fields content-type)
                   (filter #(= (:id %) content-type-field-id))
                   first)))))
-
-(defn drag-start [db drag-source]
-  (assoc db ::drag-source drag-source))
 
 (defn undo [db]
   (if (seq (::past db))
@@ -352,9 +348,9 @@
       (when after divider-element))))
 
 (defn content-type-fields-list [{:keys [content-type field-types]}]
-  (let [[{:keys [::drag-source ::drop-indicator]}
-         push] (use-dag [::content-types-index ::selection ::past ::future
-                         ::drag-source ::drop-indicator])
+  (let [[{:keys [::drop-indicator]}
+         _push] (use-dag [::content-types-index ::selection ::past ::future
+                          ::drop-indicator])
         divider-element [:div
                          {:class "h-[3px] bg-[#2196F3] my-[8px] rounded-[3px]"}]]
     [:div {:data-droppable "true"
@@ -383,12 +379,6 @@
                      (when-not (.closest (.-target e) "[data-content-type-field-id]")
                        (push ::select-content-type
                              {:content-type content-type})))
-         :on-drag-over (fn [e]
-                         (.preventDefault e))
-         :on-drop (fn [_e]
-                    #_(when (seq (.getData (.-dataTransfer e) "application/transit+json"))
-                        (-> (push ::drag-drop {:content-type content-type})
-                            update-unsaved-changes!)))
          :selected (and (not (:content-type-field selection))
                         (= (get-in selection [:content-type :id])
                            (:id content-type)))
@@ -435,9 +425,9 @@
         handle-dnd-event (fn [e]
                            (let [drop-indicator (->drop-indicator e)]
                              (case (keyword (.-type e))
-                               :drag (push ::drag {:drop-indicator drop-indicator})
-                               :drop (push ::drop {:drop-indicator drop-indicator
-                                                   :dnd-event e}))))]
+                               :drag (push ::dnd-drag {:drop-indicator drop-indicator})
+                               :drop (push ::dnd-drop {:drop-indicator drop-indicator
+                                                       :dnd-event e}))))]
     [dnd-provider {:on-event handle-dnd-event
                    :generate-id dnd-generate-id
                    :placeholder-classes "opacity-50"
@@ -527,13 +517,12 @@
         content-types-index' (-> content-types-index
                                  (assoc (:id content-type) content-type'))]
     (-> db
-        (assoc ::content-types-index content-types-index')
-        (dissoc ::drag-source))))
+        (assoc ::content-types-index content-types-index'))))
 
-(defn drag [db {:keys [drop-indicator]}]
+(defn dnd-drag [db {:keys [drop-indicator]}]
   (assoc db ::drop-indicator drop-indicator))
 
-(defn to-spliced [coll start delete-count & items]
+(defn- to-spliced [coll start delete-count & items]
   (let [v (vec coll)
         len (count v)
         start (if (neg? start)
@@ -544,7 +533,7 @@
         after (subvec v (min len (+ start delete-count)))]
     (vec (concat before items after))))
 
-(defn drop
+(defn dnd-drop
   [{:keys [::content-types-index ::field-types] :as db}
    {:keys [drop-indicator dnd-event]}]
   (let [source-container-id (-> dnd-event .-dragClone .-dataset .-containerId parse-uuid)
@@ -650,10 +639,8 @@
     ::content-types-index {:calc ::content-types-index}
     ::delete-content-type {:push (with-undo delete-content-type)}
     ::delete-content-type-field {:push (with-undo delete-content-type-field)}
-    ::drag-source {:calc ::drag-source}
-    ::drag-start {:push drag-start}
-    ::drag {:push drag}
-    ::drop {:push drop}
+    ::dnd-drag {:push dnd-drag}
+    ::dnd-drop {:push dnd-drop}
     ::drop-indicator {:calc ::drop-indicator}
     ::future {:calc ::future}
     ::init {:push init}
@@ -679,16 +666,15 @@
     [::clear-selection ::selection]
     [::confirm-save ::pending-save]
     [::content-types-index ::selection]
-    [::drop ::content-types-index]
-    [::drop ::drop-indicator]
-    [::drag ::drop-indicator]
+    [::dnd-drop ::content-types-index]
+    [::dnd-drop ::drop-indicator]
+    [::dnd-drag ::drop-indicator]
     [::delete-content-type ::content-types-index]
     [::delete-content-type ::future]
     [::delete-content-type ::past]
     [::delete-content-type-field ::content-types-index]
     [::delete-content-type-field ::future]
     [::delete-content-type-field ::past]
-    [::drag-start ::drag-source]
     [::init ::content-types-index]
     [::new-content-type ::content-types-index]
     [::new-content-type ::future]
@@ -703,7 +689,6 @@
     [::rename-content-type-field ::future]
     [::rename-content-type-field ::past]
     [::update-content-type-fields ::content-types-index]
-    [::update-content-type-fields ::drag-source]
     [::update-content-type-fields ::future]
     [::update-content-type-fields ::past]
     [::request-save ::pending-save]
