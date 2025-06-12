@@ -101,6 +101,14 @@
        (html/custom-element
          [:users-page {:users users}]))}))
 
+(defn- new-user-handler [req]
+  (admin-impl/page-response
+    req
+    {:title "New User"
+     :primary
+     (html/custom-element
+       [:new-user-page {}])}))
+
 (defn- settings-handler [{:keys [model] :as req}]
   (admin-impl/page-response
     req
@@ -395,4 +403,5 @@
     ["/admin/plugins" {:get #'plugins-handler}]
     ["/admin/settings" {:get #'settings-handler}]
     ["/admin/themes" {:get #'themes-handler}]
-    ["/admin/users" {:get #'users-handler}]]])
+    ["/admin/users" {:get #'users-handler}]
+    ["/admin/users/new" {:get #'new-user-handler}]]])

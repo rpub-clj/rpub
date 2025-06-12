@@ -45,11 +45,11 @@
               (fn []
                 (this-as
                   this
-                  (when-not (zero? (-> this .-attributes .-length))
-                    (let [props (case (:format opts')
+                  (let [props (when-not (zero? (-> this .-attributes .-length))
+                                (case (:format opts')
                                   :json (json-attrs->map this)
-                                  :transit (transit-attrs->map this))]
-                      (.render this props))))))
+                                  :transit (transit-attrs->map this)))]
+                    (.render this props)))))
         (js/customElements.define (name tag) klass)))))
 
 (defn custom-element [[tag props]]
