@@ -55,7 +55,7 @@
   (requiring-resolve 'flow-storm.nrepl.middleware/wrap-flow-storm))
 
 (defn- start-clj-repl! [opts]
-  (let [nrepl-cli-opts (-> (select-keys opts [:clj-repl-port :repl-bind])
+  (let [nrepl-cli-opts (-> (select-keys opts [:clj-repl-port :clj-repl-bind])
                            (set/rename-keys {:clj-repl-port :port
                                              :clj-repl-bind :bind}))
         nrepl-cli-opts' (cond-> nrepl-cli-opts
