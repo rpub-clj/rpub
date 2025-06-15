@@ -80,7 +80,7 @@
                       :scope "row"
                       :key (:name column)}
                  ((:value column) row)]
-                [:td {:class "px-4.py-3" :key (:name column)}
+                [:td {:class "px-4 py-3" :key (:name column)}
                  ((:value column) row)]))
             (when delete-row
               [:td {:class "px-4 py-3 flex items-center justify-end"}
@@ -91,7 +91,7 @@
                   [:path {:d "M6 10a2 2 0 11-4 0 2 2 0 014 0zM12 10a2 2 0 11-4 0 2 2 0 014 0zM16 12a2 2 0 100-4 2 2 0 000 4z"}]]]
                 [:div {:class "hidden z-10 w-30 bg-white rounded divide-y divide-gray-100 shadow"
                        :id (str table-id "-actions-" (:id row))}
-                 [:ul {:class "py-1.text-sm" :aria-labelledby "benq-ex2710q-dropdown-button"}
+                 [:ul {:class "py-1 text-sm"}
                   [:li
                    [:button {:class "flex w-full items-center py-2 px-4 hover:bg-gray-100 text-red-500"
                              :type "button"
