@@ -109,6 +109,14 @@
      (html/custom-element
        [:new-user-page {}])}))
 
+(defn- create-user-handler [{:keys [model current-user body-params] :as _req}]
+  (let [{:keys [username password]} body-params
+        user (model/->user :username username
+                           :password password
+                           :current-user current-user)]
+    (model/create-user! model user)
+    (response/redirect "/admin/users")))
+
 (defn- settings-handler [{:keys [model] :as req}]
   (admin-impl/page-response
     req
@@ -392,6 +400,7 @@
    ["" {:middleware (admin-impl/admin-middleware opts)}
     ["/admin" {:get #'dashboard-handler}]
     ["/admin/api/activate-plugin" {:post #'activate-plugin-handler}]
+    ["/admin/api/create-user" {:post #'create-user-handler}]
     ["/admin/api/deactivate-plugin" {:post #'deactivate-plugin-handler}]
     ["/admin/api/restart-server" {:post #'restart-server-handler}]
     ["/admin/api/update-content-types" {:post #'update-content-types-handler}]

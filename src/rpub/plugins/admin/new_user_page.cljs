@@ -1,15 +1,26 @@
 (ns rpub.plugins.admin.new-user-page
   (:require [rpub.lib.dag.react :refer [use-dag]]
             [rpub.lib.html :as html]
+            [rpub.lib.http :as http]
             [rpub.plugins.admin.impl :as admin-impl]))
 
 (defn page [_]
   (let [[{:keys [::field-values ::submitting]}
          push] (use-dag [::field-values ::submitting])
-        submit-form (fn [_] (prn field-values))
-        fields-config [{:key :username, :label "Username"}
-                       {:key :password, :label "Password"}
-                       {:key :roles, :label "Roles"}]
+        http-opts {:format :transit}
+        submit-form (fn [e]
+                      (.preventDefault e)
+                      (push ::submit-start)
+                      (let [on-complete (fn [_ err]
+                                          (if err
+                                            (push ::submit-error)
+                                            (.reload (.-location js/window))))
+                            http-opts' (merge http-opts {:body field-values
+                                                         :on-complete on-complete})]
+                        (http/post "/admin/api/create-user" http-opts')))
+        fields-config [{:key :username, :label "Username", :type :text}
+                       {:key :password, :label "Password", :type :password}
+                       {:key :roles, :label "Roles", :type :text}]
         update-field (fn [field-key e]
                        (let [value (-> e .-target .-value)]
                          (push ::change-input [field-key value])))]
@@ -27,7 +38,7 @@
               [:label {:class "block mb-2 text-sm font-semibold text-gray-900" :for "name"}
                (:label field)]
               [html/input2
-               {:type :text
+               {:type (:type field)
                 :name (:key field)
                 :value value
                 :on-change #(update-field (:key field) %)}]])
