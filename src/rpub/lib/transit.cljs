@@ -62,10 +62,19 @@
     (keyword key-ns (.name x))
     (keyword (.name x))))
 
+(defn- transit-set->cljs [x]
+  (let [v (transient #{})]
+    (.forEach x #(conj! v (transit->cljs %)))
+    (persistent! v)))
+
+(defn- transit-uuid->cljs [x]
+  (uuid (str x)))
+
 (defn- transit->cljs [x]
   (cond
     (t/isKeyword x) (transit-keyword->cljs x)
-    (t/isUUID x) (uuid (str x))
+    (t/isUUID x) (transit-uuid->cljs x)
+    (t/isSet x) (transit-set->cljs x)
     :else x))
 
 (defn write [cljs-value]
