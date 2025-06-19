@@ -1,5 +1,6 @@
 (ns rpub.plugins.admin.users-page
-  (:require [rads.inflections :as inflections]
+  (:require [clojure.string :as str]
+            [rads.inflections :as inflections]
             [rpub.lib.html :as html]
             [rpub.plugins.admin.impl :as admin-impl]))
 
@@ -8,8 +9,8 @@
     :value (fn [{:keys [username]}]
              [:a {:class "font-semibold"} username])}
    {:name "Roles"
-    :value (fn [_]
-             "Admin")}])
+    :value (fn [{:keys [roles]}]
+             (str/join ", " roles))}])
 
 (defn- checkbox [{:keys [checked disabled]}]
   [:input {:type "checkbox"

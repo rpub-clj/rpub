@@ -187,7 +187,11 @@
 
   (create-app! [_ app]
     (db/execute-one! ds {:insert-into apps-table
-                         :values [(app->row app)]})))
+                         :values [(app->row app)]}))
+
+  (get-roles [_ {:keys [] :as _opts}])
+
+  (create-role! [_ role]))
 
 (defn ->model [params]
   (let [defaults {:apps-table :apps

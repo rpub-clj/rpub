@@ -23,7 +23,9 @@
   (update-unsaved-changes! [model unsaved-changes])
   (delete-unsaved-changes! [model opts])
   (get-apps [model opts])
-  (create-app! [model app]))
+  (create-app! [model app])
+  (get-roles [model opts])
+  (create-role! [model opts]))
 
 (defn ->slug [title]
   (inflections/parameterize title))

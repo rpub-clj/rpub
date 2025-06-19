@@ -92,7 +92,7 @@
     #_(map #(select-keys % [:id :name]) content-types)}])
 
 (defn- users-handler [{:keys [model] :as req}]
-  (let [roles default-roles
+  (let [roles (model/get-roles [])
         users (rpub/get-users model {})
         content-types (rpub/get-content-types model {})
         permissions (all-permissions content-types)]

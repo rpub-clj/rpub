@@ -130,6 +130,7 @@
      {:create-table [roles-table :if-not-exists]
       :with-columns (concat [(db/uuid-column :id [:primary-key] [:not nil])
                              [:label :text [:not nil]]
+                             [:permissions :text [:not nil]]
                              [:app-id :text [:not nil]]]
                             db/audit-columns)})
 
