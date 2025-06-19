@@ -11,7 +11,6 @@
             [reitit.ring.middleware.parameters :as reitit-parameters]
             [ring.adapter.jetty :as jetty]
             [rpub.admin :as admin]
-            [rpub.app :as app]
             [rpub.lib.db :as db]
             [rpub.lib.edn]
             [rpub.lib.html :as html]
@@ -22,7 +21,7 @@
             [rpub.lib.transit :as transit]
             [rpub.model :as model]
             [rpub.plugins.admin]
-            [rpub.plugins.app]
+            [rpub.plugins.app :as app]
             [rpub.plugins.content-types.model :as ct-model]
             [taoensso.telemere :as tel])
   (:import (org.eclipse.jetty.server Server)))

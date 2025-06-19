@@ -1,4 +1,4 @@
-(ns rpub.app-test
+(ns rpub.plugins.app-test
   (:require [clojure.test :refer [deftest]]
             [etaoin.api :as e]
             [rpub.test-util :as tu]))
