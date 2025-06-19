@@ -4,9 +4,9 @@
             [rads.inflections :as inflections]
             [reitit.core :as reitit]
             [ring.util.response :as response]
-            [rpub.admin.impl :as admin-impl]
             [rpub.lib.html :as html]
             [rpub.model :as model]
+            [rpub.plugins.admin.impl :as admin-impl]
             [rpub.plugins.content-types :as-alias ct]
             [rpub.plugins.content-types.model :as ct-model]))
 

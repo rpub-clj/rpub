@@ -3,11 +3,11 @@
             ["react" :refer [useEffect]]
             [clojure.string :as str]
             [rads.inflections :as inflections]
-            [rpub.admin.impl :as admin-impl]
             [rpub.lib.dag :as dag]
             [rpub.lib.dag.react :refer [use-dag]]
             [rpub.lib.html :as html]
-            [rpub.lib.http :as http]))
+            [rpub.lib.http :as http]
+            [rpub.plugins.admin.impl :as admin-impl]))
 
 (defn ->unsaved-changes [value]
   (admin-impl/->unsaved-changes

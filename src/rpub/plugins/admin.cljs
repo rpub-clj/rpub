@@ -1,12 +1,12 @@
-(ns rpub.admin
+(ns rpub.plugins.admin
   (:require ["preact/devtools"]
-            [rpub.admin.dashboard-page :as dashboard-page]
-            [rpub.admin.impl :as admin-impl]
-            [rpub.admin.new-user-page :as new-user-page]
-            [rpub.admin.plugins-page :as plugins-page]
-            [rpub.admin.settings-page :as settings-page]
-            [rpub.admin.themes-page :as themes-page]
-            [rpub.admin.users-page :as users-page]
+            [rpub.plugins.admin.dashboard-page :as dashboard-page]
+            [rpub.plugins.admin.impl :as admin-impl]
+            [rpub.plugins.admin.new-user-page :as new-user-page]
+            [rpub.plugins.admin.plugins-page :as plugins-page]
+            [rpub.plugins.admin.settings-page :as settings-page]
+            [rpub.plugins.admin.themes-page :as themes-page]
+            [rpub.plugins.admin.users-page :as users-page]
             [rpub.plugins.content-types.admin :as content-types-admin]))
 
 (defn- add-pages [opts]

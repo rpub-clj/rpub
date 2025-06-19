@@ -1,4 +1,4 @@
-(ns rpub.admin.impl
+(ns rpub.plugins.admin.impl
   {:no-doc true}
   (:require ["flowbite" :as flowbite]
             ["react" :refer [useId useEffect useState]]

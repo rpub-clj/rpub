@@ -69,7 +69,7 @@
      (ns rpub.dev.cljs.repl
        (:require [rpub.lib.tap :as tap]
                  [rpub.dev.cljs.client :as client]
-                 [rpub.admin :as admin]
+                 [rpub.plugins.admin :as admin]
                  [rpub.lib.dag :as dag]
                  [rpub.dev.dag.viz :as dag-viz]
                  [rpub.dev.dag.viz.aliases :as dag-viz-aliases]))

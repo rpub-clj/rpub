@@ -1,6 +1,6 @@
-(ns rpub.admin.users-page
-  (:require [rpub.admin.impl :as admin-impl]
-            [rpub.lib.html :as html]))
+(ns rpub.plugins.admin.users-page
+  (:require [rpub.lib.html :as html]
+            [rpub.plugins.admin.impl :as admin-impl]))
 
 (def ^:private columns
   [{:name "Username"

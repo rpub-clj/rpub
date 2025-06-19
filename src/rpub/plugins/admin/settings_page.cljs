@@ -1,8 +1,8 @@
-(ns rpub.admin.settings-page
-  (:require [rpub.admin.impl :as admin-impl]
-            [rpub.lib.dag.react :refer [use-dag]]
+(ns rpub.plugins.admin.settings-page
+  (:require [rpub.lib.dag.react :refer [use-dag]]
             [rpub.lib.html :as html]
-            [rpub.lib.http :as http]))
+            [rpub.lib.http :as http]
+            [rpub.plugins.admin.impl :as admin-impl]))
 
 (defn- page [{:keys [settings] :as _props}]
   (let [[{:keys [::field-values ::submitting]}

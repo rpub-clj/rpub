@@ -1,7 +1,7 @@
 (ns rpub.plugins.content-types.admin.single-content-type-page
   (:require [rads.inflections :as inflections]
-            [rpub.admin.impl :as admin-impl]
-            [rpub.lib.html :as html]))
+            [rpub.lib.html :as html]
+            [rpub.plugins.admin.impl :as admin-impl]))
 
 (def months
   ["January" "February" "March" "April" "May" "June"

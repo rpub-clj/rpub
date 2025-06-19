@@ -5,10 +5,10 @@
                                      Position]]
             ["react" :refer [useCallback useEffect useState]]
             [clojure.string :as str]
-            [rpub.admin.impl :as admin-impl]
             [rpub.lib.dag :as dag-lib]
             [rpub.lib.html :as html]
-            [rpub.lib.http :as http]))
+            [rpub.lib.http :as http]
+            [rpub.plugins.admin.impl :as admin-impl]))
 
 (defn- custom-node [^:js {:keys [data]}]
   #jsx[:div.react-flow__node-default

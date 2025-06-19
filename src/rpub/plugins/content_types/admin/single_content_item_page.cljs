@@ -1,9 +1,9 @@
 (ns rpub.plugins.content-types.admin.single-content-item-page
   (:require [clojure.string :as str]
             [rads.inflections :as inflections]
-            [rpub.admin.impl :as admin-impl]
             [rpub.lib.html :as html]
-            [rpub.lib.permalinks :as permalinks]))
+            [rpub.lib.permalinks :as permalinks]
+            [rpub.plugins.admin.impl :as admin-impl]))
 
 (defn- content-item-fields [{:keys [content-item editing creating field-types]}]
   (let [{:keys [content-type]} content-item]

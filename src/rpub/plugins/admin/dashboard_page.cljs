@@ -1,5 +1,5 @@
-(ns rpub.admin.dashboard-page
-  (:require [rpub.admin.impl :as admin-impl]))
+(ns rpub.plugins.admin.dashboard-page
+  (:require [rpub.plugins.admin.impl :as admin-impl]))
 
 (defn- dashboard-content-types [{:keys [content-types]}]
   [:div {:class "w-full md:w-1/2 md:px-2 mb-4"

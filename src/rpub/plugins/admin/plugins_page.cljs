@@ -1,10 +1,10 @@
-(ns rpub.admin.plugins-page
+(ns rpub.plugins.admin.plugins-page
   (:require ["preact/devtools"]
             [clojure.string :as str]
-            [rpub.admin.impl :as admin-impl]
             [rpub.lib.dag.react :refer [use-dag]]
             [rpub.lib.html :as html]
-            [rpub.lib.http :as http]))
+            [rpub.lib.http :as http]
+            [rpub.plugins.admin.impl :as admin-impl]))
 
 (defn activate-plugin [db k]
   (-> db

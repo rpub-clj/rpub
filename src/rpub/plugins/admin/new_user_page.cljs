@@ -1,7 +1,7 @@
-(ns rpub.admin.new-user-page
-  (:require [rpub.admin.impl :as admin-impl]
-            [rpub.lib.dag.react :refer [use-dag]]
-            [rpub.lib.html :as html]))
+(ns rpub.plugins.admin.new-user-page
+  (:require [rpub.lib.dag.react :refer [use-dag]]
+            [rpub.lib.html :as html]
+            [rpub.plugins.admin.impl :as admin-impl]))
 
 (defn page [_]
   (let [[{:keys [::field-values ::submitting]}

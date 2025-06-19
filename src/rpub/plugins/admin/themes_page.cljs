@@ -1,7 +1,7 @@
-(ns rpub.admin.themes-page
-  (:require [rpub.admin.impl :as admin-impl]
-            [rpub.lib.dag.react :refer [use-dag]]
-            [rpub.lib.http :as http]))
+(ns rpub.plugins.admin.themes-page
+  (:require [rpub.lib.dag.react :refer [use-dag]]
+            [rpub.lib.http :as http]
+            [rpub.plugins.admin.impl :as admin-impl]))
 
 (defn activate-theme [db theme-label]
   (assoc db :themes-page/current-theme-name-setting {:value theme-label}))

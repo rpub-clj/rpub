@@ -1,4 +1,4 @@
-(ns rpub.admin.impl
+(ns rpub.plugins.admin.impl
   (:require [babashka.json :as json]
             [buddy.auth.backends :as buddy-backends]
             [clojure.java.io :as io]
@@ -176,7 +176,7 @@
    cljsClient.start_BANG_();")
 
 (def ^:private prod-script
-  "import * as admin from 'rpub.admin';
+  "import * as admin from 'rpub.plugins.admin';
    admin.start_BANG_();")
 
 (defn- import-script [{:keys [cljs-repl]}]
