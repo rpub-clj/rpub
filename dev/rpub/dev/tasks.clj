@@ -22,7 +22,8 @@
                        "--malli-dev"
                        "--logs-pretty"
                        "--http-tracing-enabled"
-                       "--clj-repl-port" "0"
+                       "--clj-repl-bind" "0.0.0.0"
+                       "--clj-repl-port" "7888"
                        "--clj-repl-flow-storm-middleware"
                        "--cljs-repl"
                        *command-line-args*)]
