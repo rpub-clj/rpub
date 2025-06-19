@@ -15,7 +15,7 @@
     (tasks/init-data opts')
     (loop []
       (let [app (apply p/shell
-                       "clojure -M:user:common:dev:test:app"
+                       "clojure -M:user:flowstorm:common:dev:test:app"
                        "--no-content-security-policy"
                        "--no-error-page"
                        "--reload"
