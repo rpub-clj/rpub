@@ -194,9 +194,12 @@
                   :users-table :users
                   :settings-table :settings
                   :plugins-table :plugins
-                  :unsaved-changes-table :unsaved-changes}
+                  :unsaved-changes-table :unsaved-changes
+                  :roles-table :roles
+                  :user-roles-table :user-roles}
         valid-keys [:db-type :ds :app-id :apps-table :users-table
-                    :settings-table :plugins-table :unsaved-changes-table]
+                    :settings-table :plugins-table :unsaved-changes-table
+                    :roles-table :user-roles-table]
         params' (merge defaults (select-keys params valid-keys))]
     (map->Model params')))
 

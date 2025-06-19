@@ -19,7 +19,8 @@
             [rpub.lib.router :as rpub-router]
             [rpub.lib.transit :as transit]
             [rpub.model :as model]
-            [rpub.plugins.admin :as admin]
+            [rpub.plugins.admin.helpers :as admin-helpers]
+            [rpub.plugins.admin.setup :as admin-setup]
             [rpub.plugins.app :as app]
             [rpub.plugins.content-types.model :as ct-model]
             [taoensso.telemere :as tel])
@@ -73,7 +74,7 @@
 (defn- error-response [_]
   {:status 500
    :body
-   (admin/layout
+   (admin-helpers/layout
      {:title "Error"
       :content [:div.p-8.text-center.max-w-4xl.mx-auto
                 [:div.text-5xl.font-app-serif.italic.mb-8.mt-16
@@ -149,7 +150,7 @@
   [:map
    [:id :uuid]
    [:username :string]
-   [:password-hash :string]])
+   [:password-hash {:optional true} :string]])
 
 (defn get-users
   "Get a sequence of users."
@@ -286,7 +287,7 @@
   (let [opts' (assoc opts :session-store-key (->session-store-key))]
     (reitit-ring/ring-handler
       (reitit-ring/router
-        (admin/setup-routes opts')
+        (admin-setup/setup-routes opts')
         {:data {:muuntaja custom-muuntaja
                 :middleware [reitit-parameters/parameters-middleware
                              reitit-muuntaja/format-middleware

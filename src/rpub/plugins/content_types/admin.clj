@@ -6,7 +6,7 @@
             [ring.util.response :as response]
             [rpub.lib.html :as html]
             [rpub.model :as model]
-            [rpub.plugins.admin.impl :as admin-impl]
+            [rpub.plugins.admin.helpers :as admin-helpers]
             [rpub.plugins.content-types :as-alias ct]
             [rpub.plugins.content-types.model :as ct-model]))
 
@@ -29,7 +29,7 @@
   (let [content-types (get-content-types req)
         unsaved-changes (-> (get-unsaved-changes req :all-content-types-page)
                             last-updated)]
-    (admin-impl/page-response
+    (admin-helpers/page-response
       req
       {:title "Content Types"
        :primary
@@ -49,7 +49,7 @@
                               (let [user (get users-index (:created-by content-item))]
                                 (assoc content-item :created-by user)))
                             content-items)]
-    (admin-impl/page-response
+    (admin-helpers/page-response
       req
       {:title (inflections/plural (:name content-type))
        :primary
@@ -62,7 +62,7 @@
   (let [{:keys [content-type-slug]} path-params
         [content-type] (ct-model/get-content-types model {:content-type-slugs [content-type-slug]})
         permalink-single (get-in settings [:permalink-single :value])]
-    (admin-impl/page-response
+    (admin-helpers/page-response
       req
       {:title (str "New " (inflections/singular (:name content-type)))
        :primary
@@ -93,7 +93,7 @@
                           #_(dissoc :fields)
                           #_(update-in [:document content-field-id] md->html))
         {:keys [content-type]} content-item']
-    (admin-impl/page-response
+    (admin-helpers/page-response
       req
       {:title (str "Edit " (inflections/singular (:name content-type)))
        :primary
@@ -148,7 +148,7 @@
               :href "/admin/content-types"}]})
 
 (defn routes [opts]
-  [["" {:middleware (admin-impl/admin-middleware opts)}
+  [["" {:middleware (admin-helpers/admin-middleware opts)}
     ["/admin/api/content-types/update"
      {:post #'update-content-types-handler}]
     ["/admin/content-types"

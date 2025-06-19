@@ -124,11 +124,45 @@
    :rollback (fn [{:keys [tx]}]
                (db/execute-one! tx {:drop-table unsaved-changes-table}))})
 
+(defn- roles-tables-schema
+  [{:keys [roles-table user-roles-table] :as _model}]
+  [(db/strict
+     {:create-table [roles-table :if-not-exists]
+      :with-columns (concat [(db/uuid-column :id [:primary-key] [:not nil])
+                             [:label :text [:not nil]]
+                             [:app-id :text [:not nil]]]
+                            db/audit-columns)})
+
+   {:create-index [[:unique (db/index-name roles-table :label) :if-not-exists]
+                   [roles-table :app-id :label]]}
+
+   (db/strict
+     {:create-table [user-roles-table :if-not-exists]
+      :with-columns (concat [(db/uuid-column :id [:primary-key] [:not nil])
+                             [:user-id :text [:not nil]]
+                             [:role-id :text [:not nil]]
+                             [:app-id :text [:not nil]]]
+                            db/audit-columns)})
+
+   {:create-index [[:unique (db/index-name user-roles-table :user-role) :if-not-exists]
+                   [user-roles-table :app-id :user-id :role-id]]}])
+
+(defn- roles-tables-migration
+  [{:keys [roles-table user-roles-table] :as model}]
+  {:id :roles-and-permissions-tables
+   :migrate (fn [{:keys [tx]}]
+              (doseq [stmt (roles-tables-schema model)]
+                (db/execute-one! tx stmt)))
+   :rollback (fn [{:keys [tx]}]
+               (doseq [table [user-roles-table roles-table]]
+                 (db/execute-one! tx {:drop-table table})))})
+
 (defn- migrations [model _opts]
   [(initial-schema-migration model)
    (unsaved-changes-table-migration model)
    (apps-table-migration model)
-   (app-id-columns-migration model)])
+   (app-id-columns-migration model)
+   (roles-tables-migration model)])
 
 (defn config [model opts]
   {:migrations (migrations model opts)

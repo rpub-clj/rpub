@@ -1,7 +1,7 @@
 (ns rpub.plugins.content-types.admin
   (:require [rpub.lib.html :as html]
             [rpub.lib.reagent :as r]
-            [rpub.plugins.admin.impl :as admin-impl]
+            [rpub.plugins.admin.helpers :as admin-helpers]
             [rpub.plugins.content-types.admin.all-content-types-page
              :as all-content-types-page]
             [rpub.plugins.content-types.admin.single-content-item-page
@@ -48,6 +48,6 @@
                     (r/reactify-component rpub-field-types-datetime)))
 
 (defn add-pages [& {:as opts}]
-  (admin-impl/add-page (merge opts all-content-types-page/config))
-  (admin-impl/add-page (merge opts single-content-item-page/config))
-  (admin-impl/add-page (merge opts single-content-type-page/config)))
+  (admin-helpers/add-page (merge opts all-content-types-page/config))
+  (admin-helpers/add-page (merge opts single-content-item-page/config))
+  (admin-helpers/add-page (merge opts single-content-type-page/config)))

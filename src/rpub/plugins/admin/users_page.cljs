@@ -30,27 +30,7 @@
              (let [checked (contains? roles :contributor)]
                [checkbox {:checked checked}]))}])
 
-(def ^:private default-roles
-  [{:id (uuid "b84752e4-de2a-4329-a315-cac6a5c97b0b")
-    :label "Admin"
-    :permissions {:create-page true
-                  :edit-page true
-                  :create-post true
-                  :edit-post true}}
-   {:id (uuid "f9846fb4-1832-46f3-afe2-80670d5a6bdc")
-    :label "Contributor"
-    :permissions {:create-page true
-                  :edit-page true
-                  :create-post true
-                  :edit-post true}}])
-
-(defn roles->permissions [_]
-  [{:permission-key :create-user, :roles #{:admin}}
-   {:permission-key :edit-user, :roles #{:admin}}
-   {:permission-key :create-post, :roles #{:admin :contributor}}
-   {:permission-key :edit-post, :roles #{:admin :contributor}}])
-
-(defn- page [{:keys [users]}]
+(defn- page [{:keys [users roles permissions]}]
   [:div {:class "p-4"}
    [:div {:class "mb-4"}
     [admin-impl/table
@@ -62,10 +42,19 @@
    [:div
     [admin-impl/table
      {:title "Roles & Permissions"
+      :description [:div
+                    (for [role roles]
+                      [:div {:class "mb-4"}
+                       [:div {:class "inline-block font-semibold text-lg"
+                              :style "min-width: 150px"}
+                        (:label role)]
+                       [:select {:class "inline-block"}
+                        [:option "Access to all permissions"]
+                        [:option "Access to manually selected permissions"]]])]
       :header-buttons [:a {:href "/admin/users/new"}
                        [html/action-button "New Role"]]
       :columns permissions-columns
-      :rows (roles->permissions default-roles)}]]])
+      :rows permissions}]]])
 
 (def config
   {:page-id :users-page
