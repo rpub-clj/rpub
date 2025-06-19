@@ -23,7 +23,7 @@
   (admin-impl/page-response req current-page))
 
 (defn admin-middleware [opts]
-  (admin-impl/admin-middleware opts))
+  (admin-helpers/admin-middleware opts))
 
 (defn- redirect-field [{:keys [redirect-to] :as _flash}]
   (when redirect-to
@@ -304,11 +304,11 @@
     (response/response {:success true})))
 
 (defn routes [opts]
-  [["" {:middleware (admin-impl/admin-middleware (assoc opts :tap false))}
+  [["" {:middleware (admin-helpers/admin-middleware (assoc opts :tap false))}
     ["/admin/api/get-dag-metadata" {:post #'get-dag-metadata-handler}]
     ["/admin/api/update-dag-metadata" {:post #'update-dag-metadata-handler}]
     ["/admin/api/tap" {:post #'tap/handler}]]
-   ["" {:middleware (admin-impl/admin-middleware opts)}
+   ["" {:middleware (admin-helpers/admin-middleware opts)}
     ["/admin" {:get #'dashboard-handler}]
     ["/admin/api/activate-plugin" {:post #'activate-plugin-handler}]
     ["/admin/api/create-user" {:post #'create-user-handler}]
