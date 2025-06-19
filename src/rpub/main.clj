@@ -5,12 +5,12 @@
             [clojure.string :as str]
             [nrepl.cmdline :as nrepl]
             [rpub.admin]
-            [rpub.api]
             [rpub.app]
             [rpub.core :as rpub]
             [rpub.lib.logs :as logs]
             [rpub.lib.malli :as malli]
             [rpub.model.sqlite]
+            [rpub.plugins.api]
             [rpub.plugins.content-types]
             [taoensso.telemere :as tel]))
 

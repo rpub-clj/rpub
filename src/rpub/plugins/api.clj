@@ -1,4 +1,4 @@
-(ns rpub.api
+(ns rpub.plugins.api
   {:no-doc true}
   (:require [buddy.auth.backends :as buddy-backends]
             [ring.middleware.defaults :as defaults]
