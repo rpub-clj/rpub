@@ -184,26 +184,3 @@
       (create-setting! model' setting))
     (doseq [plugin (initial-plugins opts)]
       (update-plugin! model' plugin))))
-
-(comment
-  (do
-    (def taps (atom []))
-    (defonce debug #(swap! taps conj %))
-    (add-tap debug))
-
-  (get-roles user/model {})
-  (get-users user/model {:roles true})
-
-  (do
-    (require '[rads.migrate :as migrate]
-             '[rpub.model.sqlite.migrations :as migrations])
-    (migrate/migrate! (migrations/config user/model {})))
-
-  (let [req (->> @taps last)
-        {:keys [conn]} req]
-    (ns-unmap 'user 'model)
-    (intern 'user 'model (-> (:model req)
-                             (assoc :ds conn)))
-    (ns-unmap 'user 'ct-model)
-    (intern 'user 'ct-model (-> (:rpub.plugins.content-types/model req)
-                                (assoc :ds conn)))))
