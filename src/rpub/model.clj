@@ -25,7 +25,9 @@
   (get-apps [model opts])
   (create-app! [model app])
   (get-roles [model opts])
-  (create-role! [model opts]))
+  (create-role! [model role])
+  (get-user-roles [model opts])
+  (create-user-role! [model user-role]))
 
 (defn ->slug [title]
   (inflections/parameterize title))
@@ -102,6 +104,12 @@
 
 (def system-user
   {:id #uuid"00000000-0000-0000-0000-000000000000"})
+
+(defn ->role [& {:keys [id label permissions current-user] :as _opts}]
+  (-> {:id (or id (random-uuid))
+       :label label
+       :permissions permissions}
+      (add-metadata current-user)))
 
 (defn ->app [& {:keys [id domains new-user current-user] :as _opts}]
   (-> {:id (or id (random-uuid))
@@ -183,6 +191,19 @@
     (defonce debug #(swap! taps conj %))
     (add-tap debug))
 
-  (let [req (->> @taps (keep :req) last)
-        {:keys [conn model]} req]
-    (migrate! (assoc model :ds conn) req)))
+  (get-roles user/model {})
+  (get-users user/model {:roles true})
+
+  (do
+    (require '[rads.migrate :as migrate]
+             '[rpub.model.sqlite.migrations :as migrations])
+    (migrate/migrate! (migrations/config user/model {})))
+
+  (let [req (->> @taps last)
+        {:keys [conn]} req]
+    (ns-unmap 'user 'model)
+    (intern 'user 'model (-> (:model req)
+                             (assoc :ds conn)))
+    (ns-unmap 'user 'ct-model)
+    (intern 'user 'ct-model (-> (:rpub.plugins.content-types/model req)
+                                (assoc :ds conn)))))

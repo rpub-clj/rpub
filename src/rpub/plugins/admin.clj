@@ -15,6 +15,7 @@
             [rpub.model.app :as-alias model-app]
             [rpub.plugins.admin.helpers :as admin-helpers]
             [rpub.plugins.admin.impl :as admin-impl]
+            [rpub.plugins.admin.roles :as roles]
             [rpub.plugins.content-types :as content-types]))
 
 (def system-user model/system-user)
@@ -73,29 +74,12 @@
            :current-user current-user'
            :settings settings'}])})))
 
-(def ^:private default-roles
-  [{:id #uuid"b84752e4-de2a-4329-a315-cac6a5c97b0b"
-    :label "Admin"
-    :permissions :all}
-   {:id #uuid"f9846fb4-1832-46f3-afe2-80670d5a6bdc"
-    :label "Contributor"
-    :permissions #{:create-page
-                   :edit-page
-                   :create-post
-                   :edit-post}}])
-
-(defn all-permissions [_content-types]
-  [{:permission-key :create-user, :roles #{:admin}}
-   {:permission-key :edit-user, :roles #{:admin}}
-   {:permission-key :create-post, :roles #{:admin :contributor}}
-   {:permission-key :edit-post, :roles #{:admin :contributor}
-    #_(map #(select-keys % [:id :name]) content-types)}])
-
 (defn- users-handler [{:keys [model] :as req}]
-  (let [roles (model/get-roles [])
-        users (rpub/get-users model {})
+  (let [roles (model/get-roles model {})
+        users (rpub/get-users model {:roles true})
         content-types (rpub/get-content-types model {})
-        permissions (all-permissions content-types)]
+        permissions (roles/all-permissions {:roles roles
+                                            :content-types content-types})]
     (admin-impl/page-response
       req
       {:title "Users"

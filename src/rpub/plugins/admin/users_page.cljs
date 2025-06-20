@@ -10,7 +10,7 @@
              [:a {:class "font-semibold"} username])}
    {:name "Roles"
     :value (fn [{:keys [roles]}]
-             (str/join ", " roles))}])
+             (str/join ", " (map :label roles)))}])
 
 (defn- checkbox [{:keys [checked disabled]}]
   [:input {:type "checkbox"
@@ -18,18 +18,18 @@
            :disabled disabled
            :class "w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded-sm focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"}])
 
-(def ^:private permissions-columns
-  [{:name "Permission"
-    :value (fn [{:keys [permission-key]}]
-             (inflections/titleize (name permission-key)))}
-   {:name "Admin"
-    :value (fn [{:keys [roles]}]
-             (let [checked (contains? roles :admin)]
-               [checkbox {:checked checked, :disabled true}]))}
-   {:name "Contributor"
-    :value (fn [{:keys [roles]}]
-             (let [checked (contains? roles :contributor)]
-               [checkbox {:checked checked}]))}])
+(defn- permissions-columns [{:keys [roles]}]
+  (concat
+    [{:name "Permission"
+      :value (fn [{:keys [permission-key]}]
+               (inflections/titleize (name permission-key)))}]
+    (map (fn [role]
+           {:name (:label role)
+            :value (fn [row]
+                     (let [checked (contains? (set (:roles row)) (:label role))]
+                       [checkbox {:checked checked
+                                  :disabled (= (:label role) "Admin")}]))})
+         roles)))
 
 (defn- page [{:keys [users roles permissions]}]
   [:div {:class "p-4"}
@@ -49,12 +49,16 @@
                        [:div {:class "inline-block font-semibold text-lg"
                               :style "min-width: 150px"}
                         (:label role)]
-                       [:select {:class "inline-block"}
-                        [:option "Access to all permissions"]
-                        [:option "Access to manually selected permissions"]]])]
+                       [:select {:class "inline-block"
+                                 :value (if (= (:permissions role) :all)
+                                          "all"
+                                          "manual")
+                                 :disabled true}
+                        [:option {:value "all"} "Access to all permissions"]
+                        [:option {:value "manual"} "Access to manually selected permissions"]]])]
       :header-buttons [:a {:href "/admin/users/new"}
                        [html/action-button "New Role"]]
-      :columns permissions-columns
+      :columns (permissions-columns {:roles roles})
       :rows permissions}]]])
 
 (def config

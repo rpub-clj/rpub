@@ -1,6 +1,7 @@
 (ns rpub.model.sqlite
   {:no-doc true}
-  (:require [rads.migrate :as migrate]
+  (:require [medley.core :as medley]
+            [rads.migrate :as migrate]
             [rpub.lib.db :as db]
             [rpub.lib.edn :as edn]
             [rpub.model :as model]
@@ -10,14 +11,14 @@
 (defn row->metadata [row]
   (cond-> row
     (:id row) (update :id parse-uuid)
+    (:app-id row) (update :app-id parse-uuid)
     (:created-at row) (update :created-at #(Instant/parse %))
     (:created-by row) (update :created-by parse-uuid)
     (:updated-at row) (update :updated-at #(Instant/parse %))
     (:updated-by row) (update :updated-by parse-uuid)))
 
 (defn- row->user [row]
-  (-> (row->metadata row)
-      (update :app-id parse-uuid)))
+  (row->metadata row))
 
 (defn- user->row [user]
   (select-keys user [:id :app-id :username :password-hash :created-at
@@ -34,8 +35,7 @@
 (defn- row->plugin [row]
   (-> (row->metadata row)
       (update :key edn/read-string)
-      (update :activated db/int->bool)
-      (update :app-id parse-uuid)))
+      (update :activated db/int->bool)))
 
 (defn- plugin->row [plugin]
   (-> plugin
@@ -67,6 +67,24 @@
       (update :id parse-uuid)
       (update :domains edn/read-string)))
 
+(defn- row->role [row]
+  (-> (row->metadata row)
+      (update :permissions edn/read-string)))
+
+(defn- role->row [role]
+  (-> role
+      (select-keys [:id :app-id :label :permissions :created-at :created-by
+                    :updated-at :updated-by])
+      (update :permissions pr-str)))
+
+(defn- user-role->row [user-role]
+  user-role)
+
+(defn- row->user-role [row]
+  (-> (row->metadata row)
+      (update :user-id parse-uuid)
+      (update :role-id parse-uuid)))
+
 (defn sql-or [constraints]
   (if (= (count constraints) 1)
     (first constraints)
@@ -77,8 +95,44 @@
     (first constraints)
     (into [:and] constraints)))
 
+(defn- add-roles [users {:keys [roles user-roles]}]
+  (let [user-roles-index (group-by :user-id user-roles)
+        roles-index (medley/index-by :id roles)]
+    (map (fn [user]
+           (let [ur (get user-roles-index (:id user))
+                 r (map #(get roles-index (:role-id %)) ur)]
+             (assoc user :roles r)))
+         users)))
+
+(defn- get-users*
+  [{:keys [app-id ds users-table] :as model}
+   {:keys [ids usernames password] :as opts}]
+  (assert app-id)
+  (let [or-constraints (cond-> []
+                         ids (conj [:in :id ids])
+                         usernames (conj [:in :username usernames]))
+        sql (cond-> {:select [:*]
+                     :from users-table
+                     :where [:= :app-id app-id]}
+              (seq or-constraints)
+              (update :where (fn [x] [:and x (sql-or or-constraints)])))
+        users (->> (db/execute! ds sql)
+                   (map row->user)
+                   (map #(if password % (dissoc % :password-hash))))
+        user-roles (when (:roles opts)
+                     (model/get-user-roles
+                       model
+                       {:user-ids (map :id users)}))
+        roles (when (:roles opts)
+                (model/get-roles
+                  model
+                  {:ids (map :role-id user-roles)}))]
+    (cond-> users
+      (:roles opts) (add-roles {:roles roles, :user-roles user-roles}))))
+
 (defrecord Model [db-type ds app-id apps-table users-table settings-table
-                  plugins-table unsaved-changes-table]
+                  plugins-table unsaved-changes-table roles-table
+                  user-roles-table]
   model/Model
   (db-info [model]
     (select-keys model [:db-type :ds :app-id]))
@@ -86,19 +140,8 @@
   (migrate! [model opts]
     (migrate/migrate! (migrations/config model opts)))
 
-  (get-users [_ {:keys [ids usernames password]}]
-    (assert app-id)
-    (let [or-constraints (cond-> []
-                           ids (conj [:in :id ids])
-                           usernames (conj [:in :username usernames]))
-          sql (cond-> {:select [:*]
-                       :from users-table
-                       :where [:= :app-id app-id]}
-                (seq or-constraints)
-                (update :where (fn [x] [:and x (sql-or or-constraints)])))]
-      (->> (db/execute! ds sql)
-           (map row->user)
-           (map #(if password % (dissoc % :password-hash))))))
+  (get-users [model opts]
+    (get-users* model opts))
 
   (create-user! [_ user]
     (assert app-id)
@@ -189,9 +232,42 @@
     (db/execute-one! ds {:insert-into apps-table
                          :values [(app->row app)]}))
 
-  (get-roles [_ {:keys [] :as _opts}])
+  (get-roles [_ {:keys [ids labels] :as _opts}]
+    (assert app-id)
+    (let [or-constraints (cond-> []
+                           ids (conj [:in :id ids])
+                           labels (conj [:in :label labels]))
+          sql (cond-> {:select [:*]
+                       :from roles-table
+                       :where [:= :app-id app-id]}
+                (seq or-constraints)
+                (update :where (fn [x] [:and x (sql-or or-constraints)])))]
+      (->> (db/execute! ds sql)
+           (map row->role))))
 
-  (create-role! [_ role]))
+  (create-role! [_ role]
+    (assert app-id)
+    (let [role' (assoc role :app-id app-id)]
+      (db/execute-one! ds {:insert-into roles-table
+                           :values [(role->row role')]})))
+
+  (get-user-roles [_ {:keys [user-ids role-ids] :as _opts}]
+    (assert app-id)
+    (let [or-constraints (cond-> []
+                           user-ids (conj [:in :user-id user-ids])
+                           role-ids (conj [:in :role-id role-ids]))
+          sql (cond-> {:select [:*]
+                       :from user-roles-table
+                       :where [:= :app-id app-id]}
+                (seq or-constraints)
+                (update :where (fn [x] [:and x (sql-or or-constraints)])))]
+      (->> (db/execute! ds sql)
+           (map row->user-role))))
+
+  (create-user-role! [_ user-role]
+    (assert app-id)
+    (db/execute-one! ds {:insert-into user-roles-table
+                         :values [(user-role->row user-role)]})))
 
 (defn ->model [params]
   (let [defaults {:apps-table :apps
