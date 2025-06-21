@@ -25,7 +25,7 @@
        (sort-by #(or (:updated-at %) (:created-at %)) #(compare %2 %1))
        first))
 
-(defn all-content-types-handler [{:keys [::ct/field-types] :as req}]
+(defn all-content-types-handler [{:keys [current-user ::ct/field-types] :as req}]
   (let [content-types (get-content-types req)
         unsaved-changes (-> (get-unsaved-changes req :all-content-types-page)
                             last-updated)]
@@ -35,7 +35,8 @@
        :primary
        (html/custom-element
          [:all-content-types-page
-          {:content-types content-types
+          {:current-user (select-keys current-user [:id :roles])
+           :content-types content-types
            :field-types field-types
            :unsaved-changes unsaved-changes}])})))
 

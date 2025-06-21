@@ -54,7 +54,7 @@
 
 (defn get-current-user [{:keys [model] :as req}]
   (let [user-id (get-in req [:identity :id])]
-    (first (get-users model {:ids [user-id]}))))
+    (first (get-users model {:ids [user-id], :roles true}))))
 
 (defn ->setting [& {:keys [id key label value current-user] :as _opts}]
   (-> {:id (or id (random-uuid))

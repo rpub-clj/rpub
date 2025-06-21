@@ -40,7 +40,8 @@
 
 (defn wrap-current-user [handler get-current-user]
   (fn [req]
-    (if-let [user (some-> (get-current-user req) (select-keys [:username]))]
+    (if-let [user (some-> (get-current-user req)
+                          (select-keys [:username :roles]))]
       (handler (assoc req :current-user (merge (:identity req) user)))
       (handler req))))
 

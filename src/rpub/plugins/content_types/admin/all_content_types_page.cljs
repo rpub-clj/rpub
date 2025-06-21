@@ -7,7 +7,8 @@
             [rpub.lib.dag.react :refer [use-dag]]
             [rpub.lib.html :as html]
             [rpub.lib.http :as http]
-            [rpub.plugins.admin.impl :as admin-impl]))
+            [rpub.plugins.admin.impl :as admin-impl]
+            [rpub.plugins.admin.roles :as roles]))
 
 (defn ->unsaved-changes [value]
   (admin-impl/->unsaved-changes
@@ -125,9 +126,10 @@
                           :content-type-field content-type-field}))}
       [(:label field-type)]]]))
 
-(defn init [_ {:keys [content-types field-types unsaved-changes]}]
+(defn init [_ {:keys [current-user content-types field-types unsaved-changes]}]
   (let [content-types-index (admin-impl/index-by :id content-types)]
-    {::past (get-in unsaved-changes [:value ::past])
+    {::current-user current-user
+     ::past (get-in unsaved-changes [:value ::past])
      ::future (get-in unsaved-changes [:value ::future])
      ::original-content-types content-types
      ::field-types field-types
@@ -257,30 +259,31 @@
              :rank 3}]})
 
 (defn header [{:keys [content-types]}]
-  (let [[{:keys [::content-types-index]}
-         push] (use-dag [::content-types-index ::past ::future])]
+  (let [[{:keys [::current-user ::content-types-index]}
+         push] (use-dag [::current-user ::content-types-index ::past ::future])]
     [admin-impl/box
      {:class "pb-4"
       :data-no-select true
       :title [:div {:class "flex items-center"}
               [:div.grow "Content Types"]
-              [html/button
-               {:class "font-app-sans ml-auto"
-                :on-click (fn [_]
-                            (let [placeholder-name "New Content Type"
-                                  new-name (loop [i 1
-                                                  xs (vals content-types-index)]
-                                             (let [n (if (= i 1)
-                                                       placeholder-name
-                                                       (str placeholder-name " " i))]
-                                               (if (some #(= (:name %) n) xs)
-                                                 (recur (inc i) (rest xs))
-                                                 n)))]
-                              (-> (push ::new-content-type
-                                        {:content-type (->content-type {:name new-name})})
-                                  update-unsaved-changes!)))}
+              (when (roles/allowed? current-user {:resource :content-types, :action :create})
+                [html/button
+                 {:class "font-app-sans ml-auto"
+                  :on-click (fn [_]
+                              (let [placeholder-name "New Content Type"
+                                    new-name (loop [i 1
+                                                    xs (vals content-types-index)]
+                                               (let [n (if (= i 1)
+                                                         placeholder-name
+                                                         (str placeholder-name " " i))]
+                                                 (if (some #(= (:name %) n) xs)
+                                                   (recur (inc i) (rest xs))
+                                                   n)))]
+                                (-> (push ::new-content-type
+                                          {:content-type (->content-type {:name new-name})})
+                                    update-unsaved-changes!)))}
 
-               "New Content Type"]]
+                 "New Content Type"])]
       :content [admin-impl/content-item-counts {:content-types content-types}]}]))
 
 (defn update-content-types! [params]
@@ -637,6 +640,7 @@
     ::clear-selection {:push clear-selection}
     ::confirm-save {:push confirm-save}
     ::content-types-index {:calc ::content-types-index}
+    ::current-user {:calc ::current-user}
     ::delete-content-type {:push (with-undo delete-content-type)}
     ::delete-content-type-field {:push (with-undo delete-content-type-field)}
     ::dnd-drag {:push dnd-drag}
@@ -675,6 +679,7 @@
     [::delete-content-type-field ::content-types-index]
     [::delete-content-type-field ::future]
     [::delete-content-type-field ::past]
+    [::init ::current-user]
     [::init ::content-types-index]
     [::new-content-type ::content-types-index]
     [::new-content-type ::future]

@@ -74,7 +74,7 @@
            :current-user current-user'
            :settings settings'}])})))
 
-(defn- users-handler [{:keys [model] :as req}]
+(defn- users-handler [{:keys [model current-user] :as req}]
   (let [roles (model/get-roles model {})
         users (rpub/get-users model {:roles true})
         content-types (rpub/get-content-types model {})
@@ -85,11 +85,13 @@
       {:title "Users"
        :primary
        (html/custom-element
-         [:users-page {:roles roles
+         [:users-page {:current-user (select-keys current-user [:id :roles])
+                       :roles roles
                        :users users
                        :permissions permissions}])})))
 
-(defn- new-user-handler [req]
+(defn- new-user-handler [{:keys [current-user] :as req}]
+  (roles/assert-allowed current-user {:resource :users, :action :create})
   (admin-impl/page-response
     req
     {:title "New User"
@@ -98,6 +100,7 @@
        [:new-user-page {}])}))
 
 (defn- create-user-handler [{:keys [model current-user body-params] :as _req}]
+  (roles/assert-allowed current-user {:resource :users, :action :create})
   (let [{:keys [username password]} body-params
         user (model/->user :username username
                            :password password
