@@ -15,7 +15,6 @@
             [rpub.lib.html :as html]
             [rpub.lib.otel :as otel]
             [rpub.lib.permalinks :as permalinks]
-            [rpub.lib.ring :as ring]
             [rpub.lib.router :as rpub-router]
             [rpub.lib.transit :as transit]
             [rpub.model :as model]
@@ -262,8 +261,7 @@
                                           [[otel/wrap-server-span {:create-span? true}]
                                            otel/wrap-exception-event]
                                           [])
-                    :route-middleware [ring/wrap-trace
-                                       reitit-parameters/parameters-middleware
+                    :route-middleware [reitit-parameters/parameters-middleware
                                        reitit-muuntaja/format-middleware
                                        [wrap-rpub opts']
                                        db/wrap-db-transaction]

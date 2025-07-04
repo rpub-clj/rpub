@@ -27,7 +27,9 @@
   (get-roles [model opts])
   (create-role! [model role])
   (get-user-roles [model opts])
-  (create-user-role! [model user-role]))
+  (create-user-role! [model user-role])
+  (get-themes [model opts])
+  (create-theme! [model theme]))
 
 (defn ->slug [title]
   (inflections/parameterize title))
@@ -116,6 +118,13 @@
        :domains domains
        :new-user new-user}
       (add-metadata current-user)))
+
+(defn ->theme [& {:keys [id label value current-user new] :as _opts}]
+  (cond-> {:id (or id (random-uuid))
+           :label label
+           :value value}
+    current-user (add-metadata current-user)
+    new (assoc :new new)))
 
 (defmulti ->model :db-type)
 

@@ -140,7 +140,8 @@
           (plugins/plugin-middleware opts)
           (when content-security-policy
             [ring/wrap-content-security-policy])
-          [wrap-cache]))
+          [wrap-cache
+           ring/wrap-trace]))
 
 (defn wildcard-handler [{:keys [uri] :as req}]
   (case uri

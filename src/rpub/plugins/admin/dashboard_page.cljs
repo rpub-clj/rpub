@@ -32,7 +32,10 @@
      :class "md:h-48"
      :size :half
      :content
-     [:div "This site is using the " [:span {:class "font-semibold underline"} (:label theme)] "."]}]])
+     [:div "This site is using the "
+      [:a {:class "font-semibold underline"
+           :href "/admin/themes"}
+       (:label theme)] " theme."]}]])
 
 (defn- dashboard-plugins [{:keys [activated-plugins]}]
   [:div {:class "w-full md:w-1/2 md:px-2 mb-4"

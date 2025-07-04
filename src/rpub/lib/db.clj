@@ -68,3 +68,13 @@
    [:created-by :text [:not nil]]
    [:updated-at :text]
    [:updated-by :text]])
+
+(defn sql-or [constraints]
+  (if (= (count constraints) 1)
+    (first constraints)
+    (into [:or] constraints)))
+
+(defn sql-and [constraints]
+  (if (= (count constraints) 1)
+    (first constraints)
+    (into [:and] constraints)))

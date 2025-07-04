@@ -14,14 +14,13 @@
             [rpub.model :as model]
             [rpub.model.app :as-alias model-app]
             [rpub.plugins.admin.helpers :as admin-helpers]
-            [rpub.plugins.admin.impl :as admin-impl]
             [rpub.plugins.admin.roles :as roles]
             [rpub.plugins.content-types :as content-types]))
 
 (def system-user model/system-user)
 
 (defn page-response [req current-page]
-  (admin-impl/page-response req current-page))
+  (admin-helpers/page-response req current-page))
 
 (defn admin-middleware [opts]
   (admin-helpers/admin-middleware opts))
@@ -61,7 +60,7 @@
         current-user' (select-keys current-user [:id :username])
         settings' (-> (select-keys settings [:permalink-single])
                       (update-vals #(select-keys % [:id :label :value])))]
-    (admin-impl/page-response
+    (admin-helpers/page-response
       req
       {:title "Dashboard"
        :primary
@@ -80,7 +79,7 @@
         content-types (rpub/get-content-types model {})
         permissions (roles/all-permissions {:roles roles
                                             :content-types content-types})]
-    (admin-impl/page-response
+    (admin-helpers/page-response
       req
       {:title "Users"
        :primary
@@ -92,7 +91,7 @@
 
 (defn- new-user-handler [{:keys [current-user] :as req}]
   (roles/assert-allowed current-user {:resource :users, :action :create})
-  (admin-impl/page-response
+  (admin-helpers/page-response
     req
     {:title "New User"
      :primary
@@ -109,7 +108,7 @@
     (response/redirect "/admin/users")))
 
 (defn- settings-handler [{:keys [model] :as req}]
-  (admin-impl/page-response
+  (admin-helpers/page-response
     req
     {:title "Settings"
      :primary
@@ -124,16 +123,50 @@
        (html/custom-element
          [:settings-page {:settings settings}]))}))
 
-(defn- themes-handler [{:keys [model themes] :as req}]
+(defn- all-themes-handler [{:keys [model themes current-user] :as req}]
   (let [[theme-name-setting] (model/get-settings model {:keys [:theme-name]})
-        themes' (map #(select-keys % [:label :description]) themes)]
-    (admin-impl/page-response
+        custom-themes (->> (model/get-themes model {})
+                           (map #(assoc % :editable true)))
+        themes' (->> (concat themes custom-themes)
+                     (map #(select-keys % [:id :label :description :editable]))
+                     (sort-by :label))]
+    (admin-helpers/page-response
       req
       {:title "Themes"
        :primary
        (html/custom-element
-         [:themes-page {:theme-name-setting theme-name-setting
-                        :themes themes'}])})))
+         [:all-themes-page {:theme-name-setting theme-name-setting
+                            :themes themes'
+                            :current-user current-user}])})))
+
+(defn- new-theme-handler
+  [{:keys [current-user] :as req}]
+  (let [theme (model/->theme {:new true})]
+    (admin-helpers/page-response
+      req
+      {:title "New Theme"
+       :primary
+       (html/custom-element
+         [:single-theme-page {:theme theme
+                              :current-user current-user}])})))
+
+(defn- edit-theme-handler
+  [{:keys [path-params model current-user] :as req}]
+  (let [{:keys [theme-id]} path-params
+        [theme] (model/get-themes model {:ids [theme-id]})
+        theme' (select-keys theme [:id :label :value])]
+    (admin-helpers/page-response
+      req
+      {:title (format "Theme: %s" (:label theme))
+       :primary
+       (html/custom-element
+         [:single-theme-page {:theme theme'
+                              :current-user current-user}])})))
+
+(defn- single-theme-handler [{:keys [path-params] :as req}]
+  (if (= (:theme-id path-params) "new")
+    (new-theme-handler req)
+    (edit-theme-handler req)))
 
 (defn- plugins-handler [{:keys [plugins] :as req}]
   (let [available-plugins (->> (plugins/get-plugins)
@@ -141,7 +174,7 @@
         current-plugins (->> plugins
                              (remove :rpub/internal)
                              (map #(select-keys % [:key :label :activated])))]
-    (admin-impl/page-response
+    (admin-helpers/page-response
       req
       {:title "Plugins"
        :primary
@@ -151,7 +184,7 @@
            :available-plugins available-plugins}])})))
 
 (defn- login-start-handler [{:keys [flash] :as req}]
-  (admin-impl/page-response
+  (admin-helpers/page-response
     req
     {:cljs false
      :title "Log In"
@@ -309,7 +342,8 @@
     ["/admin/logout" {:post #'logout-handler}]
     ["/admin/plugins" {:get #'plugins-handler}]
     ["/admin/settings" {:get #'settings-handler}]
-    ["/admin/themes" {:get #'themes-handler}]
+    ["/admin/themes" {:get #'all-themes-handler}]
+    ["/admin/themes/{theme-id}" {:get #'single-theme-handler}]
     ["/admin/users" {:get #'users-handler}]
     ["/admin/users/new" {:get #'new-user-handler}]]])
 

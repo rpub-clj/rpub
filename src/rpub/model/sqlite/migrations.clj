@@ -158,12 +158,35 @@
                (doseq [table [user-roles-table roles-table]]
                  (db/execute-one! tx {:drop-table table})))})
 
+(defn- themes-tables-schema
+  [{:keys [themes-table] :as _model}]
+  [(db/strict
+     {:create-table [themes-table :if-not-exists]
+      :with-columns (concat [(db/uuid-column :id [:primary-key] [:not nil])
+                             [:label :text [:not nil]]
+                             [:value :text [:not nil]]
+                             [:app-id :text [:not nil]]]
+                            db/audit-columns)})
+
+   {:create-index [[:unique (db/index-name themes-table :label) :if-not-exists]
+                   [themes-table :app-id :label]]}])
+
+(defn- themes-tables-migration
+  [{:keys [themes-table] :as model}]
+  {:id :themes-tables
+   :migrate (fn [{:keys [tx]}]
+              (doseq [stmt (themes-tables-schema model)]
+                (db/execute-one! tx stmt)))
+   :rollback (fn [{:keys [tx]}]
+               (db/execute-one! tx {:drop-table themes-table}))})
+
 (defn- migrations [model _opts]
   [(initial-schema-migration model)
    (unsaved-changes-table-migration model)
    (apps-table-migration model)
    (app-id-columns-migration model)
-   (roles-tables-migration model)])
+   (roles-tables-migration model)
+   (themes-tables-migration model)])
 
 (defn config [model opts]
   {:migrations (migrations model opts)

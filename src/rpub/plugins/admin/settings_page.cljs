@@ -8,25 +8,20 @@
   (let [[{:keys [::field-values ::submitting]}
          push] (use-dag [::field-values ::submitting])
         settings-index (admin-impl/index-by :key settings)
-        http-opts {:format :transit}
         update-setting (fn [setting-key e]
                          (let [value (-> e .-target .-value)]
                            (push ::change-input [setting-key value])))
         submit-form (fn [e]
                       (.preventDefault e)
                       (push ::submit-start)
-                      (let [on-complete (fn [_ err]
-                                          (if err
-                                            (push ::submit-error)
-                                            (.reload (.-location js/window))))
-                            settings (-> (merge-with #(assoc %1 :value %2)
+                      (let [settings (-> (merge-with #(assoc %1 :value %2)
                                                      settings-index
                                                      field-values)
                                          (update-vals #(select-keys % [:key :value]))
-                                         vals)
-                            http-opts' (merge http-opts {:body {:settings settings}
-                                                         :on-complete on-complete})]
-                        (http/post "/admin/api/update-settings" http-opts')))]
+                                         vals)]
+                        (-> (http/post "/admin/api/update-settings" {:body {:settings settings}})
+                            (.then (fn [] (.reload (.-location js/window))))
+                            (.catch (fn [_] (push ::submit-error))))))]
     [:div {:class "p-4"}
      [admin-impl/box
       {:title "Settings"

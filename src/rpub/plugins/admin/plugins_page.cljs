@@ -1,23 +1,9 @@
 (ns rpub.plugins.admin.plugins-page
-  (:require ["preact/devtools"]
-            [clojure.string :as str]
+  (:require [clojure.string :as str]
             [rpub.lib.dag.react :refer [use-dag]]
             [rpub.lib.html :as html]
             [rpub.lib.http :as http]
             [rpub.plugins.admin.impl :as admin-impl]))
-
-(defn activate-plugin [db k]
-  (-> db
-      (assoc :plugins-page/needs-restart true)
-      (update :plugins-page/activated-plugins (fnil conj #{}) k)))
-
-(defn deactivate-plugin [db k]
-  (-> db
-      (assoc :plugins-page/needs-restart true)
-      (update :plugins-page/activated-plugins disj k)))
-
-(defn restart-server [db]
-  (assoc db :plugins-page/restarted true))
 
 (defn- plugin-icon [_]
   [:svg {:class "w-8 h-8 text-gray-500 mr-4" :aria-hidden "true" :xmlns "http://www.w3.org/2000/svg" :width "24" :height "24" :fill "currentColor" :viewBox "0 0 24 24"}
@@ -30,10 +16,10 @@
     (str "https://github.com/rpub-clj/plugins/tree/main/plugins/" suffix)))
 
 (defn- page [{:keys [current-plugins available-plugins] :as _props}]
-  (let [[{:keys [:plugins-page/needs-restart
-                 :plugins-page/activated-plugins]}
-         push] (use-dag [:plugins-page/needs-restart
-                         :plugins-page/activated-plugins])
+  (let [[{:keys [::needs-restart
+                 ::activated-plugins]}
+         push] (use-dag [::needs-restart
+                         ::activated-plugins])
         http-opts {:format :transit}
         current-plugin-index (admin-impl/index-by :key current-plugins)
         activate-plugin (fn [_e plugin]
@@ -41,7 +27,7 @@
                                 body {:plugin (select-keys plugin' [:key])}
                                 on-complete (fn [res _err]
                                               (when res
-                                                (push :plugins-page/activate-plugin (:key plugin'))))
+                                                (push ::activate-plugin (:key plugin'))))
                                 http-opts' (merge http-opts {:body body
                                                              :on-complete on-complete})]
                             (http/post "/admin/api/activate-plugin" http-opts')))
@@ -49,14 +35,14 @@
                             (let [body {:plugin (select-keys plugin [:key])}
                                   on-complete (fn [res _err]
                                                 (when res
-                                                  (push :plugins-page/deactivate-plugin (:key plugin))))
+                                                  (push ::deactivate-plugin (:key plugin))))
                                   http-opts' (merge http-opts {:body body
                                                                :on-complete on-complete})]
                               (http/post "/admin/api/deactivate-plugin" http-opts')))
         restart-server (fn [_e]
                          (let [on-complete (fn [_res _err])
                                http-opts' (merge http-opts {:on-complete on-complete})]
-                           (push :plugins-page/restart-server)
+                           (push ::restart-server)
                            (http/post "/api/restart-server" http-opts')))
         available-plugin-index (admin-impl/index-by :key available-plugins)
         activated-plugin-index (->> activated-plugins
@@ -96,19 +82,32 @@
           (when-let [v (:description plugin)]
             [:p v])]}])]))
 
+(defn activate-plugin [db k]
+  (-> db
+      (assoc ::needs-restart true)
+      (update ::activated-plugins (fnil conj #{}) k)))
+
+(defn deactivate-plugin [db k]
+  (-> db
+      (assoc ::needs-restart true)
+      (update ::activated-plugins disj k)))
+
+(defn restart-server [db]
+  (assoc db ::restarted true))
+
 (def dag-config
   {:nodes
-   {:plugins-page/needs-restart {:calc :plugins-page/needs-restart}
-    :plugins-page/restart-server {:push restart-server}
-    :plugins-page/activated-plugins {:calc :plugins-page/activated-plugins}
-    :plugins-page/activate-plugin {:push activate-plugin}
-    :plugins-page/deactivate-plugin {:push deactivate-plugin}}
+   {::needs-restart {:calc ::needs-restart}
+    ::restart-server {:push restart-server}
+    ::activated-plugins {:calc ::activated-plugins}
+    ::activate-plugin {:push activate-plugin}
+    ::deactivate-plugin {:push deactivate-plugin}}
 
    :edges
-   [[:plugins-page/activate-plugin :plugins-page/needs-restart]
-    [:plugins-page/activate-plugin :plugins-page/activated-plugins]
-    [:plugins-page/deactivate-plugin :plugins-page/needs-restart]
-    [:plugins-page/deactivate-plugin :plugins-page/activated-plugins]]})
+   [[::activate-plugin ::needs-restart]
+    [::activate-plugin ::activated-plugins]
+    [::deactivate-plugin ::needs-restart]
+    [::deactivate-plugin ::activated-plugins]]})
 
 (def config
   {:page-id :plugins-page

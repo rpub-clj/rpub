@@ -216,14 +216,20 @@
        [:body
         content]])))
 
-(defn admin-content [req]
+(defn admin-content [req current-page]
   [:div.antialiased.bg-gray-50
    (header req)
-   (menu req)
-   (main req)])
+   (if (:content current-page)
+     (:content current-page)
+     (list
+       (menu req)
+       (main req)))])
 
-(defn admin-title [_]
-  "rPub Admin")
+(defn admin-title [_req {:keys [title] :as _current-page}]
+  (let [suffix "rPub"]
+    (if title
+      (format "%s - %s" title suffix)
+      suffix)))
 
 (defn login-page? [req]
   (str/starts-with? (:uri req) "/admin/login"))
@@ -244,10 +250,10 @@
                          :current-user current-user
                          :site-title (get-in req [:settings :site-title :value])
                          :menu-items (->plugin-menu-items req)})
-        title (admin-title req')
+        title (admin-title req' current-page)
         content (if (or (login-page? req') (setup-page? req'))
                   (empty-content req')
-                  (admin-content req'))
+                  (admin-content req' current-page))
         body (layout {:cljs cljs
                       :cljs-repl cljs-repl
                       :title title
@@ -362,4 +368,5 @@
       (when content-security-policy
         [[ring/wrap-content-security-policy
           {:extra-script-src csp-extra-script-src}]])
-      [wrap-no-cache])))
+      [wrap-no-cache
+       ring/wrap-trace])))

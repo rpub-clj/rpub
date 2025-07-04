@@ -132,7 +132,7 @@
                        :from content-types-table
                        :where [:= :app-id app-id]}
                 (seq or-constraints)
-                (update :where (fn [x] [:and x (sqlite/sql-or or-constraints)])))
+                (update :where (fn [x] [:and x (db/sql-or or-constraints)])))
           content-types (->> (db/execute! ds sql)
                              (map row->content-type))
           content-type-fields (get-content-type-fields
@@ -161,7 +161,7 @@
                                        (seq content-item-ids) (conj [:in :id content-item-ids]))]
                      (->> (db/execute! ds {:select [:*]
                                            :from [content-items-table]
-                                           :where (sqlite/sql-and constraints)})
+                                           :where (db/sql-and constraints)})
                           (map row->content-item)
                           (map (fn [{:keys [document] :as content-item}]
                                  (let [fields (update-keys document #(get-in fields-index [% :name]))]

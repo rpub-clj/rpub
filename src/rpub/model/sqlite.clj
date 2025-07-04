@@ -12,6 +12,7 @@
   (cond-> row
     (:id row) (update :id parse-uuid)
     (:app-id row) (update :app-id parse-uuid)
+    (:user-id row) (update :user-id parse-uuid)
     (:created-at row) (update :created-at #(Instant/parse %))
     (:created-by row) (update :created-by parse-uuid)
     (:updated-at row) (update :updated-at #(Instant/parse %))
@@ -45,7 +46,6 @@
 
 (defn row->unsaved-changes [row]
   (-> (row->metadata row)
-      (update :user-id parse-uuid)
       (update :key edn/read-string)
       (update :value edn/read-string)))
 
@@ -82,18 +82,14 @@
 
 (defn- row->user-role [row]
   (-> (row->metadata row)
-      (update :user-id parse-uuid)
       (update :role-id parse-uuid)))
 
-(defn sql-or [constraints]
-  (if (= (count constraints) 1)
-    (first constraints)
-    (into [:or] constraints)))
+(defn- theme->row [theme]
+  (update theme :value pr-str))
 
-(defn sql-and [constraints]
-  (if (= (count constraints) 1)
-    (first constraints)
-    (into [:and] constraints)))
+(defn- row->theme [row]
+  (-> (row->metadata row)
+      (update :value edn/read-string)))
 
 (defn- add-roles [users {:keys [roles user-roles]}]
   (let [user-roles-index (group-by :user-id user-roles)
@@ -115,7 +111,7 @@
                      :from users-table
                      :where [:= :app-id app-id]}
               (seq or-constraints)
-              (update :where (fn [x] [:and x (sql-or or-constraints)])))
+              (update :where (fn [x] [:and x (db/sql-or or-constraints)])))
         users (->> (db/execute! ds sql)
                    (map row->user)
                    (map #(if password % (dissoc % :password-hash))))
@@ -132,7 +128,7 @@
 
 (defrecord Model [db-type ds app-id apps-table users-table settings-table
                   plugins-table unsaved-changes-table roles-table
-                  user-roles-table]
+                  user-roles-table themes-table]
   model/Model
   (db-info [model]
     (select-keys model [:db-type :ds :app-id]))
@@ -158,7 +154,7 @@
                        :from settings-table
                        :where [:= :app-id app-id]}
                 (seq or-constraints)
-                (update :where (fn [x] [:and x (sql-or or-constraints)])))]
+                (update :where (fn [x] [:and x (db/sql-or or-constraints)])))]
       (->> (db/execute! ds sql)
            (map row->setting))))
 
@@ -184,7 +180,7 @@
                        :from plugins-table
                        :where [:= :app-id app-id]}
                 (seq or-constraints)
-                (update :where (fn [x] [:and x (sql-or or-constraints)])))]
+                (update :where (fn [x] [:and x (db/sql-or or-constraints)])))]
       (->> (db/execute! ds sql)
            (map row->plugin))))
 
@@ -203,7 +199,7 @@
                         (seq client-ids) (conj [:in :client-id client-ids]))]
       (->> (db/execute! ds {:select [:*]
                             :from unsaved-changes-table
-                            :where (sql-and constraints)})
+                            :where (db/sql-and constraints)})
            (map row->unsaved-changes))))
 
   (update-unsaved-changes! [_ unsaved-changes]
@@ -219,7 +215,7 @@
     (let [constraints [[:in :user-id user-ids]
                        [:in :key (map pr-str keys)]]]
       (db/execute-one! ds {:delete-from unsaved-changes-table
-                           :where (sql-and constraints)})))
+                           :where (db/sql-and constraints)})))
 
   (get-apps [_ {:keys [domains]}]
     (assert (not app-id))
@@ -241,7 +237,7 @@
                        :from roles-table
                        :where [:= :app-id app-id]}
                 (seq or-constraints)
-                (update :where (fn [x] [:and x (sql-or or-constraints)])))]
+                (update :where (fn [x] [:and x (db/sql-or or-constraints)])))]
       (->> (db/execute! ds sql)
            (map row->role))))
 
@@ -260,14 +256,32 @@
                        :from user-roles-table
                        :where [:= :app-id app-id]}
                 (seq or-constraints)
-                (update :where (fn [x] [:and x (sql-or or-constraints)])))]
+                (update :where (fn [x] [:and x (db/sql-or or-constraints)])))]
       (->> (db/execute! ds sql)
            (map row->user-role))))
 
   (create-user-role! [_ user-role]
     (assert app-id)
     (db/execute-one! ds {:insert-into user-roles-table
-                         :values [(user-role->row user-role)]})))
+                         :values [(user-role->row user-role)]}))
+
+  (get-themes [_ {:keys [ids] :as _opts}]
+    (assert app-id)
+    (let [or-constraints (cond-> []
+                           ids (conj [:in :id ids]))
+          sql (cond-> {:select [:*]
+                       :from themes-table
+                       :where [:= :app-id app-id]}
+                (seq or-constraints)
+                (update :where (fn [x] [:and x (db/sql-or or-constraints)])))]
+      (->> (db/execute! ds sql)
+           (map row->theme))))
+
+  (create-theme! [_ theme]
+    (assert app-id)
+    (let [theme' (assoc theme :app-id app-id)]
+      (db/execute-one! ds {:insert-into themes-table
+                           :values [(theme->row theme')]}))))
 
 (defn ->model [params]
   (let [defaults {:apps-table :apps
@@ -276,10 +290,11 @@
                   :plugins-table :plugins
                   :unsaved-changes-table :unsaved-changes
                   :roles-table :roles
-                  :user-roles-table :user-roles}
+                  :user-roles-table :user-roles
+                  :themes-table :themes}
         valid-keys [:db-type :ds :app-id :apps-table :users-table
                     :settings-table :plugins-table :unsaved-changes-table
-                    :roles-table :user-roles-table]
+                    :roles-table :user-roles-table :themes-table]
         params' (merge defaults (select-keys params valid-keys))]
     (map->Model params')))
 
