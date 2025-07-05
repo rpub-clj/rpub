@@ -10,7 +10,7 @@
         (e/wait-visible "[data-test-id='dashboard-content-types']")
         (tu/wait-match-text
           "[data-test-id='dashboard-theme']"
-          #"(?s).*This site is using the Starter Theme.*")
+          #"(?s).*This site is using the Starter theme.*")
         (tu/wait-match-text
           "[data-test-id='dashboard-plugins']"
           #"(?s).*This site has 2 plugins activated.*")

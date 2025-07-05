@@ -1,10 +1,7 @@
 (ns rpub.plugins.admin
   {:no-doc true}
-  (:require [clojure.string :as str]
-            [rpub.model :as model]
-            [rpub.model.app :as-alias model-app]
+  (:require [rpub.model :as model]
             [rpub.plugins.admin.dashboard :as dashboard]
-            [rpub.plugins.admin.dev :as dev]
             [rpub.plugins.admin.helpers :as helpers]
             [rpub.plugins.admin.login :as login]
             [rpub.plugins.admin.plugins :as plugins]
@@ -13,18 +10,10 @@
             [rpub.plugins.admin.unsaved-changes :as unsaved-changes]
             [rpub.plugins.admin.users :as users]))
 
-(def system-user model/system-user)
+(defn dev-routes [opts]
+  ((requiring-resolve 'rpub.plugins.admin.dev/routes) opts))
 
-(defn page-response [req current-page]
-  (helpers/page-response req current-page))
-
-(defn admin-middleware [opts]
-  (helpers/admin-middleware opts))
-
-(defn admin-path? [uri]
-  (str/starts-with? uri "/admin"))
-
-(defn routes [opts]
+(defn routes [{:keys [admin-dev] :as opts}]
   (let [admin-middleware (helpers/admin-middleware opts)
         opts' (assoc opts :admin-middleware admin-middleware)]
     [(unsaved-changes/routes opts')
@@ -34,7 +23,7 @@
      (plugins/routes opts')
      (users/routes opts')
      (themes/routes opts')
-     (dev/routes opts')]))
+     (when admin-dev (dev-routes opts'))]))
 
 (defmethod model/internal-plugin ::plugin [_]
   {:routes routes})

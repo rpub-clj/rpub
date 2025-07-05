@@ -157,7 +157,7 @@
 
         {:key :theme-name
          :label "Theme Name"
-         :value "Starter Theme"}
+         :value "Starter"}
 
         {:key :site-description
          :label "Site Description"

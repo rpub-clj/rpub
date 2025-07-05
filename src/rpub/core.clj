@@ -326,7 +326,8 @@
 
 (def defaults
   "The default options for the rPub server."
-  {:content-security-policy true
+  {:admin-dev false
+   :content-security-policy true
    :database-url "jdbc:sqlite:data/app.db"
    :error-page true
    :http-tracing-enabled false

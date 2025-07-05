@@ -19,6 +19,7 @@
                        "--no-content-security-policy"
                        "--no-error-page"
                        "--reload"
+                       "--admin-dev"
                        "--malli-dev"
                        "--logs-pretty"
                        "--http-tracing-enabled"

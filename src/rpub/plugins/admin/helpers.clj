@@ -370,3 +370,6 @@
           {:extra-script-src csp-extra-script-src}]])
       [wrap-no-cache
        ring/wrap-trace])))
+
+(defn admin-path? [uri]
+  (str/starts-with? uri "/admin"))
