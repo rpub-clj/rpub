@@ -1,9 +1,9 @@
-(ns rpub.plugins.admin.plugins-page
+(ns rpub.plugins.admin.plugins.page
   (:require [clojure.string :as str]
             [rpub.lib.dag.react :refer [use-dag]]
             [rpub.lib.html :as html]
             [rpub.lib.http :as http]
-            [rpub.plugins.admin.impl :as admin-impl]))
+            [rpub.plugins.admin.helpers :as helpers]))
 
 (defn- plugin-icon [_]
   [:svg {:class "w-8 h-8 text-gray-500 mr-4" :aria-hidden "true" :xmlns "http://www.w3.org/2000/svg" :width "24" :height "24" :fill "currentColor" :viewBox "0 0 24 24"}
@@ -20,7 +20,7 @@
                  ::activated-plugins]}
          push] (use-dag [::needs-restart
                          ::activated-plugins])
-        current-plugin-index (admin-impl/index-by :key current-plugins)
+        current-plugin-index (helpers/index-by :key current-plugins)
         activate-plugin (fn [_e plugin]
                           (let [plugin' (assoc plugin :activated true)
                                 body {:plugin (select-keys plugin' [:key])}]
@@ -33,7 +33,7 @@
         restart-server (fn [_e]
                          (push ::restart-server)
                          (http/post "/api/restart-server" {}))
-        available-plugin-index (admin-impl/index-by :key available-plugins)
+        available-plugin-index (helpers/index-by :key available-plugins)
         activated-plugin-index (->> activated-plugins
                                     (map (fn [k] [k {:activated true}]))
                                     (into {}))
@@ -42,7 +42,7 @@
                                               available-plugin-index
                                               activated-plugin-index))]
     [:div {:class "p-4"}
-     [admin-impl/box
+     [helpers/box
       {:title "Plugins"
        :class "mb-4"
        :content
@@ -55,7 +55,7 @@
             "Restart"]])]}]
      (for [plugin (sort-by #(str/lower-case (or (:label %) (:key %)))
                            (vals combined-plugin-index))]
-       [admin-impl/box
+       [helpers/box
         {:key (:key plugin)
          :title [:div {:class "flex items-center" :style {:margin-top "-1px"}}
                  [plugin-icon]

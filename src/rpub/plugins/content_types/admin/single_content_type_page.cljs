@@ -1,7 +1,7 @@
 (ns rpub.plugins.content-types.admin.single-content-type-page
   (:require [rads.inflections :as inflections]
             [rpub.lib.html :as html]
-            [rpub.plugins.admin.impl :as admin-impl]))
+            [rpub.plugins.admin.helpers :as helpers]))
 
 (def months
   ["January" "February" "March" "April" "May" "June"
@@ -57,7 +57,7 @@
                            content-items)
         content-items' (->> content-items (map #(assoc % :content-type content-type)))]
     [:div {:class "p-4"}
-     [admin-impl/table
+     [helpers/table
       {:title (inflections/plural (:name content-type))
        :columns columns
        :rows content-items'

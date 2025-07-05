@@ -3,7 +3,7 @@
             [rads.inflections :as inflections]
             [rpub.lib.html :as html]
             [rpub.lib.permalinks :as permalinks]
-            [rpub.plugins.admin.impl :as admin-impl]))
+            [rpub.plugins.admin.helpers :as helpers]))
 
 (defn- content-item-fields [{:keys [content-item editing creating field-types]}]
   (let [{:keys [content-type]} content-item]
@@ -30,10 +30,10 @@
                                      (into {}))}
         submitting false]
     [:div.p-4
-     [admin-impl/box
+     [helpers/box
       {:class "mb-4"
        :title (str "New " (inflections/singular (get-in content-item [:content-type :name])))}]
-     [admin-impl/box
+     [helpers/box
       {:content
        [:div
         [content-item-fields {:content-item content-item
@@ -61,7 +61,7 @@
                                          (str/lower-case content-type-name-singular)
                                          "?")))]
     [:div.p-4
-     [admin-impl/box
+     [helpers/box
       {:class "mb-4"
        :title [:div.flex
                [:div.grow
@@ -75,7 +75,7 @@
                   {:href content-item-href
                    :target "_blank"}
                   content-item-href]]}]
-     [admin-impl/box
+     [helpers/box
       {:content
        [:div
         [content-item-fields {:content-item content-item

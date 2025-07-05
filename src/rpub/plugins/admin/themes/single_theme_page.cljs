@@ -1,7 +1,7 @@
-(ns rpub.plugins.admin.single-theme-page
+(ns rpub.plugins.admin.themes.single-theme-page
   (:require [rpub.lib.dag.react :refer [use-dag]]
             [rpub.lib.html :as html]
-            [rpub.plugins.admin.impl :as admin-impl]))
+            [rpub.plugins.admin.helpers :as helpers]))
 
 (defn html-input [{:keys [value on-change]}]
   [:textarea {:class "w-full min-h-96 font-app-mono bg-gray-50 text-sm"
@@ -28,14 +28,14 @@
         submit-form (fn [e] (.preventDefault e))
         html-template (get-in theme [:value :html-template])]
     [:div {:class "p-4"}
-     [admin-impl/box
+     [helpers/box
       {:class "mb-4"
        :title (if (:new theme)
                 "New Theme"
                 [:div
                  [:span.italic.text-blue-600 "Theme: "]
                  (:label theme)])}]
-     [admin-impl/box
+     [helpers/box
       {:content
        [:form {:on-submit submit-form}
         [:div {:class "grid gap-4 sm:grid-cols-2 sm:gap-6"}

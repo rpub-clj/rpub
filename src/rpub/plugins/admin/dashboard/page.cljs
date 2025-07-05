@@ -1,10 +1,10 @@
-(ns rpub.plugins.admin.dashboard-page
-  (:require [rpub.plugins.admin.impl :as admin-impl]))
+(ns rpub.plugins.admin.dashboard.page
+  (:require [rpub.plugins.admin.helpers :as helpers]))
 
 (defn- dashboard-content-types [{:keys [content-types]}]
   [:div {:class "w-full md:w-1/2 md:px-2 mb-4"
          :data-test-id "dashboard-content-types"}
-   [admin-impl/box
+   [helpers/box
     {:title
      [:div {:class "flex items-center"}
       [:svg {:class "w-8 h-8 text-gray-500 mr-4" :aria-hidden "true" :xmlns "http://www.w3.org/2000/svg" :width "24" :height "24" :fill "currentColor" :viewBox "0 0 24 24"}
@@ -14,14 +14,14 @@
      :class "md:h-48"
      :content
      [:div
-      (let [[num word] (admin-impl/pluralize content-types "types")]
+      (let [[num word] (helpers/pluralize content-types "types")]
         [:p {:class "mb-4"} "This site has " [:span {:class "font-semibold"} num] " " word " of content:"])
-      [admin-impl/content-item-counts {:content-types content-types}]]}]])
+      [helpers/content-item-counts {:content-types content-types}]]}]])
 
 (defn- dashboard-theme [{:keys [theme]}]
   [:div {:class "w-full md:w-1/2 md:px-2 mb-4"
          :data-test-id "dashboard-theme"}
-   [admin-impl/box
+   [helpers/box
     {:title
      [:div {:class "flex items-center"}
       [:svg {:class "w-8 h-8 text-gray-500 mr-4" :aria-hidden "true" :xmlns "http://www.w3.org/2000/svg" :width "24" :height "24" :fill "currentColor" :viewBox "0 0 24 24"}
@@ -38,7 +38,7 @@
 (defn- dashboard-plugins [{:keys [activated-plugins]}]
   [:div {:class "w-full md:w-1/2 md:px-2 mb-4"
          :data-test-id "dashboard-plugins"}
-   [admin-impl/box
+   [helpers/box
     {:title
      [:div {:class "flex items-center"}
       [:svg {:class "w-8 h-8 text-gray-500 mr-4" :aria-hidden "true" :xmlns "http://www.w3.org/2000/svg" :width "24" :height "24" :fill "currentColor" :viewBox "0 0 24 24"}
@@ -48,7 +48,7 @@
      :class "md:h-48"
      :content
      [:div
-      (let [[num word] (admin-impl/pluralize activated-plugins "plugin")]
+      (let [[num word] (helpers/pluralize activated-plugins "plugin")]
         [:p {:class "mb-4"} "This site has " [:span {:class "font-semibold"} num] " " word " activated:"])
       [:div
        (for [[i plugin] (map-indexed vector (sort-by :label activated-plugins))]
@@ -62,7 +62,7 @@
 (defn- dashboard-settings [{:keys [settings]}]
   [:div {:class "w-full md:w-1/2 md:px-2 mb-4"
          :data-test-id "dashboard-settings"}
-   [admin-impl/box
+   [helpers/box
     {:title [:div {:class "flex items-center"}
              [:svg {:class "w-8 h-8 text-gray-500 mr-4" :aria-hidden "true" :xmlns "http://www.w3.org/2000/svg" :width "24" :height "24" :fill "currentColor" :viewBox "0 0 24 24"}
               [:path {:fill-rule "evenodd" :d "M9.586 2.586A2 2 0 0 1 11 2h2a2 2 0 0 1 2 2v.089l.473.196.063-.063a2.002 2.002 0 0 1 2.828 0l1.414 1.414a2 2 0 0 1 0 2.827l-.063.064.196.473H20a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2h-.089l-.196.473.063.063a2.002 2.002 0 0 1 0 2.828l-1.414 1.414a2 2 0 0 1-2.828 0l-.063-.063-.473.196V20a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2v-.089l-.473-.196-.063.063a2.002 2.002 0 0 1-2.828 0l-1.414-1.414a2 2 0 0 1 0-2.827l.063-.064L4.089 15H4a2 2 0 0 1-2-2v-2a2 2 0 0 1 2-2h.09l.195-.473-.063-.063a2 2 0 0 1 0-2.828l1.414-1.414a2 2 0 0 1 2.827 0l.064.063L9 4.089V4a2 2 0 0 1 .586-1.414ZM8 12a4 4 0 1 1 8 0 4 4 0 0 1-8 0Z" :clip-rule "evenodd"}]]
@@ -77,7 +77,7 @@
 (defn- dashboard-user [{:keys [current-user]}]
   [:div {:class "w-full md:w-1/2 md:px-2 mb-4"
          :data-test-id "dashboard-user"}
-   [admin-impl/box
+   [helpers/box
     {:title
      [:div {:class "flex items-center"}
       [:svg {:class "w-8 h-8 text-gray-500 mr-4" :aria-hidden "true" :xmlns "http://www.w3.org/2000/svg" :width "24" :height "24" :fill "currentColor" :viewBox "0 0 24 24"}
@@ -95,7 +95,7 @@
   (let [rpub-url (str "https://github.com/rpub-clj/rpub/tree/v" rpub-version)]
     [:div {:class "w-full md:w-1/2 md:px-2 mb-4"
            :data-test-id "dashboard-server"}
-     [admin-impl/box
+     [helpers/box
       {:title
        [:div {:class "flex items-center"}
         [:svg {:class "w-8 h-8 text-gray-500 mr-4" :aria-hidden "true" :xmlns "http://www.w3.org/2000/svg" :width "24" :height "24" :fill "currentColor" :viewBox "0 0 24 24"}

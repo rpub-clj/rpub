@@ -8,7 +8,7 @@
             [rpub.lib.dag :as dag-lib]
             [rpub.lib.html :as html]
             [rpub.lib.http :as http]
-            [rpub.plugins.admin.impl :as admin-impl]))
+            [rpub.plugins.admin.helpers :as helpers]))
 
 (defn- custom-node [^:js {:keys [data]}]
   #jsx[:div.react-flow__node-default
@@ -48,7 +48,7 @@
     (fn [storage-id {:keys [nodes]}]
       (let [saved-nodes (map #(select-keys % [:id :position])
                              (js->clj nodes :keywordize-keys true))
-            unsaved-changes (admin-impl/->unsaved-changes
+            unsaved-changes (helpers/->unsaved-changes
                               storage-id
                               {:saved-nodes saved-nodes})
             http-opts {:format :transit

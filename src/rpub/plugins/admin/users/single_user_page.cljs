@@ -1,8 +1,8 @@
-(ns rpub.plugins.admin.new-user-page
+(ns rpub.plugins.admin.users.single-user-page
   (:require [rpub.lib.dag.react :refer [use-dag]]
             [rpub.lib.html :as html]
             [rpub.lib.http :as http]
-            [rpub.plugins.admin.impl :as admin-impl]))
+            [rpub.plugins.admin.helpers :as helpers]))
 
 (defn page [_]
   (let [[{:keys [::field-values ::submitting]}
@@ -25,7 +25,7 @@
                        (let [value (-> e .-target .-value)]
                          (push ::change-input [field-key value])))]
     [:div {:class "p-4"}
-     [admin-impl/box
+     [helpers/box
       {:title "New User"
        :content
        [:section {:class "bg-white"}
@@ -76,6 +76,6 @@
     [::submit-start ::submitting]]})
 
 (def config
-  {:page-id :new-user-page
+  {:page-id :single-user-page
    :component page
    :dag-config dag-config})

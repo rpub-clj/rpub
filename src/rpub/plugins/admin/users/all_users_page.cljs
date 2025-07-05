@@ -1,9 +1,9 @@
-(ns rpub.plugins.admin.users-page
+(ns rpub.plugins.admin.users.all-users-page
   (:require [clojure.string :as str]
             [rads.inflections :as inflections]
             [rpub.lib.html :as html]
             [rpub.lib.http :as http]
-            [rpub.plugins.admin.impl :as admin-impl]
+            [rpub.plugins.admin.helpers :as helpers]
             [rpub.plugins.admin.roles :as roles]))
 
 (def ^:private users-columns
@@ -49,7 +49,7 @@
 (defn- page [{:keys [current-user users roles permissions]}]
   [:div {:class "p-4"}
    [:div {:class "mb-4"}
-    [admin-impl/table
+    [helpers/table
      {:title "Users"
       :header-buttons (when (roles/allowed? current-user {:resource :users
                                                           :action :create})
@@ -58,7 +58,7 @@
       :columns users-columns
       :rows users}]]
    [:div
-    [admin-impl/table
+    [helpers/table
      {:title "Roles & Permissions"
       :description [:div
                     (for [role roles]
@@ -87,5 +87,5 @@
       :rows permissions}]]])
 
 (def config
-  {:page-id :users-page
+  {:page-id :all-users-page
    :component page})

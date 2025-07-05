@@ -1,9 +1,9 @@
-(ns rpub.plugins.admin.all-themes-page
+(ns rpub.plugins.admin.themes.all-themes-page
   (:require ["react" :refer [useEffect]]
             [rpub.lib.dag.react :refer [use-dag]]
             [rpub.lib.html :as html]
             [rpub.lib.http :as http]
-            [rpub.plugins.admin.impl :as admin-impl]
+            [rpub.plugins.admin.helpers :as helpers]
             [rpub.plugins.admin.roles :as roles]))
 
 (defn edit-icon [_]
@@ -29,7 +29,7 @@
                                      theme-name-setting))
         activated? #(= (:label %) theme-name-value)]
     [:div {:class "p-4"}
-     [admin-impl/box
+     [helpers/box
       {:title
        [:div {:class "flex items-center"}
         [:div.grow "Themes"]
@@ -41,7 +41,7 @@
      (for [theme themes
            :let [activated (activated? theme)]]
        [:form {:method "post"}
-        [admin-impl/box
+        [helpers/box
          {:key (:label theme)
           :title [:div {:class "flex items-center" :style {:margin-top "-1px"}}
                   [:div {:class "grow flex items-center"}

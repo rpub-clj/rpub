@@ -7,18 +7,18 @@
             [rpub.lib.dag.react :refer [use-dag]]
             [rpub.lib.html :as html]
             [rpub.lib.http :as http]
-            [rpub.plugins.admin.impl :as admin-impl]
+            [rpub.plugins.admin.helpers :as helpers]
             [rpub.plugins.admin.roles :as roles]))
 
 (defn ->unsaved-changes [value]
-  (admin-impl/->unsaved-changes
+  (helpers/->unsaved-changes
     :all-content-types-page
     (select-keys value [::content-types-index
                         ::past
                         ::future])))
 
 (defn update-unsaved-changes! [value]
-  (admin-impl/update-unsaved-changes! (->unsaved-changes value)))
+  (helpers/update-unsaved-changes! (->unsaved-changes value)))
 
 (defn select-content-type [db {:keys [content-type]}]
   (let [selection {:content-type (select-keys content-type [:id])}]
@@ -77,7 +77,7 @@
           (assoc ::future [])))))
 
 (defn reset [{:keys [::original-content-types] :as db}]
-  (let [content-types-index (admin-impl/index-by :id original-content-types)]
+  (let [content-types-index (helpers/index-by :id original-content-types)]
     (assoc db ::content-types-index content-types-index)))
 
 (defn request-save [db]
@@ -127,7 +127,7 @@
       [(:label field-type)]]]))
 
 (defn init [_ {:keys [current-user content-types field-types unsaved-changes]}]
-  (let [content-types-index (admin-impl/index-by :id content-types)]
+  (let [content-types-index (helpers/index-by :id content-types)]
     {::current-user current-user
      ::past (get-in unsaved-changes [:value ::past])
      ::future (get-in unsaved-changes [:value ::future])
@@ -189,7 +189,7 @@
     (if selection
       (cond
         (:content-type-field selection)
-        [admin-impl/box
+        [helpers/box
          {:class "h-full"
           :title [:h3 {:class "text-2xl font-app-serif font-semibold"}
                   [:span.italic.text-blue-600 "Field: "]
@@ -212,7 +212,7 @@
                                                      (:type n))
                                         :on-click #(change-field-type % (assoc selection :new-field-type (:type n)))})])]]}]
         (:content-type selection)
-        [admin-impl/box
+        [helpers/box
          {:class "h-full"
           :title [:h3 {:class "text-2xl font-app-serif font-semibold"}
                   [:span.italic.text-blue-600 "Content Type: "]
@@ -232,7 +232,7 @@
                     [:div
                      (for [n field-config]
                        [field (assoc n :draggable true)])]]}])
-      [admin-impl/box
+      [helpers/box
        {:class "h-full"
         :title [:h3 {:class "text-2xl font-app-serif font-semibold"}
                 "Add Field"]
@@ -261,7 +261,7 @@
 (defn header [{:keys [content-types]}]
   (let [[{:keys [::current-user ::content-types-index]}
          push] (use-dag [::current-user ::content-types-index ::past ::future])]
-    [admin-impl/box
+    [helpers/box
      {:class "pb-4"
       :data-no-select true
       :title [:div {:class "flex items-center"}
@@ -284,7 +284,7 @@
                                     update-unsaved-changes!)))}
 
                  "New Content Type"])]
-      :content [admin-impl/content-item-counts {:content-types content-types}]}]))
+      :content [helpers/content-item-counts {:content-types content-types}]}]))
 
 (defn update-content-types! [params]
   (let [body (select-keys params [:content-types])]
@@ -307,7 +307,7 @@
 
 (defn controls [{:keys [unsaved-changes]}]
   (let [[_ push] (use-dag [::content-types-index ::past ::future])]
-    [admin-impl/box
+    [helpers/box
      {:class "mb-4"
       :content [:div
                 [:div.mb-4
@@ -376,7 +376,7 @@
       [:div {:class "pb-4"
              :key (:id content-type)
              :data-no-select true}
-       [admin-impl/box
+       [helpers/box
         {:hover true
          :on-click (fn [e]
                      (when-not (.closest (.-target e) "[data-content-type-field-id]")

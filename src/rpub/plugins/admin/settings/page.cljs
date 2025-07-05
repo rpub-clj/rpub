@@ -1,13 +1,13 @@
-(ns rpub.plugins.admin.settings-page
+(ns rpub.plugins.admin.settings.page
   (:require [rpub.lib.dag.react :refer [use-dag]]
             [rpub.lib.html :as html]
             [rpub.lib.http :as http]
-            [rpub.plugins.admin.impl :as admin-impl]))
+            [rpub.plugins.admin.helpers :as helpers]))
 
 (defn- page [{:keys [settings] :as _props}]
   (let [[{:keys [::field-values ::submitting]}
          push] (use-dag [::field-values ::submitting])
-        settings-index (admin-impl/index-by :key settings)
+        settings-index (helpers/index-by :key settings)
         update-setting (fn [setting-key e]
                          (let [value (-> e .-target .-value)]
                            (push ::change-input [setting-key value])))
@@ -23,7 +23,7 @@
                             (.then (fn [] (.reload (.-location js/window))))
                             (.catch (fn [_] (push ::submit-error))))))]
     [:div {:class "p-4"}
-     [admin-impl/box
+     [helpers/box
       {:title "Settings"
        :content
        [:section {:class "bg-white"}
@@ -56,7 +56,7 @@
 (def dag-config
   {:nodes
    {::change-input {:push change-input}
-    ::field-values {:calc admin-impl/field-values}
+    ::field-values {:calc helpers/field-values}
     ::submit-error {:push submit-error}
     ::submit-start {:push submit-start}
     ::submitting {:calc ::submitting}}

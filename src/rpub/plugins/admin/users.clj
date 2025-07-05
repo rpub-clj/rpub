@@ -19,10 +19,10 @@
       {:title "Users"
        :primary
        (html/custom-element
-         [:users-page {:current-user (select-keys current-user [:id :roles])
-                       :roles roles
-                       :users users
-                       :permissions permissions}])})))
+         [:all-users-page {:current-user (select-keys current-user [:id :roles])
+                           :roles roles
+                           :users users
+                           :permissions permissions}])})))
 
 (defn- new-user-handler [{:keys [current-user] :as req}]
   (roles/assert-allowed current-user {:resource :users, :action :create})
@@ -31,7 +31,7 @@
     {:title "New User"
      :primary
      (html/custom-element
-       [:new-user-page {}])}))
+       [:single-user-page {}])}))
 
 (defn- create-user-handler [{:keys [model current-user body-params] :as _req}]
   (roles/assert-allowed current-user {:resource :users, :action :create})
