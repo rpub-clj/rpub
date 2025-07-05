@@ -7,18 +7,18 @@
             [rpub.lib.secrets :as secrets]
             [rpub.model :as model]
             [rpub.model.content-types :as ct-model]
-            [rpub.plugins.admin.helpers :as admin-helpers]
+            [rpub.plugins.admin.helpers :as helpers]
             [rpub.plugins.content-types :as content-types]))
 
 (defn- setup-form [_]
   [:section.bg-gray-50
    [:div {:class "flex flex-col items-center justify-center px-6 py-8 mx-auto lg:py-0"}
-    (admin-helpers/logo {:class "mb-8 text-6xl"})
+    (helpers/logo {:class "mb-8 text-6xl"})
     [:div {:class "w-full p-6 bg-white rounded-lg shadow-sm md:mt-0 max-w-md sm:p-8"}
      [:h2
       {:class "mb-1 text-2xl font-semibold font-app-serif leading-tight tracking-tight text-gray-900 md:text-2xl"}
       "Set Up"]
-     (admin-helpers/form
+     (helpers/form
        {:action "/admin/setup"
         :class "mt-4 space-y-4 lg:mt-5 md:space-y-5"}
        [:div
@@ -43,7 +43,7 @@
         "Continue"])]]])
 
 (defn- setup-start-handler [req]
-  (admin-helpers/page-response
+  (helpers/page-response
     req
     {:cljs false
      :title "rPub Setup"
