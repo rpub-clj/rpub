@@ -1,8 +1,8 @@
 {:paths ["."]
  :deps {dev.rpub/rpub {:mvn/version "<mvn/version>"}
         dev.rpub/plugins.starter-theme {:git/url "https://github.com/rpub-clj/plugins.git"
-                                        :git/sha "1ed69663f9d39a65c0b7ee69bd0b9f87cdfe0fba"
+                                        :git/sha "be70adbf8ed559181214046a6ef80769cd960274"
                                         :deps/root "plugins/starter-theme"}
         dev.rpub/plugins.external-editing {:git/url "https://github.com/rpub-clj/plugins.git"
-                                           :git/sha "1ed69663f9d39a65c0b7ee69bd0b9f87cdfe0fba"
+                                           :git/sha "be70adbf8ed559181214046a6ef80769cd960274"
                                            :deps/root "plugins/external-editing"}}}

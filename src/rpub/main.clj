@@ -9,6 +9,7 @@
             [rpub.lib.malli :as malli]
             [rpub.model.sqlite]
             [rpub.plugins.admin]
+            [rpub.plugins.app]
             [taoensso.telemere :as tel]))
 
 (def ^:private banner-text "

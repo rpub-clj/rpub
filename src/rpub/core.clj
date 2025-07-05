@@ -19,9 +19,6 @@
             [rpub.lib.transit :as transit]
             [rpub.model :as model]
             [rpub.model.content-types :as ct-model]
-            [rpub.plugins.admin.helpers :as admin-helpers]
-            [rpub.plugins.admin.setup :as admin-setup]
-            [rpub.plugins.app :as app]
             [taoensso.telemere :as tel])
   (:import (org.eclipse.jetty.server Server)))
 
@@ -70,10 +67,14 @@
                                  :themes []})]
       (handler req'))))
 
-(defn- error-response [_]
+(defn- error-page-layout [req current-page]
+  ((:error-page-layout req) req current-page))
+
+(defn- error-response [req]
   {:status 500
    :body
-   (admin-helpers/layout
+   (error-page-layout
+     req
      {:title "Error"
       :content [:div.p-8.text-center.max-w-4xl.mx-auto
                 [:div.text-5xl.font-app-serif.italic.mb-8.mt-16
@@ -171,7 +172,7 @@
 (defn url-for
   "Get a URL for a content item."
   [content-item req]
-  (app/url-for content-item req))
+  ((:url-for req) content-item req))
 
 (def ContentTypeMap
   "Malli schema for a content type."
@@ -285,7 +286,7 @@
   (let [opts' (assoc opts :session-store-key (->session-store-key))]
     (reitit-ring/ring-handler
       (reitit-ring/router
-        (admin-setup/setup-routes opts')
+        ((:setup-routes opts') opts')
         {:data {:muuntaja custom-muuntaja
                 :middleware [reitit-parameters/parameters-middleware
                              reitit-muuntaja/format-middleware
@@ -324,6 +325,15 @@
 (defn- start-app! [opts]
   {:server (start-jetty! opts)})
 
+(defn- default-url-for [& args]
+  (apply (requiring-resolve 'rpub.plugins.app.helpers/url-for) args))
+
+(defn- default-error-page-layout [& args]
+  (apply (requiring-resolve 'rpub.plugins.admin.helpers/layout) args))
+
+(defn- default-setup-routes [& args]
+  (apply (requiring-resolve 'rpub.plugins.admin.setup/setup-routes) args))
+
 (def defaults
   "The default options for the rPub server."
   {:admin-dev false
@@ -334,7 +344,10 @@
    :otel false
    :port 3000
    :reload false
-   :secret-key-file "data/secret.key"})
+   :secret-key-file "data/secret.key"
+   :url-for default-url-for
+   :error-page-layout default-error-page-layout
+   :setup-routes default-setup-routes})
 
 (defn- stop-app! [app]
   (when-let [{:keys [server]} app]

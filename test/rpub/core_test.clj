@@ -5,7 +5,8 @@
             [rpub.test-util]))
 
 (deftest url-for-test
-  (let [req {:permalink-router (permalinks/default-permalink-router)
+  (let [req {:url-for (:url-for rpub/defaults)
+             :permalink-router (permalinks/default-permalink-router)
              :site-base-url "http://localhost:3000"}
         content-item {:content-type {:slug "posts"}
                       :fields {"Slug" "my-post"}}]

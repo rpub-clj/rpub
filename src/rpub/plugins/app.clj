@@ -4,21 +4,9 @@
             [hiccup2.core :as hiccup]
             [markdown.core :as md]
             [reitit.core :as reitit]
-            [ring.middleware.defaults :as defaults]
-            [rpub.lib.plugins :as plugins]
-            [rpub.lib.ring :as ring]
             [rpub.model :as model]
+            [rpub.plugins.app.helpers :as helpers]
             [rpub.plugins.content-types :as content-types]))
-
-(defn url-for
-  ([content-item] (url-for content-item nil))
-  ([content-item opts]
-   (let [{:keys [permalink-router site-base-url]} opts
-         path-params {:content-type-slug (get-in content-item [:content-type :slug])
-                      :content-item-slug (get-in content-item [:fields "Slug"])}
-         match (reitit/match-by-name permalink-router :single path-params)
-         path (reitit/match->path match)]
-     (str site-base-url path))))
 
 (defn page-layout [& {:keys [title content head]}]
   (str
@@ -96,7 +84,7 @@
 (defn- post->feed-entry [post opts]
   (let [{:keys [id fields created-at updated-at created-name]} post]
     (cond-> {:id (str "urn:uuid:" id)
-             :href (url-for post opts)
+             :href (helpers/url-for post opts)
              :title (get fields "Title")
              :published (str created-at)
              :content (get fields "Content")
@@ -112,14 +100,6 @@
     (atom-feed-response {:title site-title
                          :entries feed-entries})))
 
-(defn wrap-cache [handler]
-  (fn [req]
-    (when-let [res (handler req)]
-      (let [headers {"Cache-Control"
-                     (str "public, s-maxage=31536000, max-age=0, "
-                          "must-revalidate")}]
-        (update res :headers merge headers)))))
-
 (defn- parse-permalink-uri [{:keys [uri permalink-router] :as _req}]
   (:path-params (reitit/match-by-path permalink-router uri)))
 
@@ -127,21 +107,6 @@
   (when-let [path-params (parse-permalink-uri req)]
     (let [req' (update req :path-params merge path-params)]
       (content-item-page req'))))
-
-(defn- site-defaults [_]
-  (-> defaults/site-defaults
-      (select-keys [:responses :security])
-      (assoc :proxy false)
-      (update :responses merge {:content-types false})
-      (update :security merge {:content-type-options false})))
-
-(defn app-middleware [{:keys [content-security-policy] :as opts}]
-  (concat [[defaults/wrap-defaults (site-defaults opts)]]
-          (plugins/plugin-middleware opts)
-          (when content-security-policy
-            [ring/wrap-content-security-policy])
-          [wrap-cache
-           ring/wrap-trace]))
 
 (defn wildcard-handler [{:keys [uri] :as req}]
   (case uri
@@ -152,7 +117,7 @@
 
 (defn routes [opts]
   [["*path" {:handler wildcard-handler
-             :middleware (app-middleware opts)}]])
+             :middleware (helpers/app-middleware opts)}]])
 
 (defmethod model/internal-plugin ::plugin [_]
   {:routes routes
