@@ -6,9 +6,9 @@
             [ring.util.response :as response]
             [rpub.lib.html :as html]
             [rpub.model :as model]
+            [rpub.model.content-types :as ct-model]
             [rpub.plugins.admin.helpers :as admin-helpers]
-            [rpub.plugins.content-types :as-alias ct]
-            [rpub.plugins.content-types.model :as ct-model]))
+            [rpub.plugins.content-types :as-alias ct]))
 
 (defn- get-content-types [req]
   (->> (ct-model/get-content-types (::ct/model req) {:count-items true})

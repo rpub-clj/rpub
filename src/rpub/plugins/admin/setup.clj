@@ -6,9 +6,9 @@
             [rpub.lib.ring :as ring]
             [rpub.lib.secrets :as secrets]
             [rpub.model :as model]
+            [rpub.model.content-types :as ct-model]
             [rpub.plugins.admin.helpers :as admin-helpers]
-            [rpub.plugins.content-types :as content-types]
-            [rpub.plugins.content-types.model :as ct-model]))
+            [rpub.plugins.content-types :as content-types]))
 
 (defn- setup-form [_]
   [:section.bg-gray-50

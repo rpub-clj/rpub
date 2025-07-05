@@ -18,10 +18,10 @@
             [rpub.lib.router :as rpub-router]
             [rpub.lib.transit :as transit]
             [rpub.model :as model]
+            [rpub.model.content-types :as ct-model]
             [rpub.plugins.admin.helpers :as admin-helpers]
             [rpub.plugins.admin.setup :as admin-setup]
             [rpub.plugins.app :as app]
-            [rpub.plugins.content-types.model :as ct-model]
             [taoensso.telemere :as tel])
   (:import (org.eclipse.jetty.server Server)))
 

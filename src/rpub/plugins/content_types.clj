@@ -1,8 +1,8 @@
 (ns rpub.plugins.content-types
   {:no-doc true}
   (:require [rpub.model :as model]
-            [rpub.plugins.content-types.admin :as ct-admin]
-            [rpub.plugins.content-types.model :as ct-model]))
+            [rpub.model.content-types :as ct-model]
+            [rpub.plugins.content-types.admin :as ct-admin]))
 
 (def slug-field-id ct-model/slug-field-id)
 (def title-field-id ct-model/title-field-id)

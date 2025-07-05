@@ -6,8 +6,8 @@
             [rads.migrate :as migrate]
             [rpub.lib.db :as db]
             [rpub.model :as model]
+            [rpub.model.content-types :as ct-model]
             [rpub.model.sqlite :as sqlite]
-            [rpub.plugins.content-types.model :as ct-model]
             [rpub.plugins.content-types.sqlite.migrations :as migrations]))
 
 (defn row->content-type [row]

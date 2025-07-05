@@ -1,10 +1,5 @@
-(ns rpub.plugins.content-types.model
-  {:no-doc true}
+(ns rpub.model.content-types
   (:require [rpub.model :as model]))
-
-(def slug-field-id #uuid"6bd0ff7a-b720-4972-b98a-2aa85d179357")
-(def title-field-id #uuid"cd334826-1ec6-4906-8e7f-16ece1865faf")
-(def content-field-id #uuid"65a6aa2e-73a3-4283-afe1-58e610d6727d")
 
 ^:clj-reload/keep
 (defprotocol Model
@@ -17,6 +12,10 @@
   (create-content-item! [model opts])
   (update-content-item! [model opts])
   (delete-content-item! [model opts]))
+
+(def slug-field-id #uuid"6bd0ff7a-b720-4972-b98a-2aa85d179357")
+(def title-field-id #uuid"cd334826-1ec6-4906-8e7f-16ece1865faf")
+(def content-field-id #uuid"65a6aa2e-73a3-4283-afe1-58e610d6727d")
 
 (defmulti ->model :db-type)
 
