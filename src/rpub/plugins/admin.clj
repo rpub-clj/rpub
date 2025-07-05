@@ -54,8 +54,7 @@
                         {:count-items true})
         theme (-> (model/active-theme req) (select-keys [:label]))
         activated-plugins' (->> plugins
-                                (remove :rpub/internal)
-                                (filter :activated)
+                                (filter #(and (model/plugin-visible? %) (:activated %)))
                                 (map #(select-keys % [:label])))
         current-user' (select-keys current-user [:id :username])
         settings' (-> (select-keys settings [:permalink-single])
@@ -163,6 +162,12 @@
          [:single-theme-page {:theme theme'
                               :current-user current-user}])})))
 
+(defn update-theme-handler
+  [{:keys [path-params model current-user] :as req}]
+  (doseq [theme to-update]
+    (model/update-theme! model theme))
+  (response/response {:success true}))
+
 (defn- single-theme-handler [{:keys [path-params] :as req}]
   (if (= (:theme-id path-params) "new")
     (new-theme-handler req)
@@ -172,7 +177,7 @@
   (let [available-plugins (->> (plugins/get-plugins)
                                (map #(select-keys % [:key :label :description])))
         current-plugins (->> plugins
-                             (remove :rpub/internal)
+                             (filter model/plugin-visible?)
                              (map #(select-keys % [:key :label :activated])))]
     (admin-helpers/page-response
       req
@@ -337,6 +342,7 @@
     ["/admin/api/update-content-types" {:post #'update-content-types-handler}]
     ["/admin/api/update-settings" {:post #'update-settings-handler}]
     ["/admin/api/update-unsaved-changes" {:post #'update-unsaved-changes-handler}]
+    ["/admin/api/update-theme" {:post #'update-theme-handler}]
     ["/admin/login" {:get #'login-start-handler
                      :post #'login-finish-handler}]
     ["/admin/logout" {:post #'logout-handler}]

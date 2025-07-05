@@ -20,30 +20,19 @@
                  ::activated-plugins]}
          push] (use-dag [::needs-restart
                          ::activated-plugins])
-        http-opts {:format :transit}
         current-plugin-index (admin-impl/index-by :key current-plugins)
         activate-plugin (fn [_e plugin]
                           (let [plugin' (assoc plugin :activated true)
-                                body {:plugin (select-keys plugin' [:key])}
-                                on-complete (fn [res _err]
-                                              (when res
-                                                (push ::activate-plugin (:key plugin'))))
-                                http-opts' (merge http-opts {:body body
-                                                             :on-complete on-complete})]
-                            (http/post "/admin/api/activate-plugin" http-opts')))
+                                body {:plugin (select-keys plugin' [:key])}]
+                            (-> (http/post "/admin/api/activate-plugin" {:body body})
+                                (.then (fn [_] (push ::activate-plugin (:key plugin')))))))
         deactivate-plugin (fn [_e plugin]
-                            (let [body {:plugin (select-keys plugin [:key])}
-                                  on-complete (fn [res _err]
-                                                (when res
-                                                  (push ::deactivate-plugin (:key plugin))))
-                                  http-opts' (merge http-opts {:body body
-                                                               :on-complete on-complete})]
-                              (http/post "/admin/api/deactivate-plugin" http-opts')))
+                            (let [body {:plugin (select-keys plugin [:key])}]
+                              (-> (http/post "/admin/api/deactivate-plugin" {:body body})
+                                  (.then (fn [_] (push ::deactivate-plugin (:key plugin)))))))
         restart-server (fn [_e]
-                         (let [on-complete (fn [_res _err])
-                               http-opts' (merge http-opts {:on-complete on-complete})]
-                           (push ::restart-server)
-                           (http/post "/api/restart-server" http-opts')))
+                         (push ::restart-server)
+                         (http/post "/api/restart-server" {}))
         available-plugin-index (admin-impl/index-by :key available-plugins)
         activated-plugin-index (->> activated-plugins
                                     (map (fn [k] [k {:activated true}]))
@@ -74,7 +63,7 @@
                   (or (:label plugin) (:key plugin))]
                  (if (:activated plugin)
                    [html/activated-button {:on-click #(deactivate-plugin % plugin)}]
-                   [html/activate-button {:label "Activate Plugin"
+                   [html/activate-button {:label "Activate"
                                           :on-click #(activate-plugin % plugin)}])]
          :class "mb-4"
          :content

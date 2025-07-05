@@ -281,7 +281,15 @@
     (assert app-id)
     (let [theme' (assoc theme :app-id app-id)]
       (db/execute-one! ds {:insert-into themes-table
-                           :values [(theme->row theme')]}))))
+                           :values [(theme->row theme')]})))
+
+  (update-theme! [_ theme]
+    (assert app-id)
+    (let [theme' (assoc theme :app-id app-id)]
+      (db/execute-one! ds {:insert-into themes-table
+                           :values [(theme->row theme')]
+                           :on-conflict [:id]
+                           :do-update-set [:label :value :updated-at :updated-by]}))))
 
 (defn ->model [params]
   (let [defaults {:apps-table :apps

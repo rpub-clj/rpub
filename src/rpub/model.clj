@@ -29,7 +29,8 @@
   (get-user-roles [model opts])
   (create-user-role! [model user-role])
   (get-themes [model opts])
-  (create-theme! [model theme]))
+  (create-theme! [model theme])
+  (update-theme! [model theme]))
 
 (defn ->slug [title]
   (inflections/parameterize title))
@@ -67,7 +68,8 @@
 
 (defn- ->installed-plugins [registered-plugins]
   (->> registered-plugins
-       (map (fn [[k plugin]] (assoc plugin :key k)))))
+       (map (fn [[k plugin]]
+              (merge plugin {:key k, :installed true})))))
 
 (defn ->plugins [registered-plugins {:keys [model] :as _opts}]
   (let [internal-plugins (->> (methods internal-plugin)
@@ -86,6 +88,9 @@
        :key key}
       (merge (select-keys opts [:activated :label :sha]))
       (add-metadata current-user)))
+
+(defn plugin-visible? [{:keys [rpub/internal installed]}]
+  (and (not internal) installed))
 
 (defn active-theme [{:keys [settings themes] :as _req}]
   (let [theme-name-value (get-in settings [:theme-name :value])
