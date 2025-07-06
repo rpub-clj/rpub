@@ -5,7 +5,6 @@
             [rads.inflections :as inflections]
             [ring.util.response :as response]
             [rpub.lib.tap :as tap]
-            [rpub.model.app :as-alias model-app]
             [rpub.plugins.admin.helpers :as helpers]))
 
 (defn page-response [req current-page]

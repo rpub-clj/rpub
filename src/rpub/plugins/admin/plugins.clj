@@ -2,16 +2,15 @@
   {:no-doc true}
   (:require [ring.util.response :as response]
             [rpub.lib.html :as html]
-            [rpub.lib.plugins :as plugins]
-            [rpub.model :as model]
-            [rpub.model.app :as-alias model-app]
+            [rpub.lib.plugins :as plugins-lib]
+            [rpub.model.plugins :as plugins]
             [rpub.plugins.admin.helpers :as helpers]))
 
 (defn- plugins-handler [{:keys [plugins] :as req}]
-  (let [available-plugins (->> (plugins/get-plugins)
+  (let [available-plugins (->> (plugins-lib/get-plugins)
                                (map #(select-keys % [:key :label :description])))
         current-plugins (->> plugins
-                             (filter model/plugin-visible?)
+                             (filter plugins/plugin-visible?)
                              (map #(select-keys % [:key :label :activated])))]
     (helpers/page-response
       req
@@ -24,28 +23,28 @@
 
 (defn- activate-plugin-handler
   [{:keys [body-params model current-user plugins] :as req}]
-  (let [plugin' (model/->plugin (merge (:plugin body-params)
-                                       {:activated true
-                                        :sha (plugins/get-latest-sha)
-                                        :current-user current-user}))
-        remote-plugins (plugins/get-plugins)]
-    (if-not (plugins/can-activate? plugins remote-plugins plugin')
+  (let [plugin' (plugins/->plugin (merge (:plugin body-params)
+                                         {:activated true
+                                          :sha (plugins-lib/get-latest-sha)
+                                          :current-user current-user}))
+        remote-plugins (plugins-lib/get-plugins)]
+    (if-not (plugins-lib/can-activate? plugins remote-plugins plugin')
       (-> (response/status 403)
           (assoc :body {:message "Plugin not in the list of installable plugins"
                         :plugin-label (:label plugin')}))
       (do
-        (when (plugins/remote-plugin? remote-plugins plugin')
-          (plugins/install! plugin' req))
-        (model/update-plugin! model plugin')
+        (when (plugins-lib/remote-plugin? remote-plugins plugin')
+          (plugins-lib/install! plugin' req))
+        (plugins/update-plugin! model plugin')
         (response/response {:success true})))))
 
 (defn- deactivate-plugin-handler
   [{:keys [body-params model current-user] :as _req}]
-  (let [plugin' (model/->plugin (merge (:plugin body-params)
-                                       {:activated false
-                                        :current-user current-user}))]
-    (plugins/uninstall! plugin')
-    (model/update-plugin! model plugin')
+  (let [plugin' (plugins/->plugin (merge (:plugin body-params)
+                                         {:activated false
+                                          :current-user current-user}))]
+    (plugins-lib/uninstall! plugin')
+    (plugins/update-plugin! model plugin')
     (response/response {:success true})))
 
 (defn- restart-server-handler [_]

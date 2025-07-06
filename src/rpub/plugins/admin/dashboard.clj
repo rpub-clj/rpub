@@ -5,8 +5,8 @@
             [clojure.java.io :as io]
             [clojure.string :as str]
             [rpub.lib.html :as html]
-            [rpub.model :as model]
-            [rpub.model.app :as-alias model-app]
+            [rpub.model.plugins :as plugins]
+            [rpub.model.themes :as themes]
             [rpub.plugins.admin.helpers :as helpers]
             [rpub.plugins.content-types :as content-types]))
 
@@ -31,9 +31,9 @@
   (let [content-types (content-types/get-content-types
                         (::content-types/model req)
                         {:count-items true})
-        theme (-> (model/active-theme req) (select-keys [:label]))
+        theme (-> (themes/active-theme req) (select-keys [:label]))
         activated-plugins' (->> plugins
-                                (filter #(and (model/plugin-visible? %) (:activated %)))
+                                (filter #(and (plugins/plugin-visible? %) (:activated %)))
                                 (map #(select-keys % [:label])))
         current-user' (select-keys current-user [:id :username])
         settings' (-> (select-keys settings [:permalink-single])

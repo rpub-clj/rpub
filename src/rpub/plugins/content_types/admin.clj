@@ -5,8 +5,9 @@
             [reitit.core :as reitit]
             [ring.util.response :as response]
             [rpub.lib.html :as html]
-            [rpub.model :as model]
             [rpub.model.content-types :as ct-model]
+            [rpub.model.unsaved-changes :as unsaved-changes]
+            [rpub.model.users :as users]
             [rpub.plugins.admin.helpers :as admin-helpers]
             [rpub.plugins.content-types :as-alias ct]))
 
@@ -15,7 +16,7 @@
        (sort-by :name)))
 
 (defn- get-unsaved-changes [{:keys [model current-user] :as _req} k]
-  (model/get-unsaved-changes
+  (unsaved-changes/get-unsaved-changes
     model
     {:user-ids [(:id current-user)]
      :keys [k]}))
@@ -44,7 +45,7 @@
   (let [{:keys [content-type-slug]} path-params
         [content-type] (ct-model/get-content-types (::ct/model req) {:content-type-slugs [content-type-slug]})
         content-items (ct-model/get-content-items (::ct/model req) {:content-type-ids [(:id content-type)]})
-        users-index (->> (model/get-users model {:ids (map :created-by content-items)})
+        users-index (->> (users/get-users model {:ids (map :created-by content-items)})
                          (medley/index-by :id))
         content-items' (map (fn [content-item]
                               (let [user (get users-index (:created-by content-item))]
@@ -132,7 +133,7 @@
                                  :current-user current-user})]
     (run! #(ct-model/update-content-type! (::ct/model req) %)
           updated-content-types)
-    (model/delete-unsaved-changes!
+    (unsaved-changes/delete-unsaved-changes!
       model
       {:user-ids [(:id current-user)]
        :keys [:all-content-types-page]})

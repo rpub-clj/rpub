@@ -1,8 +1,7 @@
 (ns rpub.plugins.admin.login
   {:no-doc true}
   (:require [ring.util.response :as response]
-            [rpub.model :as model]
-            [rpub.model.app :as-alias model-app]
+            [rpub.model.users :as users]
             [rpub.plugins.admin.helpers :as helpers]))
 
 (defn- redirect-field [{:keys [redirect-to] :as _flash}]
@@ -42,10 +41,10 @@
 (defn- login-finish-handler [{:keys [session model] :as req}]
   (let [username (get-in req [:form-params "username"])
         raw-password (get-in req [:form-params "password"])
-        [found-user] (model/get-users model {:usernames [username]
+        [found-user] (users/get-users model {:usernames [username]
                                              :password true})
         authorized (when found-user
-                     (model/verify-password found-user raw-password))]
+                     (users/verify-password found-user raw-password))]
     (if-not authorized
       (login-start-handler req)
       (let [current-user (select-keys found-user [:id])

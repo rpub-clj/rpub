@@ -4,7 +4,7 @@
             [ring.middleware.defaults :as defaults]
             [rpub.lib.plugins :as plugins]
             [rpub.lib.ring :as ring]
-            [rpub.model :as model]))
+            [rpub.model.users :as users]))
 
 (defn- get-secret [opts]
   (ring/get-session-store-key opts))
@@ -15,7 +15,7 @@
                      {:secret (get-secret opts)
                       :authfn #(update % :id parse-uuid)
                       :token-name "Bearer"})
-     :get-current-user model/get-current-user}))
+     :get-current-user users/get-current-user}))
 
 (defn api-middleware [opts]
   (let [opts' (merge {:auth-required true} opts)

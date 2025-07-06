@@ -18,7 +18,11 @@
             [rpub.lib.router :as rpub-router]
             [rpub.lib.transit :as transit]
             [rpub.model :as model]
+            [rpub.model.apps :as apps]
             [rpub.model.content-types :as ct-model]
+            [rpub.model.plugins :as plugins]
+            [rpub.model.settings :as settings]
+            [rpub.model.users :as users]
             [taoensso.telemere :as tel])
   (:import (org.eclipse.jetty.server Server)))
 
@@ -45,21 +49,21 @@
 
 (defn- get-current-app [{:keys [model headers server-name] :as _req}]
   (let [domain (get headers "x-forwarded-host" server-name)]
-    (first (model/get-apps model {:domains [domain]}))))
+    (first (apps/get-apps model {:domains [domain]}))))
 
 (defn- wrap-rpub [handler {:keys [model] :as opts}]
   (fn wrap-rpub-handler [{:keys [port] :as req}]
     (let [current-app (get-current-app (assoc req :model model))
-          model' (assoc model :app-id (:id current-app))
+          model' (model/add-app-id model (:id current-app))
           opts' (assoc opts :model model')
-          settings (->> (model/get-settings model' {})
+          settings (->> (settings/get-settings model' {})
                         (medley/index-by :key))
           site-base-url (->site-base-url (:site-base-url settings) port)
           permalink-single (get-in settings [:permalink-single :value])
           permalink-router (if (seq permalink-single)
                              (permalinks/->permalink-router {:single permalink-single})
                              (permalinks/default-permalink-router))
-          plugins (model/->plugins (get-registered-plugins) opts')
+          plugins (plugins/->plugins (get-registered-plugins) opts')
           req' (merge req opts' {:site-base-url site-base-url
                                  :permalink-router permalink-router
                                  :settings settings
@@ -101,20 +105,20 @@
     model))
 
 (defn- init-plugins [{:keys [model] :as opts}]
-  (let [[app] (model/get-apps (:model opts) {})
-        model' (assoc model :app-id (:id app))
+  (let [[app] (apps/get-apps (:model opts) {})
+        model' (model/add-app-id model (:id app))
         opts' (assoc opts :model model')
-        plugins (model/->plugins (get-registered-plugins) opts')
+        plugins (plugins/->plugins (get-registered-plugins) opts')
         opts'' (merge opts' {:plugins plugins
-                             :current-user model/system-user})]
+                             :current-user users/system-user})]
     (doseq [init (keep :init plugins)]
       (init opts''))
     plugins))
 
 (defn- get-config [{:keys [model]}]
-  (let [[app] (model/get-apps model {})
-        model' (assoc model :app-id (:id app))
-        settings (model/get-settings model' {:keys [:encrypted-session-store-key]})]
+  (let [[app] (apps/get-apps model {})
+        model' (model/add-app-id model (:id app))
+        settings (settings/get-settings model' {:keys [:encrypted-session-store-key]})]
     (->> settings
          (map (fn [setting] [(:key setting) (:value setting)]))
          (into {}))))
@@ -122,7 +126,7 @@
 (defn- init-opts [opts]
   (as-> opts $
     (assoc $ :model (init-model $))
-    (do (model/migrate! (:model $) {:current-user model/system-user}) $)
+    (do (model/migrate! (:model $) {:current-user users/system-user}) $)
     (assoc $ :config (get-config $))
     (assoc $ :plugins (init-plugins $))))
 
@@ -135,7 +139,7 @@
 (defn get-settings
   "Get a sequence of settings."
   [model opts]
-  (model/get-settings model opts))
+  (settings/get-settings model opts))
 
 (m/=> get-settings
       [:=> [:catn
@@ -155,7 +159,7 @@
 (defn get-users
   "Get a sequence of users."
   [model opts]
-  (model/get-users model opts))
+  (users/get-users model opts))
 
 (m/=> get-users
       [:=> [:catn

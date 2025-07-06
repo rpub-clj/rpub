@@ -4,7 +4,7 @@
             [ring.util.response :as response]
             [rpub.lib.html :as html]
             [rpub.model :as model]
-            [rpub.model.app :as-alias model-app]
+            [rpub.model.settings :as settings]
             [rpub.plugins.admin.helpers :as helpers]))
 
 (defn- settings-handler [{:keys [model] :as req}]
@@ -12,7 +12,7 @@
     req
     {:title "Settings"
      :primary
-     (let [settings (model/get-settings
+     (let [settings (settings/get-settings
                       model
                       {:keys [:site-title
                               :site-base-url
@@ -29,7 +29,7 @@
                                    (map #(select-keys % [:key :value]))
                                    (medley/index-by :key))
         ks (keys updated-setting-index)
-        existing-setting-index (->> (model/get-settings model {:keys ks})
+        existing-setting-index (->> (settings/get-settings model {:keys ks})
                                     (medley/index-by :key))
         combined-setting-index (merge-with merge
                                            existing-setting-index
@@ -37,7 +37,7 @@
         to-update (map #(model/add-metadata % current-user)
                        (vals combined-setting-index))]
     (doseq [setting to-update]
-      (model/update-setting! model setting))
+      (settings/update-setting! model setting))
     (response/response {:success true})))
 
 (defn routes [{:keys [admin-middleware]}]

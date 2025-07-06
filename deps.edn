@@ -71,12 +71,12 @@
   :default-plugins
   {:extra-deps {dev.rpub/plugins.external-editing
                 {:git/url "https://github.com/rpub-clj/plugins.git"
-                 :git/sha "be70adbf8ed559181214046a6ef80769cd960274"
+                 :git/sha "258400b2669cd5ef16c489eef8d5a3a706c27045"
                  :deps/root "plugins/external-editing"}
 
                 dev.rpub/plugins.starter-theme
                 {:git/url "https://github.com/rpub-clj/plugins.git"
-                 :git/sha "be70adbf8ed559181214046a6ef80769cd960274"
+                 :git/sha "258400b2669cd5ef16c489eef8d5a3a706c27045"
                  :deps/root "plugins/starter-theme"}}}
 
   :dev

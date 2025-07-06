@@ -3,14 +3,13 @@
   (:require [ring.util.response :as response]
             [rpub.core :as rpub]
             [rpub.lib.html :as html]
-            [rpub.model :as model]
-            [rpub.model.app :as-alias model-app]
+            [rpub.model.users :as users]
             [rpub.plugins.admin.helpers :as helpers]
             [rpub.plugins.admin.roles :as roles]))
 
 (defn- users-handler [{:keys [model current-user] :as req}]
-  (let [roles (model/get-roles model {})
-        users (rpub/get-users model {:roles true})
+  (let [roles (users/get-roles model {})
+        users (users/get-users model {:roles true})
         content-types (rpub/get-content-types model {})
         permissions (roles/all-permissions {:roles roles
                                             :content-types content-types})]
@@ -36,10 +35,10 @@
 (defn- create-user-handler [{:keys [model current-user body-params] :as _req}]
   (roles/assert-allowed current-user {:resource :users, :action :create})
   (let [{:keys [username password]} body-params
-        user (model/->user :username username
+        user (users/->user :username username
                            :password password
                            :current-user current-user)]
-    (model/create-user! model user)
+    (users/create-user! model user)
     (response/redirect "/admin/users")))
 
 (defn routes [{:keys [admin-middleware]}]

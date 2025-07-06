@@ -4,7 +4,8 @@
             [hiccup2.core :as hiccup]
             [markdown.core :as md]
             [reitit.core :as reitit]
-            [rpub.model :as model]
+            [rpub.model.plugins :as plugins]
+            [rpub.model.themes :as themes]
             [rpub.plugins.app.helpers :as helpers]
             [rpub.plugins.content-types :as content-types]))
 
@@ -29,7 +30,7 @@
         content]])))
 
 (defn index-handler [{:keys [head settings] :as req}]
-  (let [active-theme (model/active-theme req)
+  (let [active-theme (themes/active-theme req)
         settings' (update-in settings
                              [:footer-links :value]
                              #(some-> % edn/read-string))
@@ -42,7 +43,7 @@
               :head head})}))
 
 (defn content-item-page [{:keys [head path-params settings] :as req}]
-  (let [active-theme (model/active-theme req)
+  (let [active-theme (themes/active-theme req)
         settings' (update-in settings
                              [:footer-links :value]
                              #(some-> % edn/read-string))
@@ -119,6 +120,6 @@
   [["*path" {:handler wildcard-handler
              :middleware (helpers/app-middleware opts)}]])
 
-(defmethod model/internal-plugin ::plugin [_]
+(defmethod plugins/internal-plugin ::plugin [_]
   {:routes routes
    :wildcard true})

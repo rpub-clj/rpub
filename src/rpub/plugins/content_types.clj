@@ -2,6 +2,7 @@
   {:no-doc true}
   (:require [rpub.model :as model]
             [rpub.model.content-types :as ct-model]
+            [rpub.model.plugins :as plugins]
             [rpub.plugins.content-types.admin :as ct-admin]))
 
 (def slug-field-id ct-model/slug-field-id)
@@ -56,7 +57,7 @@
 (defn routes [opts]
   [(ct-admin/routes opts)])
 
-(defmethod model/internal-plugin ::plugin [_]
+(defmethod plugins/internal-plugin ::plugin [_]
   {:init init
    :middleware middleware
    :routes routes})

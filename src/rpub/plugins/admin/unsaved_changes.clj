@@ -1,8 +1,7 @@
 (ns rpub.plugins.admin.unsaved-changes
   {:no-doc true}
   (:require [ring.util.response :as response]
-            [rpub.model :as model]
-            [rpub.model.app :as-alias model-app]))
+            [rpub.model.unsaved-changes :as unsaved-changes]))
 
 (defn- last-updated [unsaved-changes]
   (->> unsaved-changes
@@ -11,19 +10,19 @@
 
 (defn- update-unsaved-changes-handler
   [{:keys [model current-user body-params] :as _req}]
-  (let [existing-unsaved-changes (-> (model/get-unsaved-changes
+  (let [existing-unsaved-changes (-> (unsaved-changes/get-unsaved-changes
                                        model
                                        {:user-ids [(:id current-user)]
                                         :keys [(:key body-params)]})
                                      last-updated)
-        updated-unsaved-changes (model/->unsaved-changes
+        updated-unsaved-changes (unsaved-changes/->unsaved-changes
                                   (-> (if existing-unsaved-changes
                                         (assoc existing-unsaved-changes :value (:value body-params))
                                         body-params)
                                       (dissoc :id)
                                       (assoc :current-user current-user)
                                       (assoc :client-id (:client-id body-params))))]
-    (model/update-unsaved-changes! model updated-unsaved-changes)
+    (unsaved-changes/update-unsaved-changes! model updated-unsaved-changes)
     (response/response {:success true})))
 
 (defn routes [{:keys [admin-middleware]}]

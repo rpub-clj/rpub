@@ -6,7 +6,9 @@
             [rpub.lib.ring :as ring]
             [rpub.lib.secrets :as secrets]
             [rpub.model :as model]
+            [rpub.model.apps :as apps]
             [rpub.model.content-types :as ct-model]
+            [rpub.model.users :as users]
             [rpub.plugins.admin.helpers :as helpers]
             [rpub.plugins.content-types :as content-types]))
 
@@ -67,14 +69,14 @@
                                                session-store-key
                                                secret-key)}
         app-id (random-uuid)
-        current-user (assoc model/system-user :app-id app-id)
-        new-user (model/->user {:username (get form-params "username")
+        current-user (assoc users/system-user :app-id app-id)
+        new-user (users/->user {:username (get form-params "username")
                                 :password (get form-params "password")
                                 :current-user current-user})
-        app (model/->app {:id app-id
-                          :new-user new-user
-                          :domains ["localhost"]
-                          :current-user current-user})
+        app (apps/->app {:id app-id
+                         :new-user new-user
+                         :domains ["localhost"]
+                         :current-user current-user})
         session' (assoc session :identity (select-keys new-user [:id]))
         site-title (get form-params "site-title")
         site-base-url (get form-params "site-base-url")

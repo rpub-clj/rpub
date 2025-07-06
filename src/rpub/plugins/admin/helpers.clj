@@ -10,7 +10,7 @@
             [rpub.lib.html :as html]
             [rpub.lib.plugins :as plugins]
             [rpub.lib.ring :as ring]
-            [rpub.model :as model]))
+            [rpub.model.users :as users]))
 
 (defn form [& args]
   (let [[attrs content] (if (map? (first args))
@@ -362,7 +362,7 @@
         (ring/auth-middleware
           {:auth-backend (buddy-backends/session
                            {:unauthorized-handler ring/unauthorized-handler})
-           :get-current-user model/get-current-user}))
+           :get-current-user users/get-current-user}))
       (plugins/plugin-middleware opts)
       [wrap-import-map]
       (when content-security-policy

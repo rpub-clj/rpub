@@ -1,6 +1,6 @@
 (ns rpub.plugins.admin
   {:no-doc true}
-  (:require [rpub.model :as model]
+  (:require [rpub.model.plugins :as plugins-model]
             [rpub.plugins.admin.dashboard :as dashboard]
             [rpub.plugins.admin.helpers :as helpers]
             [rpub.plugins.admin.login :as login]
@@ -25,5 +25,5 @@
      (themes/routes opts')
      (when admin-dev (dev-routes opts'))]))
 
-(defmethod model/internal-plugin ::plugin [_]
+(defmethod plugins-model/internal-plugin ::plugin [_]
   {:routes routes})

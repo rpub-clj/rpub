@@ -6,22 +6,22 @@
             [rads.migrate :as migrate]
             [rpub.lib.db :as db]
             [rpub.model :as model]
+            [rpub.model.common :as common]
             [rpub.model.content-types :as ct-model]
-            [rpub.model.sqlite :as sqlite]
             [rpub.plugins.content-types.sqlite.migrations :as migrations]))
 
 (defn row->content-type [row]
-  (-> (sqlite/row->metadata row)
+  (-> (common/row->metadata row)
       (update :slug keyword)))
 
 (defn row->content-type-field [row]
-  (-> (sqlite/row->metadata row)
+  (-> (common/row->metadata row)
       (update :content-type-id parse-uuid)
       (update :field-id parse-uuid)
       (update :field-type keyword)))
 
 (defn row->content-item [row]
-  (-> (sqlite/row->metadata row)
+  (-> (common/row->metadata row)
       (update :content-type-id parse-uuid)
       (update :document (fn [s]
                           (-> (json/read-str s {:key-fn identity})

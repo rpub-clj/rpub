@@ -2,13 +2,13 @@
   {:no-doc true}
   (:require [ring.util.response :as response]
             [rpub.lib.html :as html]
-            [rpub.model :as model]
-            [rpub.model.app :as-alias model-app]
+            [rpub.model.settings :as settings]
+            [rpub.model.themes :as themes]
             [rpub.plugins.admin.helpers :as helpers]))
 
 (defn- all-themes-handler [{:keys [model themes current-user] :as req}]
-  (let [[theme-name-setting] (model/get-settings model {:keys [:theme-name]})
-        custom-themes (->> (model/get-themes model {})
+  (let [[theme-name-setting] (settings/get-settings model {:keys [:theme-name]})
+        custom-themes (->> (themes/get-themes model {})
                            (map #(assoc % :editable true)))
         themes' (->> (concat themes custom-themes)
                      (map #(select-keys % [:id :label :description :editable]))
@@ -24,7 +24,7 @@
 
 (defn- new-theme-handler
   [{:keys [current-user] :as req}]
-  (let [theme (model/->theme {:new true})]
+  (let [theme (themes/->theme {:new true})]
     (helpers/page-response
       req
       {:title "New Theme"
@@ -36,7 +36,7 @@
 (defn- edit-theme-handler
   [{:keys [path-params model current-user] :as req}]
   (let [{:keys [theme-id]} path-params
-        [theme] (model/get-themes model {:ids [theme-id]})
+        [theme] (themes/get-themes model {:ids [theme-id]})
         theme' (select-keys theme [:id :label :value])]
     (helpers/page-response
       req
@@ -51,8 +51,8 @@
   (let [theme (-> (:theme body-params)
                   (select-keys [:id :label :value])
                   (assoc :current-user current-user)
-                  model/->theme)]
-    (model/create-theme! model theme)
+                  themes/->theme)]
+    (themes/create-theme! model theme)
     (response/response (select-keys theme [:id]))))
 
 (defn update-theme-handler
@@ -60,16 +60,16 @@
   (let [theme (-> (:theme body-params)
                   (select-keys [:id :label :value])
                   (assoc :current-user current-user)
-                  model/->theme)]
-    (model/update-theme! model theme)
+                  themes/->theme)]
+    (themes/update-theme! model theme)
     (response/response {:success true})))
 
 (defn delete-theme-handler [{:keys [body-params model] :as _req}]
-  (let [[theme] (model/get-themes model {:ids [(:id body-params)]})]
+  (let [[theme] (themes/get-themes model {:ids [(:id body-params)]})]
     (if-not theme
       (response/bad-request {:success false})
       (do
-        (model/delete-theme! model theme)
+        (themes/delete-theme! model theme)
         (response/response {:success true})))))
 
 (defn- single-theme-handler [{:keys [path-params] :as req}]
