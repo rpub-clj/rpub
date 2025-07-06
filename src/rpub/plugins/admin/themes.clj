@@ -48,19 +48,29 @@
 
 (defn create-theme-handler
   [{:keys [body-params model current-user] :as _req}]
-  (let [theme (-> (select-keys body-params [:id :label :value])
+  (let [theme (-> (:theme body-params)
+                  (select-keys [:id :label :value])
+                  (assoc :current-user current-user)
+                  model/->theme)]
+    (model/create-theme! model theme)
+    (response/response (select-keys theme [:id]))))
+
+(defn update-theme-handler
+  [{:keys [body-params model current-user] :as _req}]
+  (let [theme (-> (:theme body-params)
+                  (select-keys [:id :label :value])
                   (assoc :current-user current-user)
                   model/->theme)]
     (model/update-theme! model theme)
     (response/response {:success true})))
 
-(defn update-theme-handler
-  [{:keys [body-params model current-user] :as _req}]
-  (let [theme (-> (select-keys body-params [:id :label :value])
-                  (assoc :current-user current-user)
-                  model/->theme)]
-    (model/update-theme! model theme)
-    (response/response {:success true})))
+(defn delete-theme-handler [{:keys [body-params model] :as _req}]
+  (let [[theme] (model/get-themes model {:ids [(:id body-params)]})]
+    (if-not theme
+      (response/bad-request {:success false})
+      (do
+        (model/delete-theme! model theme)
+        (response/response {:success true})))))
 
 (defn- single-theme-handler [{:keys [path-params] :as req}]
   (if (= (:theme-id path-params) "new")
@@ -71,5 +81,6 @@
   [["" {:middleware admin-middleware}
     ["/admin/api/create-theme" {:post #'create-theme-handler}]
     ["/admin/api/update-theme" {:post #'update-theme-handler}]
+    ["/admin/api/delete-theme" {:post #'delete-theme-handler}]
     ["/admin/themes" {:get #'all-themes-handler}]
     ["/admin/themes/{theme-id}" {:get #'single-theme-handler}]]])

@@ -30,7 +30,8 @@
   (create-user-role! [model user-role])
   (get-themes [model opts])
   (create-theme! [model theme])
-  (update-theme! [model theme]))
+  (update-theme! [model theme])
+  (delete-theme! [model theme]))
 
 (defn ->slug [title]
   (inflections/parameterize title))

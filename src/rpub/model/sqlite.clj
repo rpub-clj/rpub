@@ -289,7 +289,14 @@
       (db/execute-one! ds {:insert-into themes-table
                            :values [(theme->row theme')]
                            :on-conflict [:id]
-                           :do-update-set [:label :value :updated-at :updated-by]}))))
+                           :do-update-set [:label :value :updated-at :updated-by]})))
+
+  (delete-theme! [_ theme]
+    (assert app-id)
+    (db/execute-one! ds {:delete-from themes-table
+                         :where [:and
+                                 [:= :app-id app-id]
+                                 [:= :id (:id theme)]]})))
 
 (defn ->model [params]
   (let [defaults {:apps-table :apps
