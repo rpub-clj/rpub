@@ -52,6 +52,7 @@
       (let [tx' (with-meta tx {:transaction-id (uuid/v6)})
             req' (-> req
                      (assoc :conn (:ds model))
+                     (update-in [:model :models] update-vals #(assoc % :ds tx'))
                      (update-vals #(if (:ds %) (assoc % :ds tx') %)))]
         (handler req')))))
 
