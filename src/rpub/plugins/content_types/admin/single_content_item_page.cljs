@@ -13,8 +13,7 @@
         {:keys [content-type]} content-item]
     [:div
      (for [field (sort-by :rank (:fields content-type))
-           :let [v (get-in content-item [:document (:id field)])
-                 v' (if (= v ::new-field) "" v)]]
+           :let [v (get-in content-item [:document (:id field)])]]
        [:div.max-w-xl.mb-4 {:key (:id field)}
         [:label.font-semibold.mb-1.block {:for (:name field)}
          (:name field)]
@@ -22,32 +21,51 @@
          (html/custom-element
            [(get-in field-types [(:type field) :input])
             {:field field
-             :value v'
+             :value v
              :on-change (fn [e]
                           (let [v (-> e .-target .-value)]
                             (push ::field-change (assoc field :value v))))
              :editing editing
              :creating creating}])]])]))
 
+(defn submit-form [e push dag-values content-item]
+  (.preventDefault e)
+  (push ::start-submit)
+  (let [{:keys [::field-values]} (dag-values)
+        content-item' (update content-item :document merge field-values)]
+    (http/post "/admin/api/content-types/update-content-item"
+               {:body content-item'})))
+
 (defn new-content-item-page [{:keys [content-type field-types]}]
-  (let [[{:keys [::submitting]}] (use-dag [::submitting])
+  (let [[{:keys [::submitting]} push] (use-dag [::submitting])
+        dag-values (use-dag-values [::field-values])
         content-item {:content-type content-type
                       :document (->> (:fields content-type)
-                                     (map (fn [field] [(:id field) ::new-field]))
-                                     (into {}))}]
+                                     (map (fn [field] [(:id field) nil]))
+                                     (into {}))}
+        handle-submit (fn [e]
+                        (-> (submit-form e push dag-values content-item)
+                            (.then (fn [content-item]
+                                     (prn content-item)
+                                     (set! js/window.location
+                                           (str "/admin/content-types/"
+                                                (name (:slug content-type))
+                                                "/content-items/"
+                                                (:id content-item)))))))]
     [:div.p-4
      [helpers/box
       {:class "mb-4"
        :title (str "New " (inflections/singular (get-in content-item [:content-type :name])))}]
-     [helpers/box
-      {:content
-       [:div
-        [content-item-fields {:content-item content-item
-                              :field-types field-types
-                              :creating true}]
-        [html/submit-button {:ready-label "Create"
-                             :submit-label "Creating..."
-                             :submitting submitting}]]}]]))
+     [:form {:on-submit handle-submit}
+      [helpers/box
+       {:content
+        [:div
+         [content-item-fields {:content-item content-item
+                               :field-types field-types
+                               :creating true}]
+         [html/submit-button {:ready-label "Create"
+                              :submit-label "Creating..."
+                              :submitting submitting}]]}]]]))
 
 (defn- edit-content-item-page
   [{:keys [content-type content-item field-types site-base-url
@@ -67,14 +85,11 @@
                         (js/confirm (str "Are you sure you want to delete this "
                                          (str/lower-case content-type-name-singular)
                                          "?")))
-        submit-form (fn [e]
-                      (.preventDefault e)
-                      (push ::start-submit)
-                      (let [{:keys [::field-values]} (dag-values)
-                            content-item' (update content-item :document merge field-values)]
-                        (-> (http/post "/admin/api/content-types/update-content-item"
-                                       {:body content-item'})
-                            (.then (fn [_] (.reload js/window.location))))))]
+        handle-submit (fn [e]
+                        (-> (submit-form e push dag-values content-item)
+                            (.then (fn [_]
+                                     (.reload js/window.location)))))]
+
     [:div.p-4
      [helpers/box
       {:class "mb-4"
@@ -90,7 +105,7 @@
                   {:href content-item-href
                    :target "_blank"}
                   content-item-href]]}]
-     [:form {:on-submit submit-form}
+     [:form {:on-submit handle-submit}
       [helpers/box
        {:content
         [:div

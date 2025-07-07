@@ -87,10 +87,10 @@
   [{:keys [::ct/model ::ct/field-types path-params site-base-url
            permalink-router]
     :as req}]
-  (let [{:keys [content-item-slug]} path-params
+  (let [{:keys [content-item-id]} path-params
         [content-item] (ct-model/get-content-items
                          model
-                         {:content-item-slugs [content-item-slug]})
+                         {:content-item-ids [content-item-id]})
         content-item' (-> content-item
                           #_(dissoc :fields)
                           #_(update-in [:document content-field-id] md->html))
@@ -109,8 +109,8 @@
            :site-base-url site-base-url}])})))
 
 (defn single-content-item-handler [{:keys [path-params] :as req}]
-  (let [{:keys [content-item-slug]} path-params]
-    (if (= content-item-slug "new")
+  (let [{:keys [content-item-id]} path-params]
+    (if (= content-item-id "new")
       (new-content-item-handler req)
       (edit-content-item-handler req))))
 
@@ -126,10 +126,10 @@
                                   {:content-item-ids [(:id body-params)]})
         updated-content-item (ct-model/->content-item
                                (merge existing-content-item
-                                      (select-keys body-params [:document])
+                                      (select-keys body-params [:content-type :document])
                                       {:current-user current-user}))]
     (ct-model/update-content-item! (::ct/model req) updated-content-item)
-    (response/response {:success true})))
+    (response/response (select-keys updated-content-item [:id]))))
 
 (defn update-content-types-handler [{:keys [model current-user body-params] :as req}]
   (let [new-index (->> (:content-types body-params)
@@ -170,5 +170,5 @@
      {:get #'all-content-types-handler}]
     ["/admin/content-types/{content-type-slug}"
      {:get #'single-content-type-handler}]
-    ["/admin/content-types/{content-type-slug}/content-items/{content-item-slug}"
+    ["/admin/content-types/{content-type-slug}/content-items/{content-item-id}"
      {:get #'single-content-item-handler}]]])
