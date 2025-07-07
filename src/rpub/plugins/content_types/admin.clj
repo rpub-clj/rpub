@@ -120,6 +120,17 @@
        (map #(assoc % :current-user current-user))
        (map #(ct-model/->content-type %))))
 
+(defn update-content-item-handler [{:keys [body-params current-user] :as req}]
+  (let [[existing-content-item] (ct-model/get-content-items
+                                  (::ct/model req)
+                                  {:content-item-ids [(:id body-params)]})
+        updated-content-item (ct-model/->content-item
+                               (merge existing-content-item
+                                      (select-keys body-params [:document])
+                                      {:current-user current-user}))]
+    (ct-model/update-content-item! (::ct/model req) updated-content-item)
+    (response/response {:success true})))
+
 (defn update-content-types-handler [{:keys [model current-user body-params] :as req}]
   (let [new-index (->> (:content-types body-params)
                        (medley/index-by :id))
@@ -151,8 +162,10 @@
 
 (defn routes [opts]
   [["" {:middleware (admin-helpers/admin-middleware opts)}
-    ["/admin/api/content-types/update"
+    ["/admin/api/content-types/update-content-types"
      {:post #'update-content-types-handler}]
+    ["/admin/api/content-types/update-content-item"
+     {:post #'update-content-item-handler}]
     ["/admin/content-types"
      {:get #'all-content-types-handler}]
     ["/admin/content-types/{content-type-slug}"

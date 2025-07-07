@@ -70,3 +70,9 @@
                     (-> (::dag/values d') (select-keys node-keys))))
                 #js[])]
      [values push])))
+
+(defn use-dag-values [node-keys]
+  (let [{:keys [dag-atom]} (useContext DAGContext)]
+    (useCallback
+      (fn []
+        (-> (::dag/values @dag-atom) (select-keys node-keys))))))

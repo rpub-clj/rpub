@@ -288,7 +288,7 @@
 
 (defn update-content-types! [params]
   (let [body (select-keys params [:content-types])]
-    (http/post "/admin/api/content-types/update" {:body body})))
+    (http/post "/admin/api/content-types/update-content-types" {:body body})))
 
 (defn save-modal []
   (let [[{:keys [::pending-save ::content-types-index]}
