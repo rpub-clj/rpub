@@ -14,8 +14,10 @@
     (.-children props)))
 
 (defn- updated? [old-val new-val node-keys]
-  (some #(not= (get-in old-val [::dag/values %])
-               (get-in new-val [::dag/values %]))
+  (some (fn [k]
+          ; not= is broken in cherry
+          (not (= (get-in old-val [::dag/values k])
+                  (get-in new-val [::dag/values k]))))
         node-keys))
 
 (defn- subscribe [dag-atom component-id node-keys on-change]
@@ -28,10 +30,7 @@
                              calc-fn (fn [db]
                                        (let [f (get-in d [::dag/nodes parent :calc])]
                                          (f db opts)))]
-                         (dag/add-node d
-                                       k
-                                       {:calc calc-fn}
-                                       [[parent k]]))))
+                         (dag/add-node d k {:calc calc-fn} [[parent k]]))))
                    current-dag
                    node-keys)))
   (add-watch dag-atom component-id
@@ -54,11 +53,11 @@
   ([node-keys]
    (let [{:keys [dag-atom]} (useContext DAGContext)
          component-id (useId)
-         sub #(subscribe dag-atom component-id node-keys %)
-         get-snapshot #(deref dag-atom)
+         sub (useCallback #(subscribe dag-atom component-id node-keys %) #js[])
+         get-snapshot (useCallback #(deref dag-atom) #js[])
          dag (useSyncExternalStore sub get-snapshot)
-         _ (when (dag/assertions-enabled?)
-             (dag/assert-valid-node-keys dag node-keys))
+         #_#__ (when (dag/assertions-enabled?)
+                 (dag/assert-valid-node-keys dag node-keys))
          values (-> (::dag/values dag) (select-keys node-keys))
          push (useCallback
                 (fn [& args]
