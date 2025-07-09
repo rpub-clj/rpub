@@ -1,29 +1,63 @@
 (ns rpub.plugins.admin.users.single-user-page
-  (:require [rpub.lib.dag.react :refer [use-dag]]
+  (:require ["react" :refer [useEffect]]
+            [rpub.lib.dag.react :refer [use-dag use-dag-values]]
+            [rpub.lib.forms :as forms]
             [rpub.lib.html :as html]
             [rpub.lib.http :as http]
             [rpub.plugins.admin.helpers :as helpers]))
 
-(defn page [_]
-  (let [[{:keys [::field-values ::submitting]}
-         push] (use-dag [::field-values ::submitting])
-        http-opts {:format :transit}
+(def form-schema
+  {:username {:valid #(and (string? %) (seq %) (>= (count %) 3))
+              :message "Must be at least 3 characters"}
+   :password {:valid #(and (string? %) (seq %) (>= (count %) 6))
+              :message "Must be at least 6 characters"}
+   :roles {:valid #(and (string? %) (seq %))
+           :message "Required"}})
+
+(defn html-input [{:keys [value valid on-change type name]}]
+  [html/input2
+   {:type type
+    :name name
+    :value value
+    :class (if (false? valid) "border-red-500" "")
+    :on-change on-change}])
+
+(defn field [{:keys [field-config input-component]}]
+  (let [[v push] (use-dag [[::field-values [(:key field-config)]]])
+        field-values (get v [::field-values [(:key field-config)]])
+        field-value (get field-values (:key field-config))
+        {:keys [message valid]} field-value
+        value (get field-value :value (:value field-config))
+        update-field (fn [field-key e]
+                       (let [v (-> e .-target .-value)]
+                         (push ::change-input [field-key v])))]
+    [:div {:key (str (:key field-config)) :class "sm:col-span-2"}
+     [:label {:class "block mb-2 text-sm text-gray-900" :for "label"}
+      [:span {:class "font-semibold"}
+       (:label field-config)]
+      (when message
+        [:span {:class "text-red-500"} " - " message])]
+     [input-component
+      {:type (:type field-config)
+       :valid (or valid (not (contains? field-value :value)))
+       :name (:key field-config)
+       :value value
+       :on-change #(update-field (:key field-config) %)}]]))
+
+(defn new-user-page [_]
+  (let [[{:keys [::submitting ::ready-to-submit]}
+         push] (use-dag [::submitting ::ready-to-submit])
+        _ (useEffect (fn [] (push ::init)) #js[])
         submit-form (fn [e]
                       (.preventDefault e)
-                      (push ::submit-start)
-                      (let [on-complete (fn [_ err]
-                                          (if err
-                                            (push ::submit-error)
-                                            (.reload (.-location js/window))))
-                            http-opts' (merge http-opts {:body field-values
-                                                         :on-complete on-complete})]
-                        (http/post "/admin/api/create-user" http-opts')))
+                      (when ready-to-submit
+                        (push ::submit-start)
+                        (-> (http/post "/admin/api/create-user" {:body {} #_field-values})
+                            (.then (fn [_] (.reload (.-location js/window))))
+                            (.catch (fn [_] (push ::submit-error))))))
         fields-config [{:key :username, :label "Username", :type :text}
                        {:key :password, :label "Password", :type :password}
-                       {:key :roles, :label "Roles", :type :text}]
-        update-field (fn [field-key e]
-                       (let [value (-> e .-target .-value)]
-                         (push ::change-input [field-key value])))]
+                       #_{:key :roles, :label "Roles", :type :text}]]
     [:div {:class "p-4"}
      [helpers/box
       {:title "New User"
@@ -32,50 +66,25 @@
         [:div {:class "max-w-2xl"}
          [:form {:on-submit submit-form}
           [:div {:class "grid gap-4 sm:grid-cols-2 sm:gap-6"}
-           (for [field fields-config
-                 :let [value (get field-values (:key field) (:value field))]]
-             [:div {:key (str (:key field)) :class "sm:col-span-2"}
-              [:label {:class "block mb-2 text-sm font-semibold text-gray-900" :for "name"}
-               (:label field)]
-              [html/input2
-               {:type (:type field)
-                :name (:key field)
-                :value value
-                :on-change #(update-field (:key field) %)}]])
+           (for [field-config fields-config]
+             [field {:key (:key field-config)
+                     :field-config field-config
+                     :input-component html-input}])
            [html/submit-button {:ready-label "Create"
                                 :submit-label "Creating..."
-                                :submitting submitting}]]]]]}]]))
+                                :submitting submitting
+                                :disabled (not ready-to-submit)}]]]]]}]]))
 
-(defn change-input [db [k v]]
-  (assoc-in db [::inputs k :value] v))
+(defn edit-user-page [_])
 
-(defn submit-error [db]
-  (assoc db ::submitting false))
+(defn- single-user-page [{:keys [editing] :as props}]
+  (if editing
+    [edit-user-page props]
+    [new-user-page props]))
 
-(defn submit-start [db]
-  (assoc db ::submitting true))
-
-(defn field-values
-  ([db] (field-values db (keys (::inputs db))))
-  ([db ks]
-   (-> (::inputs db)
-       (select-keys ks)
-       (update-vals :value))))
-
-(def dag-config
-  {:nodes
-   {::change-input {:push change-input}
-    ::field-values {:calc field-values}
-    ::submit-error {:push submit-error}
-    ::submit-start {:push submit-start}
-    ::submitting {:calc ::submitting}}
-
-   :edges
-   [[::change-input ::field-values]
-    [::submit-error ::submitting]
-    [::submit-start ::submitting]]})
+(def dag-config (forms/->dag ::form form-schema))
 
 (def config
   {:page-id :single-user-page
-   :component page
+   :component single-user-page
    :dag-config dag-config})

@@ -15,9 +15,8 @@
 
 (defn- updated? [old-val new-val node-keys]
   (some (fn [k]
-          ; not= is broken in cherry
-          (not (= (get-in old-val [::dag/values k])
-                  (get-in new-val [::dag/values k]))))
+          (not= (get-in old-val [::dag/values k])
+                (get-in new-val [::dag/values k])))
         node-keys))
 
 (defn- subscribe [dag-atom component-id node-keys on-change]
