@@ -1,6 +1,6 @@
 (ns rpub.plugins.admin.users.single-user-page
   (:require ["react" :refer [useEffect]]
-            [rpub.lib.dag.react :refer [use-dag use-dag-values]]
+            [rpub.lib.dag.react :refer [use-dag]]
             [rpub.lib.forms :as forms]
             [rpub.lib.html :as html]
             [rpub.lib.http :as http]
