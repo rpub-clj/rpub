@@ -20,12 +20,14 @@
               :value value
               :on-change on-change}])
 
-(defn submit-form [e theme dag-values]
+(defn submit-form [e form theme dag-values]
   (.preventDefault e)
-  (let [{:keys [::forms/field-values]} (dag-values)
+  (let [v (dag-values)
+        label (:label (get v [::forms/field-values [form [:label]]]))
+        html-template (:html-template (get v [::forms/field-values [form [:html-template]]]))
         body {:theme (-> theme
-                         (merge (update-vals field-values :value))
-                         (assoc :value {:html-template (or (:value (:html-template field-values))
+                         (assoc :label (:value label))
+                         (assoc :value {:html-template (or (:value html-template)
                                                            (get-in theme [:value :html-template]))})
                          (dissoc :html-template))}]
     (if (:new theme)
@@ -51,7 +53,8 @@
                            [::forms/ready-to-submit form]])
         submitting (get v [::forms/submitting form])
         ready-to-submit (get v [::forms/ready-to-submit form])
-        dag-values (use-dag-values [[::forms/field-values form]])
+        dag-values (use-dag-values [[::forms/field-values [form [:label]]]
+                                    [::forms/field-values [form [:html-template]]]])
         _ (useEffect (fn [] (push ::forms/init form)) #js[])
         html-template (get-in theme [:value :html-template])]
     [:div {:class "p-4"}
@@ -70,7 +73,7 @@
                    "Delete"])]]}]
      [helpers/box
       {:content
-       [:form {:on-submit #(submit-form % theme dag-values)}
+       [:form {:on-submit #(submit-form % form theme dag-values)}
         [:div {:class "grid gap-4 sm:grid-cols-2 sm:gap-6"}
          [:div {:class "max-w-2xl"}
           [forms/field {:form form
