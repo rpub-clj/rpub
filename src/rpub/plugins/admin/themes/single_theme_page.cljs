@@ -20,34 +20,12 @@
               :value value
               :on-change on-change}])
 
-(defn field [{:keys [field-config input-component]}]
-  (let [[v push] (use-dag [[::field-values [(:key field-config)]]])
-        field-values (get v [::field-values [(:key field-config)]])
-        field-value (get field-values (:key field-config))
-        {:keys [message valid]} field-value
-        value (get field-value :value (:value field-config))
-        update-field (fn [field-key e]
-                       (let [v (-> e .-target .-value)]
-                         (push ::change-input [field-key v])))]
-    [:div {:key (str (:key field-config)) :class "sm:col-span-2"}
-     [:label {:class "block mb-2 text-sm text-gray-900" :for "label"}
-      [:span {:class "font-semibold"}
-       (:label field-config)]
-      (when message
-        [:span {:class "text-red-500"} " - " message])]
-     [input-component
-      {:type (:type field-config)
-       :valid (or valid (not (contains? field-value :value)))
-       :name (:key field-config)
-       :value value
-       :on-change #(update-field (:key field-config) %)}]]))
-
 (defn submit-form [e theme dag-values]
   (.preventDefault e)
-  (let [{:keys [::field-values]} (dag-values)
+  (let [{:keys [::forms/field-values]} (dag-values)
         body {:theme (-> theme
-                         (merge (update-vals :value field-values))
-                         (assoc :value {:html-template (or (:html-template field-values)
+                         (merge (update-vals field-values :value))
+                         (assoc :value {:html-template (or (:value (:html-template field-values))
                                                            (get-in theme [:value :html-template]))})
                          (dissoc :html-template))}]
     (if (:new theme)
@@ -67,11 +45,14 @@
             (.then (fn [_]
                      (set! js/window.location "/admin/themes"))))))))
 
-(defn page [{:keys [theme] :as props}]
-  (let [[{:keys [::submitting ::ready-to-submit]}
-         push] (use-dag [::submitting ::ready-to-submit])
-        dag-values (use-dag-values [::field-values])
-        _ (useEffect (fn [] (push ::init props)) #js[])
+(defn page [{:keys [theme] :as _props}]
+  (let [form {:id ::form, :schema form-schema}
+        [v push] (use-dag [[::forms/submitting form]
+                           [::forms/ready-to-submit form]])
+        submitting (get v [::forms/submitting form])
+        ready-to-submit (get v [::forms/ready-to-submit form])
+        dag-values (use-dag-values [[::forms/field-values form]])
+        _ (useEffect (fn [] (push ::forms/init form)) #js[])
         html-template (get-in theme [:value :html-template])]
     [:div {:class "p-4"}
      [helpers/box
@@ -92,15 +73,17 @@
        [:form {:on-submit #(submit-form % theme dag-values)}
         [:div {:class "grid gap-4 sm:grid-cols-2 sm:gap-6"}
          [:div {:class "max-w-2xl"}
-          [field {:field-config {:key :label
-                                 :label "Name"
-                                 :type :text
-                                 :value (:label theme)}
-                  :input-component html/input2}]]
-         [field {:field-config {:key :html-template
-                                :label "HTML"
-                                :value html-template}
-                 :input-component html-input}]]
+          [forms/field {:form form
+                        :field-config {:key :label
+                                       :label "Name"
+                                       :type :text
+                                       :value (:label theme)}
+                        :input-component html/input2}]]
+         [forms/field {:form form
+                       :field-config {:key :html-template
+                                      :label "HTML"
+                                      :value html-template}
+                       :input-component html-input}]]
         (if (:new theme)
           [html/submit-button {:ready-label "Create"
                                :submit-label "Creating..."
@@ -110,7 +93,7 @@
                                :submit-label "Saving..."
                                :submitting submitting}])]}]]))
 
-(def dag-config (forms/->dag ::form form-schema))
+(def dag-config forms/dag-config)
 
 (def config
   {:page-id :single-theme-page

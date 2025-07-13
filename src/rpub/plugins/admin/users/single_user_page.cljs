@@ -22,32 +22,13 @@
     :class (if (false? valid) "border-red-500" "")
     :on-change on-change}])
 
-(defn field [{:keys [field-config input-component]}]
-  (let [[v push] (use-dag [[::field-values [(:key field-config)]]])
-        field-values (get v [::field-values [(:key field-config)]])
-        field-value (get field-values (:key field-config))
-        {:keys [message valid]} field-value
-        value (get field-value :value (:value field-config))
-        update-field (fn [field-key e]
-                       (let [v (-> e .-target .-value)]
-                         (push ::change-input [field-key v])))]
-    [:div {:key (str (:key field-config)) :class "sm:col-span-2"}
-     [:label {:class "block mb-2 text-sm text-gray-900" :for "label"}
-      [:span {:class "font-semibold"}
-       (:label field-config)]
-      (when message
-        [:span {:class "text-red-500"} " - " message])]
-     [input-component
-      {:type (:type field-config)
-       :valid (or valid (not (contains? field-value :value)))
-       :name (:key field-config)
-       :value value
-       :on-change #(update-field (:key field-config) %)}]]))
-
 (defn new-user-page [_]
-  (let [[{:keys [::submitting ::ready-to-submit]}
-         push] (use-dag [::submitting ::ready-to-submit])
-        _ (useEffect (fn [] (push ::init)) #js[])
+  (let [form {:id ::form, :schema form-schema}
+        [v push] (use-dag [[::forms/submitting form]
+                           [::forms/ready-to-submit form]])
+        submitting (get v [::forms/submitting form])
+        ready-to-submit (get v [::forms/ready-to-submit form])
+        _ (useEffect (fn [] (push ::forms/init form)) #js[])
         submit-form (fn [e]
                       (.preventDefault e)
                       (when ready-to-submit
@@ -67,9 +48,10 @@
          [:form {:on-submit submit-form}
           [:div {:class "grid gap-4 sm:grid-cols-2 sm:gap-6"}
            (for [field-config fields-config]
-             [field {:key (:key field-config)
-                     :field-config field-config
-                     :input-component html-input}])
+             [forms/field {:form form
+                           :key (:key field-config)
+                           :field-config field-config
+                           :input-component html-input}])
            [html/submit-button {:ready-label "Create"
                                 :submit-label "Creating..."
                                 :submitting submitting
@@ -82,7 +64,7 @@
     [edit-user-page props]
     [new-user-page props]))
 
-(def dag-config (forms/->dag ::form form-schema))
+(def dag-config forms/dag-config)
 
 (def config
   {:page-id :single-user-page
