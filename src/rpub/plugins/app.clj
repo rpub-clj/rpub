@@ -29,18 +29,21 @@
        [:body
         content]])))
 
-(defn index-handler [{:keys [head settings] :as req}]
-  (let [active-theme (themes/active-theme req)
+(defn index-handler [{:keys [model head settings] :as req}]
+  (let [custom-themes (themes/get-themes model {})
+        active-theme (themes/active-theme req custom-themes)
         settings' (update-in settings
                              [:footer-links :value]
                              #(some-> % edn/read-string))
         setting-value-map (update-vals settings' :value)
         req' (merge req {:page setting-value-map})]
     {:status 200
-     :body (page-layout
-             {:title (-> req' :page :site-title)
-              :content ((:index-page active-theme) req')
-              :head head})}))
+     :body (if (themes/custom-theme? active-theme)
+             (get-in active-theme [:value :html-template])
+             (page-layout
+               {:title (-> req' :page :site-title)
+                :content ((:index-page active-theme) req')
+                :head head}))}))
 
 (defn content-item-page [{:keys [head path-params settings] :as req}]
   (let [active-theme (themes/active-theme req)

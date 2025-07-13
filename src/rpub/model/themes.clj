@@ -25,10 +25,16 @@
 (defn delete-theme! [model theme]
   (-delete-theme! (coerce model) theme))
 
-(defn active-theme [{:keys [settings themes] :as _req}]
-  (let [theme-name-value (get-in settings [:theme-name :value])
-        theme (medley/find-first #(= (:label %) theme-name-value) themes)]
-    (or theme {:label theme-name-value})))
+(defn active-theme
+  ([req] (active-theme req nil))
+  ([{:keys [settings themes] :as _req} custom-themes]
+   (let [theme-name-value (get-in settings [:theme-name :value])
+         theme (medley/find-first #(= (:label %) theme-name-value)
+                                  (concat themes custom-themes))]
+     (or theme {:label theme-name-value}))))
+
+(defn custom-theme? [theme]
+  (get-in theme [:value :html-template]))
 
 (defn ->theme [& {:keys [id label value current-user new] :as _opts}]
   (cond-> {:id (or id (random-uuid))
