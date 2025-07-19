@@ -20,7 +20,7 @@
               :value value
               :on-change on-change}])
 
-(defn submit-form [e form theme field-values]
+(defn submit-form [e theme field-values]
   (.preventDefault e)
   (let [label (:label field-values)
         html-template (:html-template field-values)
@@ -75,7 +75,7 @@
                    "Delete"])]]}]
      [helpers/box
       {:content
-       [:form {:on-submit #(submit-form % form theme @field-values)}
+       [:form {:on-submit #(submit-form % theme @field-values)}
         [:div {:class "grid gap-4 sm:grid-cols-2 sm:gap-6"}
          [:div {:class "max-w-2xl"}
           [forms/field {:form form

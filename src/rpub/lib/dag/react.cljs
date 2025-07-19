@@ -1,5 +1,6 @@
 (ns rpub.lib.dag.react
   {:no-doc true}
+  (:refer-clojure :exclude [->Delay])
   (:require ["react"
              :as react
              :refer [useCallback useContext useSyncExternalStore useId]]
@@ -71,7 +72,7 @@
   (let [[_ push] (use-dag nil)]
     (useCallback #(apply push %) #js[])))
 
-(deftype Delay [f ref]
+(deftype Delay* [f ref]
   IDeref
   (-deref [_]
     (if (= (count ref) 1)
@@ -80,12 +81,12 @@
         (aset ref 0 v)
         v))))
 
-(defn delay [f]
-  (->Delay f #js[]))
+(defn delay* [f]
+  (->Delay* f #js[]))
 
 (defn use-sub-deref [k]
   (let [{:keys [dag-atom]} (useContext DAGContext)]
-    (delay
+    (delay*
       (fn []
         (let [dag @dag-atom]
           (if (vector? k)
