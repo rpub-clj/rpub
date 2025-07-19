@@ -49,7 +49,6 @@
           [:div {:class "grid gap-4 sm:grid-cols-2 sm:gap-6"}
            (for [field-config fields-config]
              [forms/field {:form form
-                           :key (:key field-config)
                            :field-config field-config
                            :input-component html-input}])
            [html/submit-button {:ready-label "Create"

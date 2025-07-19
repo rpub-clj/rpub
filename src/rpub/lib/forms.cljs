@@ -1,6 +1,6 @@
 (ns rpub.lib.forms
   (:require [rpub.lib.dag :as dag]
-            [rpub.lib.dag.react :refer [use-dag]]))
+            [rpub.lib.dag.react :refer [use-sub use-dispatch]]))
 
 (defn validate [form k v]
   (when-let [{:keys [valid message]} (get (:schema form) k)]
@@ -21,13 +21,18 @@
   (assoc-in db [::submitting (:id form)] true))
 
 (defn init [db form]
-  (assoc-in db
-            [::inputs (:id form)]
-            (update-vals (:schema form) (constantly {}))))
+  (let [inputs (reduce-kv (fn [acc k v]
+                            (assoc acc k (merge {:value v} (validate form k v))))
+                          {}
+                          (:initial-values form))]
+    (assoc-in db [::inputs (:id form)] inputs)))
 
 (defn field-values
   ([db] (::inputs db))
-  ([db [form ks]] (select-keys (get (field-values db) (:id form)) ks)))
+  ([db args]
+   (let [[form & ks] (if (vector? args) args [args])]
+     (cond-> (get (field-values db) (:id form))
+       (seq ks) (get-in ks)))))
 
 (defn ready-to-submit
   ([db] (::field-values (::dag/values db)))
@@ -54,24 +59,26 @@
     [::submit-error ::submitting]
     [::submit-start ::submitting]]})
 
-(defn field [{:keys [form field-config input-component]}]
-  (let [[v push] (use-dag [[::field-values [form [(:key field-config)]]]])
-        field-value (get-in v [[::field-values [form [(:key field-config)]]]
-                               (:key field-config)])
-        {:keys [message valid]} field-value
-        value (get field-value :value (:value field-config))
+(defn- input [{:keys [form field-config input-component]}]
+  (let [field-value (use-sub [::field-values [form (:key field-config)]])
+        {:keys [valid value]} field-value
+        dispatch (use-dispatch)
         update-field (fn [field-key e]
                        (let [v (-> e .-target .-value)]
-                         (push ::change-input [form field-key v])))]
+                         (dispatch [::change-input [form field-key v]])))]
+    [input-component
+     {:type (:type field-config)
+      :valid (or valid (not (contains? field-value :value)))
+      :name (:key field-config)
+      :value value
+      :on-change #(update-field (:key field-config) %)}]))
+
+(defn field [{:keys [form field-config] :as props}]
+  (let [message (use-sub [::field-values [form (:key field-config) :message]])]
     [:div {:key (str (:key field-config)) :class "sm:col-span-2"}
      [:label {:class "block mb-2 text-sm text-gray-900" :for "label"}
       [:span {:class "font-semibold"}
        (:label field-config)]
       (when message
         [:span {:class "text-red-500"} " - " message])]
-     [input-component
-      {:type (:type field-config)
-       :valid (or valid (not (contains? field-value :value)))
-       :name (:key field-config)
-       :value value
-       :on-change #(update-field (:key field-config) %)}]]))
+     [input props]]))

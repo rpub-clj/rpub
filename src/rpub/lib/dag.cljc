@@ -42,10 +42,12 @@
      ::values {}
      ::dependents (dependents {::nodes nodes, ::edges edges'})}))
 
+(defn calc-input [dag]
+  (assoc (::acc dag) ::values (::values dag)))
+
 (defn- recalculate [dag node-key]
   (let [calc-fn (get-in dag [::nodes node-key :calc])
-        calc-input (assoc (::acc dag) ::values (::values dag))
-        new-val (calc-fn calc-input)]
+        new-val (calc-fn (calc-input dag))]
     (assoc-in dag [::values node-key] new-val)))
 
 (defn- assert-contains-node [dag node-key]

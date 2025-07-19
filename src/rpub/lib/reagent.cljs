@@ -58,9 +58,15 @@
 
 (declare as-element)
 
-(defn Adapter [js-props]
-  (let [clj-props (-> (->clj-props js-props) (dissoc :__el))]
-    (as-element ((.-__el js-props) clj-props))))
+(def Adapter
+  (react/memo
+    (fn [js-props]
+      (let [clj-props (-> (->clj-props js-props) (dissoc :__el))]
+        (as-element ((.-__el js-props) clj-props))))
+    (fn [js-a js-b]
+      (let [clj-a (-> (->clj-props js-a) (dissoc :__el))
+            clj-b (-> (->clj-props js-b) (dissoc :__el))]
+        (= clj-a clj-b)))))
 
 (defn- string->el [s] s)
 

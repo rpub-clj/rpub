@@ -1,6 +1,6 @@
 (ns rpub.plugins.admin.themes.single-theme-page
   (:require ["react" :refer [useEffect]]
-            [rpub.lib.dag.react :refer [use-dag use-dag-values]]
+            [rpub.lib.dag.react :refer [use-dispatch use-sub use-sub-deref]]
             [rpub.lib.forms :as forms]
             [rpub.lib.html :as html]
             [rpub.lib.http :as http]
@@ -20,11 +20,10 @@
               :value value
               :on-change on-change}])
 
-(defn submit-form [e form theme dag-values]
+(defn submit-form [e form theme field-values]
   (.preventDefault e)
-  (let [v (dag-values)
-        label (:label (get v [::forms/field-values [form [:label]]]))
-        html-template (:html-template (get v [::forms/field-values [form [:html-template]]]))
+  (let [label (:label field-values)
+        html-template (:html-template field-values)
         body {:theme (-> theme
                          (assoc :label (:value label))
                          (assoc :value {:html-template (or (:value html-template)
@@ -47,16 +46,19 @@
             (.then (fn [_]
                      (set! js/window.location "/admin/themes"))))))))
 
+(defn ->form [theme]
+  {:id ::form
+   :schema form-schema
+   :initial-values {:label (:label theme)
+                    :html-template (get-in theme [:value :html-template])}})
+
 (defn page [{:keys [theme] :as _props}]
-  (let [form {:id ::form, :schema form-schema}
-        [v push] (use-dag [[::forms/submitting form]
-                           [::forms/ready-to-submit form]])
-        submitting (get v [::forms/submitting form])
-        ready-to-submit (get v [::forms/ready-to-submit form])
-        dag-values (use-dag-values [[::forms/field-values [form [:label]]]
-                                    [::forms/field-values [form [:html-template]]]])
-        _ (useEffect (fn [] (push ::forms/init form)) #js[])
-        html-template (get-in theme [:value :html-template])]
+  (let [form (->form theme)
+        submitting (use-sub [::forms/submitting form])
+        ready-to-submit (use-sub [::forms/ready-to-submit form])
+        field-values (use-sub-deref [::forms/field-values form])
+        dispatch (use-dispatch)
+        _ (useEffect (fn [] (dispatch [::forms/init form])) #js[])]
     [:div {:class "p-4"}
      [helpers/box
       {:class "mb-4"
@@ -73,19 +75,17 @@
                    "Delete"])]]}]
      [helpers/box
       {:content
-       [:form {:on-submit #(submit-form % form theme dag-values)}
+       [:form {:on-submit #(submit-form % form theme @field-values)}
         [:div {:class "grid gap-4 sm:grid-cols-2 sm:gap-6"}
          [:div {:class "max-w-2xl"}
           [forms/field {:form form
                         :field-config {:key :label
                                        :label "Name"
-                                       :type :text
-                                       :value (:label theme)}
+                                       :type :text}
                         :input-component html/input2}]]
          [forms/field {:form form
                        :field-config {:key :html-template
-                                      :label "HTML"
-                                      :value html-template}
+                                      :label "HTML"}
                        :input-component html-input}]]
         (if (:new theme)
           [html/submit-button {:ready-label "Create"
@@ -94,6 +94,7 @@
                                :submitting submitting}]
           [html/submit-button {:ready-label "Save"
                                :submit-label "Saving..."
+                               :disabled (not ready-to-submit)
                                :submitting submitting}])]}]]))
 
 (def dag-config forms/dag-config)
