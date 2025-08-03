@@ -1,5 +1,5 @@
 (ns rpub.lib.substrate.react
-  (:require ["react" :refer [useSyncExternalStore useId useCallback]]))
+  (:require ["react" :refer [useSyncExternalStore useId]]))
 
 (defn subscribe [{:keys [conn query]} selector]
   (let [component-id (useId)
