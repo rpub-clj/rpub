@@ -1,9 +1,9 @@
 (ns rpub.plugins.admin.themes.single-theme-page
   (:require ["react" :refer [useEffect]]
-            [rpub.lib.dag.react :refer [use-dispatch use-sub use-sub-deref]]
             [rpub.lib.forms :as forms]
             [rpub.lib.html :as html]
             [rpub.lib.http :as http]
+            [rpub.lib.substrate :refer [subscribe dispatch]]
             [rpub.plugins.admin.helpers :as helpers]))
 
 (def form-schema
@@ -54,11 +54,11 @@
 
 (defn page [{:keys [theme] :as _props}]
   (let [form (->form theme)
-        submitting (use-sub [::forms/submitting form])
-        ready-to-submit (use-sub [::forms/ready-to-submit form])
-        field-values (use-sub-deref [::forms/field-values form])
-        dispatch (use-dispatch)
+        submitting (subscribe [::forms/submitting form])
+        ready-to-submit (subscribe [::forms/ready-to-submit form])
+        field-values (subscribe [::forms/field-values form])
         _ (useEffect (fn [] (dispatch [::forms/init form])) #js[])]
+    (prn 'page {:field-values field-values})
     [:div {:class "p-4"}
      [helpers/box
       {:class "mb-4"
@@ -75,7 +75,7 @@
                    "Delete"])]]}]
      [helpers/box
       {:content
-       [:form {:on-submit #(submit-form % theme @field-values)}
+       [:form {:on-submit #(submit-form % theme field-values)}
         [:div {:class "grid gap-4 sm:grid-cols-2 sm:gap-6"}
          [:div {:class "max-w-2xl"}
           [forms/field {:form form
@@ -97,9 +97,6 @@
                                :disabled (not ready-to-submit)
                                :submitting submitting}])]}]]))
 
-(def dag-config forms/dag-config)
-
 (def config
   {:page-id :single-theme-page
-   :component page
-   :dag-config dag-config})
+   :component page})

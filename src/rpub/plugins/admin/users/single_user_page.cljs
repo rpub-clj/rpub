@@ -1,9 +1,9 @@
 (ns rpub.plugins.admin.users.single-user-page
   (:require ["react" :refer [useEffect]]
-            [rpub.lib.dag.react :refer [use-dag]]
             [rpub.lib.forms :as forms]
             [rpub.lib.html :as html]
             [rpub.lib.http :as http]
+            [rpub.lib.substrate :refer [subscribe dispatch]]
             [rpub.plugins.admin.helpers :as helpers]))
 
 (def form-schema
@@ -24,18 +24,16 @@
 
 (defn new-user-page [_]
   (let [form {:id ::form, :schema form-schema}
-        [v push] (use-dag [[::forms/submitting form]
-                           [::forms/ready-to-submit form]])
-        submitting (get v [::forms/submitting form])
-        ready-to-submit (get v [::forms/ready-to-submit form])
-        _ (useEffect (fn [] (push ::forms/init form)) #js[])
+        submitting (subscribe [::forms/submitting form])
+        ready-to-submit (subscribe [::forms/ready-to-submit form])
+        _ (useEffect (fn [] (dispatch [::forms/init form])) #js[])
         submit-form (fn [e]
                       (.preventDefault e)
                       (when ready-to-submit
-                        (push ::submit-start)
+                        (dispatch ::submit-start)
                         (-> (http/post "/admin/api/create-user" {:body {} #_field-values})
                             (.then (fn [_] (.reload (.-location js/window))))
-                            (.catch (fn [_] (push ::submit-error))))))
+                            (.catch (fn [_] (dispatch ::submit-error))))))
         fields-config [{:key :username, :label "Username", :type :text}
                        {:key :password, :label "Password", :type :password}
                        #_{:key :roles, :label "Roles", :type :text}]]
@@ -63,9 +61,6 @@
     [edit-user-page props]
     [new-user-page props]))
 
-(def dag-config forms/dag-config)
-
 (def config
   {:page-id :single-user-page
-   :component single-user-page
-   :dag-config dag-config})
+   :component single-user-page})

@@ -1,5 +1,8 @@
 (ns rpub.plugins.admin
   (:require ["preact/devtools"]
+            [rpub.lib.forms :as forms]
+            [rpub.lib.substrate :as subs]
+            [rpub.lib.substrate.react :as subs-react]
             [rpub.plugins.admin.dashboard.page :as dashboard-page]
             [rpub.plugins.admin.helpers :as helpers]
             [rpub.plugins.admin.plugins.page :as plugins-page]
@@ -19,7 +22,16 @@
   (helpers/add-page (merge opts single-theme-page/config))
   (helpers/add-page (merge opts plugins-page/config)))
 
+(def conn (atom {}))
+
+(defn substrate []
+  (subs-react/substrate
+    {:conn conn
+     :query forms/query
+     :transact forms/transact}))
+
 (defn start! [& {:as opts}]
+  (subs/set-global! (substrate))
   (add-pages opts)
   (content-types-admin/add-elements opts)
   (content-types-admin/add-pages opts))
