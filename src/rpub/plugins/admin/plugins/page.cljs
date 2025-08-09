@@ -1,8 +1,8 @@
 (ns rpub.plugins.admin.plugins.page
   (:require [clojure.string :as str]
-            [rpub.lib.dag.react :refer [use-dag]]
             [rpub.lib.html :as html]
             [rpub.lib.http :as http]
+            [rpub.lib.substrate :refer [subscribe dispatch]]
             [rpub.plugins.admin.helpers :as helpers]))
 
 (defn- plugin-icon [_]
@@ -16,31 +16,29 @@
     (str "https://github.com/rpub-clj/plugins/tree/main/plugins/" suffix)))
 
 (defn- page [{:keys [current-plugins available-plugins] :as _props}]
-  (let [[{:keys [::needs-restart
-                 ::activated-plugins]}
-         push] (use-dag [::needs-restart
-                         ::activated-plugins])
+  (let [needs-restart (subscribe [::needs-restart])
+        activated-plugins (subscribe [::activated-plugins])
         current-plugin-index (helpers/index-by :key current-plugins)
         activate-plugin (fn [_e plugin]
                           (let [plugin' (assoc plugin :activated true)
                                 body {:plugin (select-keys plugin' [:key])}]
                             (-> (http/post "/admin/api/activate-plugin" {:body body})
-                                (.then (fn [_] (push ::activate-plugin (:key plugin')))))))
+                                (.then (fn [_] (dispatch [::activate-plugin (:key plugin')]))))))
         deactivate-plugin (fn [_e plugin]
                             (let [body {:plugin (select-keys plugin [:key])}]
                               (-> (http/post "/admin/api/deactivate-plugin" {:body body})
-                                  (.then (fn [_] (push ::deactivate-plugin (:key plugin)))))))
+                                  (.then (fn [_] (dispatch [::deactivate-plugin (:key plugin)]))))))
         restart-server (fn [_e]
-                         (push ::restart-server)
+                         (dispatch [::restart-server])
                          (http/post "/api/restart-server" {}))
         available-plugin-index (helpers/index-by :key available-plugins)
         activated-plugin-index (->> activated-plugins
                                     (map (fn [k] [k {:activated true}]))
                                     (into {}))
-        combined-plugin-index (-> (merge-with merge
-                                              current-plugin-index
-                                              available-plugin-index
-                                              activated-plugin-index))]
+        combined-plugin-index (merge-with merge
+                                          current-plugin-index
+                                          available-plugin-index
+                                          activated-plugin-index)]
     [:div {:class "p-4"}
      [helpers/box
       {:title "Plugins"
@@ -54,7 +52,8 @@
            [:div {:class "inline-flex items-center mx-auto"}
             "Restart"]])]}]
      (for [plugin (sort-by #(str/lower-case (or (:label %) (:key %)))
-                           (vals combined-plugin-index))]
+                           (doto (vals combined-plugin-index)
+                             prn))]
        [helpers/box
         {:key (:key plugin)
          :title [:div {:class "flex items-center" :style {:margin-top "-1px"}}
@@ -71,34 +70,30 @@
           (when-let [v (:description plugin)]
             [:p v])]}])]))
 
-(defn activate-plugin [db k]
+(defn activate-plugin [db [_ k]]
   (-> db
       (assoc ::needs-restart true)
       (update ::activated-plugins (fnil conj #{}) k)))
 
-(defn deactivate-plugin [db k]
+(defn deactivate-plugin [db [_ k]]
   (-> db
       (assoc ::needs-restart true)
       (update ::activated-plugins disj k)))
 
-(defn restart-server [db]
+(defn restart-server [db _]
   (assoc db ::restarted true))
 
-(def dag-config
-  {:nodes
-   {::needs-restart {:calc ::needs-restart}
-    ::restart-server {:push restart-server}
-    ::activated-plugins {:calc ::activated-plugins}
-    ::activate-plugin {:push activate-plugin}
-    ::deactivate-plugin {:push deactivate-plugin}}
+(def model
+  {:queries
+   {::needs-restart (fn [db _] (::needs-restart db))
+    ::activated-plugins (fn [db _] (::activated-plugins db))}
 
-   :edges
-   [[::activate-plugin ::needs-restart]
-    [::activate-plugin ::activated-plugins]
-    [::deactivate-plugin ::needs-restart]
-    [::deactivate-plugin ::activated-plugins]]})
+   :transactions
+   {::activate-plugin activate-plugin
+    ::deactivate-plugin deactivate-plugin
+    ::restart-server restart-server}})
 
 (def config
   {:page-id :plugins-page
-   :component page
-   :dag-config dag-config})
+   :model model
+   :component page})

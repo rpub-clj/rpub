@@ -3,39 +3,36 @@
             ["react" :refer [useEffect]]
             [clojure.string :as str]
             [rads.inflections :as inflections]
-            [rpub.lib.dag :as dag]
-            [rpub.lib.dag.react :refer [use-dag]]
             [rpub.lib.html :as html]
             [rpub.lib.http :as http]
+            [rpub.lib.substrate :refer [subscribe dispatch]]
             [rpub.plugins.admin.helpers :as helpers]
             [rpub.plugins.admin.roles :as roles]))
 
-(defn ->unsaved-changes [value]
-  (helpers/->unsaved-changes
-    :all-content-types-page
-    (select-keys value [::content-types-index
-                        ::past
-                        ::future])))
+;(defn ->unsaved-changes [value]
+;  (helpers/->unsaved-changes
+;    :all-content-types-page
+;    (select-keys value [::content-types-index
+;                        ::past
+;                        ::future])))
+;
+;(defn update-unsaved-changes! [value]
+;  (helpers/update-unsaved-changes! (->unsaved-changes value)))
 
-(defn update-unsaved-changes! [value]
-  (helpers/update-unsaved-changes! (->unsaved-changes value)))
-
-(defn select-content-type [db {:keys [content-type]}]
+(defn select-content-type [db [_ {:keys [content-type]}]]
   (let [selection {:content-type (select-keys content-type [:id])}]
     (assoc db ::selection selection)))
 
-(defn select-content-type-field [db {:keys [content-type content-type-field]}]
+(defn select-content-type-field [db [_ {:keys [content-type content-type-field]}]]
   (let [selection {:content-type (select-keys content-type [:id])
                    :content-type-field (select-keys content-type-field [:id])}]
     (assoc db ::selection selection)))
 
-(defn clear-selection [db]
+(defn clear-selection [db _]
   (dissoc db ::selection))
 
-(defn selection [db]
-  (let [content-types-index (get-in db [::dag/values ::content-types-index])
-        sel (get db ::selection)
-        content-type-id (get-in sel [:content-type :id])
+(defn selection [{:keys [::content-types-index] sel ::selection} _]
+  (let [content-type-id (get-in sel [:content-type :id])
         content-type-field-id (get-in sel [:content-type-field :id])
         content-type (get content-types-index content-type-id)]
     (cond-> nil
@@ -48,7 +45,7 @@
                   (filter #(= (:id %) content-type-field-id))
                   first)))))
 
-(defn undo [db]
+(defn undo [db _]
   (if (seq (::past db))
     (let [prev-state (peek (::past db))
           current-state (dissoc db ::past ::future)]
@@ -57,7 +54,7 @@
           (assoc ::future ((fnil conj []) (::future db) current-state))))
     db))
 
-(defn redo [db]
+(defn redo [db _]
   (if (seq (::future db))
     (let [next-state (peek (::future db))
           current-state (dissoc db ::past ::future)]
@@ -76,17 +73,17 @@
           (update ::past (fnil conj []) current-state)
           (assoc ::future [])))))
 
-(defn reset [{:keys [::original-content-types] :as db}]
+(defn reset [{:keys [::original-content-types] :as db} _]
   (let [content-types-index (helpers/index-by :id original-content-types)]
     (assoc db ::content-types-index content-types-index)))
 
-(defn request-save [db]
+(defn request-save [db _]
   (assoc db ::pending-save true))
 
-(defn confirm-save [db]
+(defn confirm-save [db _]
   (assoc db ::pending-save false))
 
-(defn cancel-save [db]
+(defn cancel-save [db _]
   (assoc db ::pending-save false))
 
 (defn dnd-item-id [content-type content-type-field]
@@ -94,7 +91,7 @@
 
 (defn content-type-fields-item
   [{:keys [content-type content-type-field field-types]}]
-  (let [[{:keys [::selection]} push] (use-dag [::selection])
+  (let [selection (subscribe [::selection])
         selected (and (= (get-in selection [:content-type :id])
                          (:id content-type))
                       (= (get-in selection [:content-type-field :id])
@@ -114,19 +111,19 @@
      [:label {:for "field-name"}]
      [:div.w-full.pl-2.py-2
       {:on-click (fn [_]
-                   (push ::select-content-type-field
-                         {:content-type content-type
-                          :content-type-field content-type-field}))}
+                   (dispatch [::select-content-type-field
+                              {:content-type content-type
+                               :content-type-field content-type-field}]))}
       (:name content-type-field)]
      [:div.bg-gray-50.px-2.py-2.border-l.border-l-gray-100
       {:class "min-w-[150px] rounded-r-[6px]"
        :on-click (fn [_]
-                   (push ::select-content-type-field
-                         {:content-type content-type
-                          :content-type-field content-type-field}))}
+                   (dispatch [::select-content-type-field
+                              {:content-type content-type
+                               :content-type-field content-type-field}]))}
       [(:label field-type)]]]))
 
-(defn init [_ {:keys [current-user content-types field-types unsaved-changes]}]
+(defn init [_ [_ {:keys [current-user content-types field-types unsaved-changes]}]]
   (let [content-types-index (helpers/index-by :id content-types)]
     {::current-user current-user
      ::past (get-in unsaved-changes [:value ::past])
@@ -164,28 +161,22 @@
   (map (fn [[k v]] (assoc v :type k)) field-types))
 
 (defn inspector [{:keys [field-types]}]
-  (let [[{:keys [::selection]}
-         push] (use-dag [::selection ::content-types-index ::past ::future])
+  (let [selection (subscribe [::selection])
         field-config (->field-config field-types)
         change-field-type (fn [_e opts]
-                            (-> (push ::change-field-type opts)
-                                update-unsaved-changes!))
+                            (dispatch [::change-field-type opts]))
         delete-content-type (fn [_e opts]
-                              (-> (push ::delete-content-type opts)
-                                  update-unsaved-changes!))
+                              (dispatch [::delete-content-type opts]))
         rename-content-type (fn [_e opts]
                               (when-let [new-name (js/prompt "New name:")]
-                                (-> (push ::rename-content-type
-                                          (assoc opts :new-name new-name))
-                                    update-unsaved-changes!)))
+                                (dispatch [::rename-content-type
+                                           (assoc opts :new-name new-name)])))
         delete-content-type-field (fn [_e opts]
-                                    (-> (push ::delete-content-type-field opts)
-                                        update-unsaved-changes!))
+                                    (dispatch [::delete-content-type-field opts]))
         rename-content-type-field (fn [_e opts]
                                     (when-let [new-name (js/prompt "New name:")]
-                                      (-> (push ::rename-content-type-field
-                                                (assoc opts :new-name new-name))
-                                          update-unsaved-changes!)))]
+                                      (dispatch [::rename-content-type-field
+                                                 (assoc opts :new-name new-name)])))]
     (if selection
       (cond
         (:content-type-field selection)
@@ -259,8 +250,8 @@
              :rank 3}]})
 
 (defn header [{:keys [content-types]}]
-  (let [[{:keys [::current-user ::content-types-index]}
-         push] (use-dag [::current-user ::content-types-index ::past ::future])]
+  (let [current-user (subscribe [::current-user])
+        content-types-index (subscribe [::content-types-index])]
     [helpers/box
      {:class "pb-4"
       :data-no-select true
@@ -279,9 +270,8 @@
                                                  (if (some #(= (:name %) n) xs)
                                                    (recur (inc i) (rest xs))
                                                    n)))]
-                                (-> (push ::new-content-type
-                                          {:content-type (->content-type {:name new-name})})
-                                    update-unsaved-changes!)))}
+                                (dispatch [::new-content-type
+                                           {:content-type (->content-type {:name new-name})}])))}
 
                  "New Content Type"])]
       :content [helpers/content-item-counts {:content-types content-types}]}]))
@@ -291,8 +281,8 @@
     (http/post "/admin/api/content-types/update-content-types" {:body body})))
 
 (defn save-modal []
-  (let [[{:keys [::pending-save ::content-types-index]}
-         push] (use-dag [::pending-save ::content-types-index])]
+  (let [pending-save (subscribe [::pending-save])
+        content-types-index (subscribe [::content-types-index])]
     [html/modal
      {:visible pending-save
       :title "Save Changes"
@@ -301,44 +291,40 @@
                  "Are you sure you want to save your changes?"]
                 [:pre (with-out-str (prn content-types-index))]]
       :on-confirm ^:async (fn [_]
-                            (push ::confirm-save)
+                            (dispatch [::confirm-save])
                             (js/await (update-content-types! {:content-types (vals content-types-index)})))
-      :on-cancel (fn [_] (push ::cancel-save))}]))
+      :on-cancel (fn [_] (dispatch [::cancel-save]))}]))
 
 (defn controls [{:keys [unsaved-changes]}]
-  (let [[_ push] (use-dag [::content-types-index ::past ::future])]
-    [helpers/box
-     {:class "mb-4"
-      :content [:div
-                [:div.mb-4
-                 [:div.flex.mb-2
-                  [html/button
-                   {:class "mr-2"
-                    :on-click (fn [_]
-                                (-> (push ::undo)
-                                    update-unsaved-changes!))}
-                   "Undo"]
-                  [html/button
-                   {:class "mr-2"
-                    :on-click (fn [_]
-                                (-> (push ::redo)
-                                    update-unsaved-changes!))}
-                   "Redo"]
-                  [html/button
-                   {:class "mr-2"
-                    :on-click (fn [_]
-                                (-> (push ::reset)
-                                    update-unsaved-changes!))}
-                   "Reset"]
-                  [html/button
-                   {:class "mr-2"
-                    :on-click (fn [_] (push ::request-save))}
-                   "Save"]]]
-                [:div.text-lg.font-app-serif.font-semibold
-                 [:span.italic.text-gray-400 "Status: "]
-                 (if (seq (:value unsaved-changes))
-                   "Unsaved changes."
-                   "All changes saved.")]]}]))
+  [helpers/box
+   {:class "mb-4"
+    :content [:div
+              [:div.mb-4
+               [:div.flex.mb-2
+                [html/button
+                 {:class "mr-2"
+                  :on-click (fn [_]
+                              (dispatch [::undo]))}
+                 "Undo"]
+                [html/button
+                 {:class "mr-2"
+                  :on-click (fn [_]
+                              (dispatch [::redo]))}
+                 "Redo"]
+                [html/button
+                 {:class "mr-2"
+                  :on-click (fn [_]
+                              (dispatch [::reset]))}
+                 "Reset"]
+                [html/button
+                 {:class "mr-2"
+                  :on-click (fn [_] (dispatch [::request-save]))}
+                 "Save"]]]
+              [:div.text-lg.font-app-serif.font-semibold
+               [:span.italic.text-gray-400 "Status: "]
+               (if (seq (:value unsaved-changes))
+                 "Unsaved changes."
+                 "All changes saved.")]]}])
 
 (defn drop-indicator-ui [{:keys [drop-indicator divider-element item-id item-element]}]
   (let [before (and (= (:id drop-indicator) item-id)
@@ -351,9 +337,7 @@
       (when after divider-element))))
 
 (defn content-type-fields-list [{:keys [content-type field-types]}]
-  (let [[{:keys [::drop-indicator]}
-         _push] (use-dag [::content-types-index ::selection ::past ::future
-                          ::drop-indicator])
+  (let [drop-indicator (subscribe [::drop-indicator])
         divider-element [:div
                          {:class "h-[3px] bg-[#2196F3] my-[8px] rounded-[3px]"}]]
     [:div {:data-droppable "true"
@@ -369,8 +353,8 @@
                            :item-element item-element}])]))
 
 (defn content-types-list [{:keys [field-types] :as _props}]
-  (let [[{:keys [::content-types-index ::selection]}
-         push] (use-dag [::content-types-index ::selection ::past ::future])
+  (let [content-types-index (subscribe [::content-types-index])
+        selection (subscribe [::selection])
         content-types (->> (vals content-types-index) (sort-by :created-at >))]
     (for [content-type (sort-by :name content-types)]
       [:div {:class "pb-4"
@@ -380,8 +364,8 @@
         {:hover true
          :on-click (fn [e]
                      (when-not (.closest (.-target e) "[data-content-type-field-id]")
-                       (push ::select-content-type
-                             {:content-type content-type})))
+                       (dispatch [::select-content-type
+                                  {:content-type content-type}])))
          :selected (and (not (:content-type-field selection))
                         (= (get-in selection [:content-type :id])
                            (:id content-type)))
@@ -416,21 +400,21 @@
   (str (-> drag-element .-dataset .-containerId) "|" (random-uuid)))
 
 (defn page [{:keys [field-types unsaved-changes] :as props}]
-  (let [[{:keys [::content-types-index]} push] (use-dag [::content-types-index])
-        _ (useEffect (fn [] (push ::init props)) #js[])
+  (let [content-types-index (subscribe [::content-types-index])
+        _ (useEffect (fn [] (dispatch [::init props])) #js[])
         clear? (fn [e]
                  (not (or (.closest (.-target e) "[data-no-select]")
                           (.closest (.-target e) "[data-content-type-field-id]"))))
         on-click (fn [e]
                    (when (clear? e)
-                     (push ::clear-selection)))
+                     (dispatch [::clear-selection])))
         content-types (->> (vals content-types-index) (sort-by :created-at >))
         handle-dnd-event (fn [e]
                            (let [drop-indicator (->drop-indicator e)]
                              (case (keyword (.-type e))
-                               :drag (push ::dnd-drag {:drop-indicator drop-indicator})
-                               :drop (push ::dnd-drop {:drop-indicator drop-indicator
-                                                       :dnd-event e}))))]
+                               :drag (dispatch [::dnd-drag {:drop-indicator drop-indicator}])
+                               :drop (dispatch [::dnd-drop {:drop-indicator drop-indicator
+                                                            :dnd-event e}]))))]
     [dnd-provider {:on-event handle-dnd-event
                    :generate-id dnd-generate-id
                    :placeholder-classes "opacity-50"
@@ -449,7 +433,7 @@
         [controls {:unsaved-changes unsaved-changes}]
         [inspector {:field-types field-types}]]]]]))
 
-(defn delete-content-type [db {:keys [content-type]}]
+(defn delete-content-type [db [_ {:keys [content-type]}]]
   (-> db
       (update ::content-types-index
               dissoc
@@ -457,7 +441,7 @@
       (dissoc ::selection)))
 
 (defn delete-content-type-field
-  [db {:keys [content-type content-type-field]}]
+  [db [_ {:keys [content-type content-type-field]}]]
   (let [fields-path [::content-types-index
                      (:id content-type)
                      :fields]]
@@ -467,7 +451,7 @@
                      (remove #(= (:id %) (:id content-type-field)) fields)))
         (dissoc ::selection))))
 
-(defn rename-content-type [db {:keys [content-type new-name]}]
+(defn rename-content-type [db [_ {:keys [content-type new-name]}]]
   (let [name-path [::content-types-index
                    (:id content-type)
                    :name]]
@@ -476,7 +460,7 @@
         #_(dissoc ::selection))))
 
 (defn rename-content-type-field
-  [db {:keys [content-type content-type-field new-name]}]
+  [db [_ {:keys [content-type content-type-field new-name]}]]
   (let [fields-path [::content-types-index
                      (:id content-type)
                      :fields]]
@@ -492,14 +476,14 @@
 
 (defn- new-content-type
   [{:keys [::content-types-index] :as db}
-   {:keys [content-type]}]
+   [_ {:keys [content-type]}]]
   (let [content-types-index' (-> content-types-index
                                  (assoc (:id content-type) content-type))]
     (assoc db ::content-types-index content-types-index')))
 
 (defn- change-field-type
   [{:keys [::content-types-index] :as db}
-   {:keys [content-type content-type-field new-field-type]}]
+   [_ {:keys [content-type content-type-field new-field-type]}]]
   (let [content-type' (-> (get content-types-index (:id content-type))
                           (update :fields
                                   (fn [fields]
@@ -514,7 +498,7 @@
 
 (defn- update-content-type-fields
   [{:keys [::content-types-index] :as db}
-   {:keys [content-type new-fields]}]
+   [_ {:keys [content-type new-fields]}]]
   (let [content-type' (-> (get content-types-index (:id content-type))
                           (assoc :fields new-fields))
         content-types-index' (-> content-types-index
@@ -522,7 +506,7 @@
     (-> db
         (assoc ::content-types-index content-types-index'))))
 
-(defn dnd-drag [db {:keys [drop-indicator]}]
+(defn dnd-drag [db [_ {:keys [drop-indicator]}]]
   (assoc db ::drop-indicator drop-indicator))
 
 (defn- to-spliced [coll start delete-count & items]
@@ -538,7 +522,7 @@
 
 (defn dnd-drop
   [{:keys [::content-types-index ::field-types] :as db}
-   {:keys [drop-indicator dnd-event]}]
+   [_ {:keys [drop-indicator dnd-event]}]]
   (let [source-container-id (-> dnd-event .-dragClone .-dataset .-containerId parse-uuid)
         source-field-id (-> dnd-event .-dragClone .-dataset .-id (str/split #"\|") second parse-uuid)
         source-field-type (some-> dnd-event .-dragClone .-dataset .-fieldType keyword)
@@ -633,80 +617,38 @@
       (throw (ex-info "Invalid condition" {})))
     (dissoc db' ::drop-indicator)))
 
-(def dag-config
-  {:nodes
-   {::cancel-save {:push cancel-save}
-    ::change-field-type {:push (with-undo change-field-type)}
-    ::clear-selection {:push clear-selection}
-    ::confirm-save {:push confirm-save}
-    ::content-types-index {:calc ::content-types-index}
-    ::current-user {:calc ::current-user}
-    ::delete-content-type {:push (with-undo delete-content-type)}
-    ::delete-content-type-field {:push (with-undo delete-content-type-field)}
-    ::dnd-drag {:push dnd-drag}
-    ::dnd-drop {:push dnd-drop}
-    ::drop-indicator {:calc ::drop-indicator}
-    ::future {:calc ::future}
-    ::init {:push init}
-    ::new-content-type {:push (with-undo new-content-type)}
-    ::past {:calc ::past}
-    ::pending-save {:calc ::pending-save}
-    ::redo {:push redo}
-    ::update-content-type-fields {:push (with-undo update-content-type-fields)}
-    ::rename-content-type {:push (with-undo rename-content-type)}
-    ::rename-content-type-field {:push (with-undo rename-content-type-field)}
-    ::request-save {:push request-save}
-    ::reset {:push (with-undo reset)}
-    ::select-content-type {:push select-content-type}
-    ::select-content-type-field {:push select-content-type-field}
-    ::selection {:calc selection}
-    ::undo {:push undo}}
+(def model
+  {:queries
+   {::content-types-index (fn [db _] (::content-types-index db))
+    ::current-user (fn [db _] (::current-user db))
+    ::drop-indicator (fn [db _] (::drop-indicator db))
+    ::future (fn [db _] (::future db))
+    ::past (fn [db _] (::past db))
+    ::pending-save (fn [db _] (::pending-save db))
+    ::selection selection}
 
-   :edges
-   [[::cancel-save ::pending-save]
-    [::change-field-type ::content-types-index]
-    [::change-field-type ::future]
-    [::change-field-type ::past]
-    [::clear-selection ::selection]
-    [::confirm-save ::pending-save]
-    [::content-types-index ::selection]
-    [::dnd-drop ::content-types-index]
-    [::dnd-drop ::drop-indicator]
-    [::dnd-drag ::drop-indicator]
-    [::delete-content-type ::content-types-index]
-    [::delete-content-type ::future]
-    [::delete-content-type ::past]
-    [::delete-content-type-field ::content-types-index]
-    [::delete-content-type-field ::future]
-    [::delete-content-type-field ::past]
-    [::init ::current-user]
-    [::init ::content-types-index]
-    [::new-content-type ::content-types-index]
-    [::new-content-type ::future]
-    [::new-content-type ::past]
-    [::redo ::content-types-index]
-    [::redo ::future]
-    [::redo ::past]
-    [::rename-content-type ::content-types-index]
-    [::rename-content-type ::future]
-    [::rename-content-type ::past]
-    [::rename-content-type-field ::content-types-index]
-    [::rename-content-type-field ::future]
-    [::rename-content-type-field ::past]
-    [::update-content-type-fields ::content-types-index]
-    [::update-content-type-fields ::future]
-    [::update-content-type-fields ::past]
-    [::request-save ::pending-save]
-    [::reset ::content-types-index]
-    [::reset ::future]
-    [::reset ::past]
-    [::select-content-type ::selection]
-    [::select-content-type-field ::selection]
-    [::undo ::content-types-index]
-    [::undo ::future]
-    [::undo ::past]]})
+   :transactions
+   {::cancel-save cancel-save
+    ::change-field-type (with-undo change-field-type)
+    ::clear-selection clear-selection
+    ::confirm-save confirm-save
+    ::delete-content-type (with-undo delete-content-type)
+    ::delete-content-type-field (with-undo delete-content-type-field)
+    ::dnd-drag dnd-drag
+    ::dnd-drop dnd-drop
+    ::init init
+    ::new-content-type (with-undo new-content-type)
+    ::redo redo
+    ::update-content-type-fields (with-undo update-content-type-fields)
+    ::rename-content-type (with-undo rename-content-type)
+    ::rename-content-type-field (with-undo rename-content-type-field)
+    ::request-save request-save
+    ::reset (with-undo reset)
+    ::select-content-type select-content-type
+    ::select-content-type-field select-content-type-field
+    ::undo undo}})
 
 (def config
   {:page-id :all-content-types-page
-   :component page
-   :dag-config dag-config})
+   :model model
+   :component page})

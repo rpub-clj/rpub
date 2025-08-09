@@ -1,8 +1,8 @@
 (ns rpub.plugins.admin.themes.all-themes-page
   (:require ["react" :refer [useEffect]]
-            [rpub.lib.dag.react :refer [use-dag]]
             [rpub.lib.html :as html]
             [rpub.lib.http :as http]
+            [rpub.lib.substrate :refer [subscribe dispatch]]
             [rpub.plugins.admin.helpers :as helpers]
             [rpub.plugins.admin.roles :as roles]))
 
@@ -15,16 +15,16 @@
    [:path {:fill-rule "evenodd" :d "M13 10a1 1 0 0 1 1-1h.01a1 1 0 1 1 0 2H14a1 1 0 0 1-1-1Z" :clip-rule "evenodd"}]
    [:path {:fill-rule "evenodd" :d "M2 6a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v12c0 .556-.227 1.06-.593 1.422A.999.999 0 0 1 20.5 20H4a2.002 2.002 0 0 1-2-2V6Zm6.892 12 3.833-5.356-3.99-4.322a1 1 0 0 0-1.549.097L4 12.879V6h16v9.95l-3.257-3.619a1 1 0 0 0-1.557.088L11.2 18H8.892Z" :clip-rule "evenodd"}]])
 
-(defn activate-theme! [e theme push]
+(defn activate-theme! [e theme]
   (.preventDefault e)
   (let [body {:settings [{:key :theme-name, :value (:label theme)}]}]
     (-> (http/post "/admin/api/update-settings" {:body body})
-        (.then (fn [_] (push ::activate-theme (:label theme)))))))
+        (.then (fn [_] (dispatch [::activate-theme (:label theme)]))))))
 
 (defn- page [{:keys [theme-name-setting current-user] :as props}]
-  (let [[{:keys [::current-theme-name-setting ::themes]}
-         push] (use-dag [::current-theme-name-setting ::themes])
-        _ (useEffect (fn [] (push ::init props)) #js[])
+  (let [current-theme-name-setting (subscribe [::current-theme-name-setting])
+        themes (subscribe [::themes])
+        _ (useEffect (fn [] (dispatch [::init props])) #js[])
         theme-name-value (:value (or current-theme-name-setting
                                      theme-name-setting))
         activated? #(= (:label %) theme-name-value)]
@@ -62,7 +62,7 @@
                         [:path {:fill-rule "evenodd" :d "M2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10S2 17.523 2 12Zm13.707-1.293a1 1 0 0 0-1.414-1.414L11 12.586l-1.793-1.793a1 1 0 0 0-1.414 1.414l2.5 2.5a1 1 0 0 0 1.414 0l4-4Z" :clip-rule "evenodd"}]]
                        "Active"]]
                      [:button {:class "font-app-sans inline-flex items-center px-5 py-2.5 text-sm font-medium text-center text-white bg-blue-700 rounded-lg focus:ring-4 focus:ring-primary-200 hover:bg-primary-800 shadow-sm w-44"
-                               :on-click #(activate-theme! % theme push)
+                               :on-click #(activate-theme! % theme)
                                :type "submit"}
                       [:div {:class "inline-flex items-center mx-auto"}
                        [:svg {:class "w-6 h-6 text-white mr-2" :aria-hidden "true" :xmlns "http://www.w3.org/2000/svg" :width "24" :height "24" :fill "currentColor" :viewBox "0 0 24 24"}
@@ -73,24 +73,22 @@
           (when-let [v (:description theme)]
             [:p v])}]])]))
 
-(defn init [db {:keys [themes]}]
+(defn init [db [_ {:keys [themes]}]]
   (merge db {::themes themes}))
 
-(defn activate-theme [db theme-label]
+(defn activate-theme [db [_ theme-label]]
   (assoc db ::current-theme-name-setting {:value theme-label}))
 
-(def dag-config
-  {:nodes
-   {::init {:push init}
-    ::activate-theme {:push activate-theme}
-    ::current-theme-name-setting {:calc ::current-theme-name-setting}
-    ::themes {:calc ::themes}}
+(def model
+  {:queries
+   {::current-theme-name-setting ::current-theme-name-setting
+    ::themes ::themes}
 
-   :edges
-   [[::activate-theme ::current-theme-name-setting]
-    [::init ::themes]]})
+   :transactions
+   {::init init
+    ::activate-theme activate-theme}})
 
 (def config
   {:page-id :all-themes-page
    :component page
-   :dag-config dag-config})
+   :model model})

@@ -306,10 +306,6 @@
      "react/jsx-runtime" "https://cdn.jsdelivr.net/npm/preact@10.25.0/jsx-runtime/dist/jsxRuntime.module.js"}
     cljs-repl (merge {"preact/debug" "https://cdn.jsdelivr.net/npm/preact@10.25.0/debug/dist/debug.module.js"})))
 
-(defn- dev-dag-imports [{:keys [cljs-repl] :as _req}]
-  (when cljs-repl
-    {"@xyflow/react" "/js/rpub/dev/xyflow-react-bundle.js"}))
-
 (defn- flowbite-imports []
   {"flowbite" "https://cdn.jsdelivr.net/npm/flowbite@3.1.2/+esm"})
 
@@ -325,7 +321,6 @@
   (merge (cherry-imports req)
          (flowbite-imports)
          (transit-js-imports)
-         (dev-dag-imports req)
          (preact-imports req)))
 
 (defn- load-import-map [req]

@@ -47,6 +47,13 @@
   (html/add-element :rpub-field-types-datetime
                     (r/reactify-component rpub-field-types-datetime)))
 
+(def model
+  (merge-with
+    merge
+    (:model all-content-types-page/config)
+    (:model single-content-item-page/config)
+    (:model single-content-type-page/config)))
+
 (defn add-pages [& {:as opts}]
   (admin-helpers/add-page (merge opts all-content-types-page/config))
   (admin-helpers/add-page (merge opts single-content-item-page/config))

@@ -24,11 +24,16 @@
 
 (def conn (atom {}))
 
+(def model
+  (merge-with
+    merge
+    forms/model
+    (:model all-themes-page/config)
+    (:model plugins-page/config)
+    content-types-admin/model))
+
 (defn substrate []
-  (subs-react/substrate
-    {:conn conn
-     :query forms/query
-     :transact forms/transact}))
+  (subs-react/substrate {:conn conn, :model model}))
 
 (defn start! [& {:as opts}]
   (subs/set-global! (substrate))

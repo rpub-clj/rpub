@@ -58,7 +58,6 @@
         ready-to-submit (subscribe [::forms/ready-to-submit form])
         field-values (subscribe [::forms/field-values form])
         _ (useEffect (fn [] (dispatch [::forms/init form])) #js[])]
-    (prn 'page {:field-values field-values})
     [:div {:class "p-4"}
      [helpers/box
       {:class "mb-4"
