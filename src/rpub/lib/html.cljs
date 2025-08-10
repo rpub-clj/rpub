@@ -149,7 +149,8 @@
             (when readonly {:readonly readonly}))]))
 
 (defn input2 [props]
-  (let [{:keys [key type class valid size value placeholder on-change readonly]
+  (let [{:keys [key type class valid touched size value placeholder on-change
+                on-blur readonly]
          :or {valid true}
          input-name :name} props]
     [:input
@@ -157,7 +158,7 @@
              :type (name type)
              :class (str "border bg-gray-50 text-gray-900 rounded-lg block w-full
                          p-2.5 "
-                         (if valid
+                         (if (or valid (not touched))
                            "border-gray-300 focus:ring-primary-600 focus:border-blue-600"
                            "bg-red-50 border-red-500 focus:ring-red-500")
                          " "
@@ -167,6 +168,7 @@
              :name (name input-name)
              :placeholder placeholder
              :on-change on-change
+             :on-blur on-blur
              :value value}
             (when readonly {:readonly readonly}))]))
 

@@ -39,7 +39,8 @@
                            :password password
                            :current-user current-user)]
     (users/create-user! model user)
-    (response/redirect "/admin/users")))
+    (-> (response/response {:success true})
+        (response/status 201))))
 
 (defn routes [{:keys [admin-middleware]}]
   [["" {:middleware admin-middleware}

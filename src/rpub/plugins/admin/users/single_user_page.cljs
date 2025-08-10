@@ -14,36 +14,41 @@
    :roles {:valid #(and (string? %) (seq %))
            :message "Required"}})
 
-(defn html-input [{:keys [value valid on-change type name]}]
+(defn html-input [{:keys [value touched valid on-change on-blur type name]}]
   [html/input2
    {:type type
     :name name
     :value value
-    :class (if (false? valid) "border-red-500" "")
+    :class (if (or valid (not touched)) "" "border-red-500")
+    :on-blur on-blur
     :on-change on-change}])
 
-(defn new-user-page [_]
-  (let [form {:id ::form, :schema form-schema}
+(defn page [_]
+  (let [form {:id ::form
+              :schema form-schema
+              :initial-values {:username "", :password "", :roles ""}}
         submitting (subscribe [::forms/submitting form])
-        ready-to-submit (subscribe [::forms/ready-to-submit form])
+        field-values (subscribe [::forms/field-values form])
         _ (useEffect (fn [] (dispatch [::forms/init form])) #js[])
-        submit-form (fn [e]
-                      (.preventDefault e)
-                      (when ready-to-submit
-                        (dispatch ::submit-start)
-                        (-> (http/post "/admin/api/create-user" {:body {} #_field-values})
-                            (.then (fn [_] (.reload (.-location js/window))))
-                            (.catch (fn [_] (dispatch ::submit-error))))))
+        submit-form (fn [_]
+                      (let [body (update-vals field-values :value)]
+                        (dispatch [::forms/submit-start])
+                        (prn 'started)
+                        (-> (http/post "/admin/api/create-user" {:body body})
+                            (.then (fn [_] (set! js/window.location "/admin/users")))
+                            (.catch (fn [_] (dispatch [::forms/submit-error]))))))
         fields-config [{:key :username, :label "Username", :type :text}
                        {:key :password, :label "Password", :type :password}
-                       #_{:key :roles, :label "Roles", :type :text}]]
+                       {:key :roles, :label "Roles", :type :text}]]
     [:div {:class "p-4"}
      [helpers/box
       {:title "New User"
        :content
        [:section {:class "bg-white"}
         [:div {:class "max-w-2xl"}
-         [:form {:on-submit submit-form}
+         [:form {:on-submit (fn [e]
+                              (.preventDefault e)
+                              (dispatch [::forms/submit-form form submit-form]))}
           [:div {:class "grid gap-4 sm:grid-cols-2 sm:gap-6"}
            (for [field-config fields-config]
              [forms/field {:form form
@@ -51,16 +56,8 @@
                            :input-component html-input}])
            [html/submit-button {:ready-label "Create"
                                 :submit-label "Creating..."
-                                :submitting submitting
-                                :disabled (not ready-to-submit)}]]]]]}]]))
-
-(defn edit-user-page [_])
-
-(defn- single-user-page [{:keys [editing] :as props}]
-  (if editing
-    [edit-user-page props]
-    [new-user-page props]))
+                                :submitting submitting}]]]]]}]]))
 
 (def config
   {:page-id :single-user-page
-   :component single-user-page})
+   :component page})

@@ -12,16 +12,15 @@
    :html-template {:valid #(and (string? %) (seq %))
                    :message "Required"}})
 
-(defn html-input [{:keys [value valid on-change]}]
+(defn html-input [{:keys [value valid touched on-change]}]
   [:textarea {:class (str "w-full min-h-96 font-app-mono text-sm rounded-[6px] "
-                          (if valid
+                          (if (or valid (not touched))
                             "border-gray-300 focus:ring-primary-600 focus:border-blue-600"
                             "bg-red-50 border-red-500 focus:ring-red-500"))
               :value value
               :on-change on-change}])
 
-(defn submit-form [e theme field-values]
-  (.preventDefault e)
+(defn submit-form [theme field-values]
   (let [label (:label field-values)
         html-template (:html-template field-values)
         body {:theme (-> theme
@@ -55,7 +54,6 @@
 (defn page [{:keys [theme] :as _props}]
   (let [form (->form theme)
         submitting (subscribe [::forms/submitting form])
-        ready-to-submit (subscribe [::forms/ready-to-submit form])
         field-values (subscribe [::forms/field-values form])
         _ (useEffect (fn [] (dispatch [::forms/init form])) #js[])]
     [:div {:class "p-4"}
@@ -74,7 +72,9 @@
                    "Delete"])]]}]
      [helpers/box
       {:content
-       [:form {:on-submit #(submit-form % theme field-values)}
+       [:form {:on-submit (fn [e]
+                            (.preventDefault e)
+                            (dispatch [::forms/submit-form form #(submit-form theme field-values)]))}
         [:div {:class "grid gap-4 sm:grid-cols-2 sm:gap-6"}
          [:div {:class "max-w-2xl"}
           [forms/field {:form form
@@ -89,11 +89,9 @@
         (if (:new theme)
           [html/submit-button {:ready-label "Create"
                                :submit-label "Creating..."
-                               :disabled (not ready-to-submit)
                                :submitting submitting}]
           [html/submit-button {:ready-label "Save"
                                :submit-label "Saving..."
-                               :disabled (not ready-to-submit)
                                :submitting submitting}])]}]]))
 
 (def config
