@@ -9,7 +9,9 @@
 (def ^:private users-columns
   [{:name "Username"
     :value (fn [{:keys [username]}]
-             [:a {:class "font-semibold"} username])}
+             [:a {:class "font-semibold underline"
+                  :href (str "/admin/users/" username)}
+              username])}
    {:name "Roles"
     :value (fn [{:keys [roles]}]
              (str/join ", " (map :label roles)))}])

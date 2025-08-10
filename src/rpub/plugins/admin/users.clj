@@ -32,6 +32,22 @@
      (html/custom-element
        [:single-user-page {}])}))
 
+(defn edit-user-handler [{:keys [current-user model path-params] :as req}]
+  (roles/assert-allowed current-user {:resource :users, :action :create})
+  (let [[user] (users/get-users model {:usernames [(:username path-params)]})]
+    (helpers/page-response
+      req
+      {:title "Edit User"
+       :primary
+       (html/custom-element
+         [:single-user-page {:user user}])})))
+
+(defn single-user-handler [{:keys [path-params] :as req}]
+  (let [{:keys [username]} path-params]
+    (if (= username "new")
+      (new-user-handler req)
+      (edit-user-handler req))))
+
 (defn- create-user-handler [{:keys [model current-user body-params] :as _req}]
   (roles/assert-allowed current-user {:resource :users, :action :create})
   (let [{:keys [username password]} body-params
@@ -46,4 +62,4 @@
   [["" {:middleware admin-middleware}
     ["/admin/api/create-user" {:post #'create-user-handler}]
     ["/admin/users" {:get #'users-handler}]
-    ["/admin/users/new" {:get #'new-user-handler}]]])
+    ["/admin/users/{user-id}" {:get #'single-user-handler}]]])

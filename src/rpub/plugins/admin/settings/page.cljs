@@ -35,7 +35,6 @@
              [:div {:key (:key setting) :class "sm:col-span-2"}
               [:label {:class "block mb-2 text-sm font-semibold text-gray-900" :for "name"}
                (:label setting)]
-              (prn setting)
               [html/input2
                {:type :text
                 :name (:key setting)
